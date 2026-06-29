@@ -10,6 +10,7 @@
     .container { max-width: 850px; margin: 30px auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 32px; }
     .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eef2ee; padding-bottom: 12px; margin-bottom: 20px; }
     
+    /* 臨床生理資料卡 */
     .patient-card { background: #f0f7f4; padding: 20px; border-radius: 12px; border: 1px solid #cce0cc; margin-bottom: 20px; }
     .patient-card h3 { margin: 0 0 14px 0; color: #1abc68; font-size: 16px; border-left: 4px solid #1abc68; padding-left: 8px; }
     .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
@@ -18,6 +19,7 @@
     .form-group input, .form-group select { padding: 10px; border: 1px solid #cce0cc; border-radius: 6px; font-size: 14px; }
     .form-group input:focus, .form-group select:focus { border-color: #1abc68; outline: none; }
     
+    /* 模式控制面板 */
     .control-panel { background: #f8f9fa; border: 1px solid #e2e8f0; padding: 16px; border-radius: 12px; margin-bottom: 20px; display: flex; gap: 16px; flex-wrap: wrap; }
     .panel-group { flex: 1; min-width: 200px; }
     .panel-group label { display: block; font-weight: bold; margin-bottom: 8px; font-size: 14px; color: #4a5568; }
@@ -27,6 +29,7 @@
     
     .chart-container { position:relative; aspect-ratio:2/1; width:100%; max-width:650px; margin:20px auto; }
     
+    /* 臨床警示 Banner */
     .alert-banner { display: none; background: #fff5f5; border: 1px solid #fed7d7; color: #c53030; padding: 12px; border-radius: 8px; margin: 12px 0; font-weight: bold; font-size: 16px; text-align: center; animation: blink 1s infinite alternate; }
     @keyframes blink { 0% { box-shadow: 0 0 4px #feb2b2; } 100% { box-shadow: 0 0 12px #f56565; background: #fff; } }
     
@@ -37,11 +40,14 @@
     .light.green { background: #00ffe8; box-shadow: 0 0 8px #00ffe8; }
     .light.grey { background: #ccc; }
 
+    /* 原本硬體流程的圖片與文字引導區 */
+    #instruction { font-size: 16px; line-height: 1.5; color: #444; background: #fff8e1; border: 1px solid #ffe082; padding: 12px; border-radius: 8px; margin: 12px 0; display: none; }
     .image-row { display: flex; justify-content: center; align-items: flex-end; gap: 18px; margin: 16px 0; flex-wrap: wrap; }
     .imgbox { display: flex; flex-direction: column; align-items: center; }
-    .imgbox img { height: 200px; width: auto; object-fit: contain; background: #f7faf7; border-radius: 10px; box-shadow: 0 1px 4px #e0e0e0; max-width: 280px; display: block; }
+    .imgbox img { height: 180px; width: auto; object-fit: contain; background: #f7faf7; border-radius: 10px; box-shadow: 0 1px 4px #e0e0e0; max-width: 250px; display: block; }
     .imgbox .caption { font-size: 14px; color: #666; margin-top: 6px; text-align: center; font-weight: bold; }
 
+    /* 擬真肺部解剖形變動畫容器 */
     #lungsBox { display: none; width: 267px; height: 234px; margin: 24px auto; position: relative; perspective: 1000px; }
     #lungsImg { 
       width: 100%; height: 100%; display: block; 
@@ -89,7 +95,7 @@
         <div class="form-group">
           <label>身分證字號</label>
           <input id="patientName" placeholder="e.g. A123456789" maxlength="10" />
-          <div id="idError" class="error-text">身分證格式錯誤</div>
+          <div id="idError" class="error-text">身分證格式錯誤 (必須為1碼大寫英文 + 9碼數字)</div>
         </div>
         <div class="form-group">
           <label>生理性別</label>
@@ -138,9 +144,9 @@
       <div class="light grey" id="light3"></div>
     </div>
 
+    <div id="instruction"></div>
     <div class="image-row" id="stepImages"></div>
-    <div id="instruction" style="font-size: 16px; margin: 10px 0; color: #e67e22; font-weight: bold;"></div>
-
+    
     <div class="chart-container" id="chartBox">
       <canvas id="flowChart"></canvas>
     </div>
@@ -168,33 +174,13 @@ const SUPABASE_URL = 'https://supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpxZHRsa3h2eXJycG5ia3lpaWdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgyNTAwMTksImV4cCI6MjA2MzgyNjAxOX0.6ufrl0cNDT1LZqge0yTEGzzJ4IlYYubtKis2_ewkERw';
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// 醫療引導文字與指示燈矩陣
-const instructions = [
-  "請先取下吸入器蓋子，然後放置吸入器。若燈未亮，請向左（順時針）旋轉，左側第一顆指示燈應亮綠色。",
-  "請確定吸入器蓋子已取下，然後向右（逆時針）旋轉以釋放劑量，第二顆燈應亮綠色。",
-  "現在可以吸入藥劑：請將吸嘴含入口中，用力深吸，移開吸入器並屏住呼吸約10秒。",
-  "吸入器使用完成，裝置將於10秒後關閉。"
-];
-const stepImagesData = [
-  [{ src: "img/lidOff_correct.png", alt: "取下蓋子", caption: "取下吸入器蓋子" }, { src: "img/clockwise.png", alt: "順時針", caption: "插入裝置底座順時針旋轉" }],
-  [{ src: "img/lidOff_highRes.png", alt: "取下蓋子", caption: "取下吸入器蓋子" }, { src: "img/counterclockwise.png", alt: "逆時針", caption: "逆時針旋轉" }],
-  [{ src: "img/breatheOutandIn.png", alt: "吐氣吸氣", caption: "吐氣3秒後深吸3秒" }],
-  []
-];
-const lightModes = [
-  ['grey', 'grey', 'grey'],
-  ['green', 'red', 'red'],
-  ['green', 'green', 'red'],
-  ['green', 'green', 'green']
-];
-
-// 動態臨床常模邊界值
 let TARGET_IN_MIN = 60;
 let TARGET_IN_MAX = 90;
 let DANGER_LIMIT_IN = 130;
 let TARGET_OUT_MIN = -450;
 let TARGET_OUT_MAX = -300;
 let DANGER_LIMIT_OUT = -650;
+
 let testMode = 'single';
 let flowDirection = 'inhale';
 let serialPort, reader;
@@ -204,25 +190,56 @@ let lastValue = 0;
 let audioCtx = null;
 let currentStep = 0;
 
+// ✅ 正確的台灣身分證正規表達式：1碼大寫英文 + 9碼數字 (總共10碼)
+const idRegex = /^[A-Z]\d{9}$/;
+
 const inputs = ['patientId', 'patientName', 'patientGender', 'patientAge', 'patientHeight'].map(id => document.getElementById(id));
 const idError = document.getElementById('idError');
 const connectBtn = document.getElementById('connectBtn');
 const saveBtn = document.getElementById('saveBtn');
 const alertBanner = document.getElementById('alertBanner');
 const statusBanner = document.getElementById('statusBanner');
-const idRegex = /^[A-Z]\d{8}$/;
 
-// 醫學常模推算
+// 原本硬體流程的數據庫
+const instructions = [
+  "請先取下吸入器蓋子，然後放置吸入器。若燈未亮，請向左（順時針）旋轉，左側第一顆指示燈應亮綠色。",
+  "請確定吸入器蓋子已取下，然後向右（逆時針）旋轉以釋放劑量，第二顆燈應亮綠色。",
+  "現在可以吸入藥劑：請將吸嘴含入口中，用力深吸，移開吸入器並屏住呼吸約10秒。",
+  "吸入器使用完成，裝置將於10秒後關閉。"
+];
+
+const stepImagesData = [
+  [
+    { src: "img/lidOff_correct.png", alt: "取下吸入器蓋子", caption: "取下吸入器蓋子" },
+    { src: "img/clockwise.png", alt: "順時針旋轉", caption: "插入裝置底座順時針旋轉" }
+  ],
+  [
+    { src: "img/lidOff_highRes.png", alt: "取下吸入器蓋子", caption: "取下吸入器蓋子" },
+    { src: "img/counterclockwise.png", alt: "逆時針旋轉", caption: "逆時針旋轉" }
+  ],
+  [
+    { src: "img/breatheOutandIn.png", alt: "吐氣吸氣示意", caption: "吐氣3秒後深吸3秒" }
+  ],
+  []
+];
+
+const lightModes = [
+  ['grey', 'grey', 'grey'],
+  ['green', 'red', 'red'],
+  ['green', 'green', 'red'],
+  ['green', 'green', 'green']
+];
+
 function calculateMedicalPredicted() {
   const pId = document.getElementById('patientId').value.trim();
   const pName = document.getElementById('patientName').value.trim();
   const gender = document.getElementById('patientGender').value;
   const age = parseFloat(document.getElementById('patientAge').value);
   const height = parseFloat(document.getElementById('patientHeight').value);
+
   const isIdValid = idRegex.test(pName);
-  
   idError.style.display = (pName.length > 0 && !isIdValid) ? 'block' : 'none';
-  
+
   if (pId && isIdValid && gender && !isNaN(age) && !isNaN(height)) {
     let predictedPEF_Lmin = 0;
     if (gender === 'male') {
@@ -257,26 +274,30 @@ function calculateMedicalPredicted() {
 inputs.forEach(el => el.addEventListener('input', calculateMedicalPredicted));
 document.getElementById('patientGender').addEventListener('change', calculateMedicalPredicted);
 
-// 步驟控制狀態機 (setStep)
+// ✅ 完美接回原本硬體的步驟控制功能 (setStep)
 function setStep(step) {
   currentStep = step;
-  // 1. 驅動指示燈
+  // 更新指示燈
   const lights = lightModes[step];
   for (let i = 0; i < 3; i++) {
     document.getElementById('light' + (i + 1)).className = 'light ' + lights[i];
   }
-  // 2. 更新引導文字
-  document.getElementById('instruction').innerHTML = instructions[step];
-  // 3. 動態渲染對應圖片
+  // 更新文字指引
+  const instEl = document.getElementById('instruction');
+  instEl.style.display = 'block';
+  instEl.innerHTML = instructions[step];
+  // 更新步驟對應圖片
   const imageRow = document.getElementById('stepImages');
   imageRow.innerHTML = '';
-  stepImagesData[step].forEach(img => {
-    const box = document.createElement('div');
-    box.className = 'imgbox';
-    box.innerHTML = `<img src="${img.src}" alt="${img.alt}"><div class="caption">${img.caption}</div>`;
-    imageRow.appendChild(box);
-  });
-  // 4. 控制肺部動畫顯示時機
+  if (stepImagesData[step]) {
+    stepImagesData[step].forEach(img => {
+      const box = document.createElement('div');
+      box.className = 'imgbox';
+      box.innerHTML = `<img src="${img.src}" alt="${img.alt}"><div class="caption">${img.caption}</div>`;
+      imageRow.appendChild(box);
+    });
+  }
+  // 控制肺部動畫出現時機
   const lungsBox = document.getElementById('lungsBox');
   if (step === 2 || step === 3) {
     lungsBox.style.display = 'block';
@@ -285,7 +306,6 @@ function setStep(step) {
   }
 }
 
-// 模式與流向按鈕切換
 document.getElementById('btnModeSingle').addEventListener('click', () => {
   testMode = 'single';
   document.getElementById('btnModeSingle').classList.add('active');
@@ -311,7 +331,6 @@ document.getElementById('directionOut').addEventListener('click', () => {
   updateChartAxes();
 });
 
-// 初始化 Chart.js
 const ctx = document.getElementById('flowChart').getContext('2d');
 let flowChart = new Chart(ctx, {
   type: 'line',
@@ -340,7 +359,6 @@ function updateChartAxes() {
   flowChart.update();
 }
 
-// 肺部組織膨脹動畫
 function updateLungAnatomyAnimation(rawValue) {
   const img = document.getElementById('lungsImg');
   const feDisp = document.getElementById('feDisplacement');
@@ -368,7 +386,6 @@ function updateLungAnatomyAnimation(rawValue) {
   }
 }
 
-// 音效警報
 function playMedicalAlert(type) {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -388,7 +405,6 @@ function playMedicalAlert(type) {
   }
 }
 
-// 區間安全演算
 function evaluateClinicalRange(val) {
   const alertEl = document.getElementById('alertBanner');
   const clinicalEl = document.getElementById('clinicalStatus');
@@ -436,16 +452,16 @@ function evaluateClinicalRange(val) {
   }
 }
 
-// Web Serial 連接
 connectBtn.addEventListener('click', async () => {
   try {
     statusBanner.textContent = '進行序列埠連線中...';
     serialPort = await navigator.serial.requestPort();
     await serialPort.open({ baudRate: 115200 });
     statusBanner.style.color = '#2b6cb0';
-    statusBanner.textContent = '🟢 串列埠連線完成。已啟動設備對接。';
+    statusBanner.textContent = '🟢 串列埠連線完成。請開始進行呼吸量測。';
     connectBtn.classList.add('hidden');
-    setStep(0); // 初始化啟動步驟 0
+    // 連線成功時自動初始化硬體第一步
+    setStep(0);
     readSerialStream();
   } catch (err) {
     statusBanner.textContent = '❌ 連線失敗：' + err.message;
@@ -458,6 +474,7 @@ if ('serial' in navigator) {
     statusBanner.textContent = '❌ 裝置已斷線';
     connectBtn.classList.remove('hidden');
     saveBtn.disabled = true;
+    // 斷線還原灰色燈號
     for (let i = 1; i <= 3; i++) { 
       document.getElementById('light' + i).className = 'light grey'; 
     }
@@ -483,23 +500,27 @@ async function readSerialStream() {
   } catch (err) { console.error(err); }
 }
 
-// 處理硬體數據
 function parseHardwareData(line) {
   if (!line) return;
+  // ✅ 接回原本硬體主動傳送的步驟指令解析
+  if (line.startsWith('STEP:')) {
+    const stepNum = parseInt(line.split(':')[1], 10);
+    if (!isNaN(stepNum) && stepNum >= 0 && stepNum <= 3) {
+      setStep(stepNum);
+    }
+    return;
+  }
+
   let rawValue = parseFloat(line);
   if (isNaN(rawValue)) return;
-  
   if (flowDirection === 'exhale' && rawValue > 0) {
     rawValue = rawValue * -1;
   }
-  
   document.getElementById('flowValue').textContent = rawValue.toFixed(2);
   if (startTime === null) startTime = Date.now();
   const elapsed = ((Date.now() - startTime) / 1000);
-  
   flowChart.data.labels.push(elapsed.toFixed(1));
   flowChart.data.datasets[0].data.push(rawValue);
-  
   if(flowChart.data.labels.length > 60) {
     flowChart.data.labels.shift();
     flowChart.data.datasets[0].data.shift();
@@ -507,12 +528,10 @@ function parseHardwareData(line) {
   flowChart.update();
   updateLungAnatomyAnimation(rawValue);
   evaluateClinicalRange(rawValue);
-  
   flowData.push({ time: elapsed.toFixed(1), value: rawValue });
   saveBtn.disabled = false;
 }
 
-// 儲存至 Supabase 雲端
 saveBtn.addEventListener('click', async () => {
   try {
     saveBtn.disabled = true;
