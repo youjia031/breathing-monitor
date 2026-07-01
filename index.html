@@ -20,7 +20,7 @@
     .btn-connect { background: #009688; color: #fff; }
     .btn-connect.connected { background: #e91e63 !important; }
     
-    /* ✅ 升級版：圖表左側複合控制面板 */
+    /* 圖表左側複合控制面板 */
     .timer-sidebar { display: flex; flex-direction: column; gap: 12px; background: #f4f7fa; padding: 16px; border-radius: 12px; border: 2px solid #d0e0f0; min-width: 160px; box-sizing: border-box; justify-content: flex-start; }
     .sidebar-divider { border-top: 1px dashed #cbd5e1; margin: 6px 0; }
     
@@ -449,7 +449,7 @@ function evaluateInstantRange(flow) {
 }
 
 /** ==========================================
- * 📊 4. Chart.js 圖表配置 (高清晰縱軸刻度設計)
+ * 📊 4. Chart.js 圖表配置
  * ========================================== */
 const ctx = document.getElementById('flowChart').getContext('2d');
 let chartData = {
@@ -475,18 +475,8 @@ const flowChart = new Chart(ctx, {
         min: -100, 
         max: 100, 
         title: { display: true, text: '吸氣 (+) / 吐氣 (-)', font: { size: 14, weight: 'bold' } },
-        grid: {
-          color: 'rgba(0, 0, 0, 0.08)' 
-        },
-        ticks: {
-          autoSkip: false,
-          stepSize: 20,
-          font: {
-            size: 15,          
-            weight: 'bold'     
-          },
-          padding: 12          
-        }
+        grid: { color: 'rgba(0, 0, 0, 0.08)' },
+        ticks: { autoSkip: false, stepSize: 20, font: { size: 15, weight: 'bold' }, padding: 12 }
       }
     }
   }
@@ -496,20 +486,14 @@ document.getElementById('yScaleSelect').onchange = function() {
   const limit = parseInt(this.value);
   flowChart.options.scales.y.min = -limit;
   flowChart.options.scales.y.max = limit;
-  
-  if (limit <= 30) {
-    flowChart.options.scales.y.ticks.stepSize = 10;
-  } else if (limit <= 100) {
-    flowChart.options.scales.y.ticks.stepSize = 20;
-  } else {
-    flowChart.options.scales.y.ticks.stepSize = 30;
-  }
-  
+  if (limit <= 30) { flowChart.options.scales.y.ticks.stepSize = 10; } 
+  else if (limit <= 100) { flowChart.options.scales.y.ticks.stepSize = 20; } 
+  else { flowChart.options.scales.y.ticks.stepSize = 30; }
   flowChart.update();
 };
 
 /** ==========================================
- * 🎛️ 5. 序列埠核心與計時器控制邏輯
+ * 🎛️ 5. 序列埠核心
  * ========================================== */
 function handleSerialLine(line) {
   if (!line) return;
@@ -519,7 +503,6 @@ function handleSerialLine(line) {
   if (match) {
     let rawFlow = parseFloat(match[1]);
     if (isNaN(rawFlow)) return;
-
     if (!isTimerRunning) return;
 
     if (currentDetectionMode === 'in' && rawFlow < 0) rawFlow = 0;
@@ -572,14 +555,8 @@ async function closeHardwareConnection() {
 }
 
 document.getElementById('connectBtn').onclick = async function () {
-  if (keepReading) {
-    await closeHardwareConnection();
-    return;
-  }
-  if (!('serial' in navigator)) {
-    alert('您的瀏覽器不支援 Web Serial API，請使用 Chrome 瀏覽器。');
-    return;
-  }
+  if (keepReading) { await closeHardwareConnection(); return; }
+  if (!('serial' in navigator)) { alert('您的瀏覽器不支援 Web Serial API，請使用 Chrome 瀏覽器。'); return; }
   try {
     serialPort = await navigator.serial.requestPort();
     await serialPort.open({ baudRate: 9600 });
@@ -588,10 +565,8 @@ document.getElementById('connectBtn').onclick = async function () {
     this.classList.add('connected');
     document.getElementById('status').innerText = "狀態：硬體連線成功！請在圖表左側設定計時器並按下 [開始] 進行施測。";
     
-    const initSec = parseInt(document.getElementById('timerLengthInput').value) || 60;
-    timeLeft = initSec;
-    document.getElementById('countdownBox').innerText = `${timeLeft} 秒`;
-
+    // 連接時也抓一次
+    syncTimerFromInput();
     listenSerial();
   } catch (e) {
     document.getElementById('status').innerText = "連線失敗：" + e.message;
@@ -613,16 +588,29 @@ async function listenSerial() {
         for (let line of lines) { handleSerialLine(line.trim()); }
       }
     }
-  } catch (error) {
-    resetSerialConnectionUI();
-  } finally {
-    try { reader.releaseLock(); } catch(e){}
-  }
+  } catch (error) { resetSerialConnectionUI(); } 
+  finally { try { reader.releaseLock(); } catch(e){} }
 }
 
 /** ==========================================
- * ⏱️ 6. 獨立計時器三鍵控制功能
+ * ⏱️ 6. 獨立計時器三鍵控制功能 (包含即時同步優化)
  * ========================================== */
+const timerInputEl = document.getElementById('timerLengthInput');
+const countdownBoxEl = document.getElementById('countdownBox');
+
+// 🟢 核心修正：新增獨立同步函式
+function syncTimerFromInput() {
+  if (!isTimerRunning) {
+    const sec = parseInt(timerInputEl.value);
+    timeLeft = isNaN(sec) || sec < 5 ? 60 : sec;
+    countdownBoxEl.innerText = `${timeLeft} 秒`;
+  }
+}
+
+// 🟢 當施測者手動改打數字時，立刻即時顯示更新
+timerInputEl.addEventListener('input', syncTimerFromInput);
+timerInputEl.addEventListener('change', syncTimerFromInput);
+
 document.getElementById('timerStartBtn').onclick = function() {
   if (!keepReading) {
     alert("請先點擊「連接外接裝置」，確認硬體連線後再開始計時施測！");
@@ -630,20 +618,25 @@ document.getElementById('timerStartBtn').onclick = function() {
   }
   if (isTimerRunning) return;
 
+  // 🟢 開始前往前，再次確保與當前輸入數值 100% 同步 (若是重頭錄製)
+  if (!startTime) {
+    syncTimerFromInput();
+  }
+
   isTimerRunning = true;
-  document.getElementById('timerLengthInput').disabled = true;
+  timerInputEl.disabled = true;
   document.getElementById('status').innerText = "狀態：⏱️ 計時錄製中...";
   if (!startTime) startTime = Date.now();
 
   testTimerId = setInterval(async () => {
     timeLeft--;
     if (timeLeft <= 0) {
-      document.getElementById('countdownBox').innerText = "0 秒 (完成)";
+      countdownBoxEl.innerText = "0 秒 (完成)";
       playAlertTone(523, 'sine', 0.5);
       pauseTimerLogic();
       document.getElementById('status').innerText = "狀態：🔓 施測時間到，數據錄製安全凍結。";
     } else {
-      document.getElementById('countdownBox').innerText = `${timeLeft} 秒`;
+      countdownBoxEl.innerText = `${timeLeft} 秒`;
     }
   }, 1000);
 };
@@ -657,25 +650,21 @@ document.getElementById('timerPauseBtn').onclick = pauseTimerLogic;
 
 document.getElementById('timerResetBtn').onclick = function() {
   pauseTimerLogic();
-  const initSec = parseInt(document.getElementById('timerLengthInput').value) || 60;
-  timeLeft = initSec;
   startTime = null; 
-  document.getElementById('timerLengthInput').disabled = false;
-  document.getElementById('countdownBox').innerText = `${timeLeft} 秒`;
+  timerInputEl.disabled = false;
+  syncTimerFromInput(); // 🟢 重置回輸入框的值
   document.getElementById('status').innerText = "狀態：計時器時間已重置，可重新點擊 [開始] 錄製。";
 };
 
 /** ==========================================
- * 🔄 7. 全網頁/全系統重置鍵 (免重新整理網頁)
+ * 🔄 7. 全網頁/全系統重置鍵
  * ========================================== */
 document.getElementById('resetAllBtn').onclick = async function() {
   if(confirm("確定要進行「全系統重置」嗎？這將會清除當前畫面的所有數據、波形與病患個資。")) {
     pauseTimerLogic();
-    const initSec = parseInt(document.getElementById('timerLengthInput').value) || 60;
-    timeLeft = initSec;
     startTime = null;
-    document.getElementById('timerLengthInput').disabled = false;
-    document.getElementById('countdownBox').innerText = `${timeLeft} 秒`;
+    timerInputEl.disabled = false;
+    syncTimerFromInput();
 
     if (keepReading) { await closeHardwareConnection(); }
 
@@ -706,7 +695,7 @@ document.getElementById('resetAllBtn').onclick = async function() {
 };
 
 /** ==========================================
- * ⚙️ 8. 其他按鍵事件與下載功能
+ * ⚙️ 8. 其他功能
  * ========================================== */
 const setupModeBtn = (id, val, txt) => {
   document.getElementById(id).onclick = function() {
@@ -730,11 +719,9 @@ setupModeBtn('cycleMulti', 'multi', '連續多次生理長效監測模式');
 document.getElementById('saveBtn').onclick = function() {
   const id = document.getElementById('patientId').value.trim() || "TEST";
   const idCard = document.getElementById('patientIDCard').value.trim().toUpperCase() || "UNKNOWN";
-  
   let content = `====================================\n  AI智慧型雙向呼吸流量生理監測報告\n====================================\n`;
   content += `病患內部病歷ID: ${id}\n身分證字號: ${idCard}\n------------------------------------\n時間序列(秒)\t流速數據(L/min)\n`;
   flowData.forEach(([t, f]) => { content += `${t}\t${f.toFixed(2)}\n`; });
-  
   const blob = new Blob([content], { type: "text/plain" });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
