@@ -11,57 +11,72 @@
     .container { max-width: 950px; margin: 30px auto; background: #fff; border-radius: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); padding: 32px; box-sizing: border-box; }
     .header h2 { margin: 0 0 20px 0; color: #2e7d32; font-size: 26px; text-align: center; border-bottom: 2px solid #e0e0e0; padding-bottom: 12px; }
     
+    /* 控制面板 */
     .control-panel { background: #f9faf9; padding: 16px; border-radius: 12px; border: 1px solid #e0e6e0; margin-bottom: 20px; }
     .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
     .btn { padding: 10px 18px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
     .btn-primary { background: #4e7fff; color: #fff; }
+    .btn-primary:hover { background: #3b6ee0; }
     .btn-connect { background: #009688; color: #fff; }
     .btn-connect.connected { background: #e91e63; }
     .btn-mode { background: #fff; color: #333; border: 2px solid #ccc; }
     .btn-mode.active { background: #2e7d32; color: #fff; border-color: #2e7d32; }
 
+    /* 狀態提示 */
     .status-bar { display: flex; justify-content: space-between; background: #e8f5e9; padding: 10px 16px; border-radius: 8px; margin-bottom: 16px; font-weight: 500; }
-    .alert-banner { background: #ffebee; color: #c62828; padding: 10px; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 16px; animation: flash 1s infinite alternate; display: none; }
-    @keyframes flash { from { opacity: 1; } to { opacity: 0.5; } }
+    .alert-banner { background: #ffebee; color: #c62828; padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 16px; animation: flash 1s infinite alternate; display: none; border: 1px solid #ef9a9a; }
+    @keyframes flash { from { opacity: 1; box-shadow: 0 0 4px #ff1744; } to { opacity: 0.6; box-shadow: 0 0 16px #ff1744; } }
 
     /* 燈號呈現區 */
-    .lights-container { display: flex; justify-content: space-around; background: #f9f9f9; padding: 16px; border-radius: 12px; margin: 20px 0; gap: 20px; flex-wrap: wrap; }
-    .light-wrapper { display: flex; flex-direction: column; align-items: center; font-size: 12px; color: #666; gap: 4px; }
-    .light { width: 30px; height: 30px; border-radius: 50%; background: #e0e0e0; border: 2px solid #bdbdbd; transition: all 0.3s; }
-    .light.red { background: #ff4b33; box-shadow: 0 0 12px #ff4b33; border-color: #ff1744; }
-    .light.green { background: #00e676; box-shadow: 0 0 12px #00e676; border-color: #00c853; }
-    .light.yellow { background: #ffb300; box-shadow: 0 0 12px #ffb300; border-color: #ff8f00; }
+    .lights-container { display: flex; justify-content: space-around; background: #f9f9f9; padding: 16px; border-radius: 12px; margin: 20px 0; gap: 20px; flex-wrap: wrap; border: 1px solid #eaeaea; }
+    .light-wrapper { display: flex; flex-direction: column; align-items: center; font-size: 12px; color: #666; gap: 6px; min-width: 70px; }
+    .light { width: 32px; height: 32px; border-radius: 50%; background: #e0e0e0; border: 2px solid #bdbdbd; transition: all 0.2s ease; }
+    /* 燈號活化顏色狀態 */
+    .light.activated-red { background: #ff4b33 !important; box-shadow: 0 0 14px #ff4b33 !important; border-color: #ff1744 !important; }
+    .light.activated-green { background: #00e676 !important; box-shadow: 0 0 14px #00e676 !important; border-color: #00c853 !important; }
+    .light.activated-yellow { background: #ffb300 !important; box-shadow: 0 0 14px #ffb300 !important; border-color: #ff8f00 !important; }
 
-    .visual-wrapper { display: flex; gap: 20px; justify-content: center; align-items: center; margin: 20px 0; flex-wrap: wrap; }
-    .lung-visual-box { width: 240px; height: 240px; background: #fafafa; border-radius: 50%; box-shadow: inset 0 2px 8px rgba(0,0,0,0.05); display: flex; justify-content: center; align-items: center; position: relative; }
-    .lung-svg { width: 160px; height: 160px; }
-    .lung-leaf { transform-box: fill-box; transform-origin: center; transition: transform 0.1s linear; fill: #ff8a80; }
-    .lung-text { position: absolute; bottom: 15px; font-weight: bold; font-size: 16px; color: #555; }
+    /* 生理視覺呈現區 */
+    .visual-wrapper { display: flex; gap: 24px; justify-content: center; align-items: center; margin: 20px 0; flex-wrap: wrap; }
+    .lung-visual-box { width: 250px; height: 250px; background: #fafafa; border-radius: 50%; box-shadow: inset 0 2px 8px rgba(0,0,0,0.05); display: flex; justify-content: center; align-items: center; position: relative; border: 1px solid #ebebeb; }
+    .lung-svg { width: 170px; height: 170px; overflow: visible; }
+    .lung-leaf { transform-box: fill-box; transform-origin: center; transition: transform 0.1s linear, fill 0.2s ease; fill: #ff8a80; }
+    .lung-text { position: absolute; bottom: 18px; font-weight: bold; font-size: 16px; color: #555; background: rgba(255,255,255,0.8); padding: 2px 8px; border-radius: 10px; }
 
-    .chart-container { position: relative; width: 100%; max-width: 550px; background: #fff; padding: 10px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
+    .chart-container { position: relative; width: 100%; max-width: 580px; background: #fff; padding: 10px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); border: 1px solid #eaeaea; }
     
+    /* 即時數據面板 */
     .data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0; }
-    .data-card { background: #f5f5f5; padding: 12px; border-radius: 8px; text-align: center; border-top: 4px solid #ccc; }
+    .data-card { background: #f5f5f5; padding: 14px; border-radius: 8px; text-align: center; border-top: 4px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
     .data-card.in { border-top-color: #00e676; }
     .data-card.out { border-top-color: #29b6f6; }
-    .data-card h4 { margin: 0 0 6px 0; color: #666; font-size: 13px; }
-    .data-card span { font-size: 18px; font-weight: bold; }
+    .data-card h4 { margin: 0 0 6px 0; color: #666; font-size: 13px; letter-spacing: 0.5px; }
+    .data-card span { font-size: 20px; font-weight: bold; }
 
-    /* 常模動態狀態卡 */
-    .norm-card { background: #e3f2fd; border: 1px solid #90caf9; padding: 12px; border-radius: 8px; margin: 16px 0; font-size: 14px; color: #1565c0; line-height: 1.6; }
+    /* 智慧常模動態報告卡 */
+    .norm-card { background: #e3f2fd; border: 1px solid #90caf9; padding: 14px; border-radius: 8px; margin: 16px 0; font-size: 14px; color: #1565c0; line-height: 1.6; box-shadow: 0 2px 6px rgba(21,101,192,0.05); }
 
-    #instruction { background: #fffde7; border-left: 4px solid #fff59d; padding: 16px; border-radius: 8px; margin: 16px 0; min-height: 40px; }
+    #instruction { background: #fffde7; border-left: 4px solid #fff59d; padding: 16px; border-radius: 8px; margin: 16px 0; min-height: 24px; font-size: 15px; color: #555; }
 
-    /* 表單區優化 */
-    .form-row { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
-    .form-row .input-group { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 4px; }
-    .form-row label { font-size: 13px; color: #666; font-weight: bold; }
-    .form-row input { padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; }
+    /* 病患基本資料表單區 */
+    .form-row { display: flex; gap: 16px; margin-top: 24px; flex-wrap: wrap; }
+    .form-row .input-group { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 6px; }
+    .form-row label { font-size: 13px; color: #444; font-weight: bold; }
+    .form-row input { padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; transition: border-color 0.2s; }
     .form-row input:focus { border-color: #2e7d32; outline: none; }
     .form-row input.error { border-color: #ff1744; background: #ffebee; }
     
-    .save-btn { background: #2e7d32; color: #fff; border: none; border-radius: 8px; padding: 14px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 16px; width: 100%; transition: 0.2s; }
-    .save-btn:disabled { background: #ccc; cursor: not-allowed; }
+    .save-btn { background: #2e7d32; color: #fff; border: none; border-radius: 8px; padding: 14px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px; width: 100%; transition: background 0.2s, transform 0.1s; }
+    .save-btn:hover:not(:disabled) { background: #1b5e20; }
+    .save-btn:active:not(:disabled) { transform: scale(0.99); }
+    .save-btn:disabled { background: #ccc; cursor: not-allowed; opacity: 0.7; }
+
+    .hidden { display: none !important; }
+    @media (max-width: 650px) {
+      .container { padding: 16px; margin: 10px; }
+      .lights-container { flex-direction: column; gap: 16px; }
+      .form-row { flex-direction: column; gap: 12px; }
+    }
   </style>
 </head>
 <body>
@@ -70,7 +85,7 @@
       <h2>AI智慧型雙向呼吸流量生理監測系統</h2>
     </div>
 
-    <div id="alertBanner" class="alert-banner">⚠️ 警告：呼吸流量異常超出個人安全範圍！請停止用力並引導放鬆。</div>
+    <div id="alertBanner" class="alert-banner">⚠️ 警告：呼吸流量異常超出個人安全範圍！請停止過度用力並引導放鬆。</div>
 
     <div class="control-panel">
       <div class="btn-group">
@@ -84,49 +99,49 @@
         <button class="btn btn-mode" id="modeOut">📤 純吐氣模式</button>
       </div>
       <div class="btn-group">
-        <button class="btn btn-mode active" id="cycleSingle">⏱️ 單次呼吸模式</button>
+        <button class="btn btn-mode active" id="cycleSingle">⏱️ 單次測試模式</button>
         <button class="btn btn-mode" id="cycleMulti">🔁 連續多次模式</button>
       </div>
     </div>
 
-    <div class="form-row" style="background: #fdfdfd; padding: 16px; border-radius: 12px; border: 1px solid #eaeaea; margin-bottom: 16px;">
+    <div class="form-row" style="background: #fdfdfd; padding: 18px; border-radius: 12px; border: 1px solid #eaeaea; margin-bottom: 16px;">
       <div class="input-group">
         <label>1. 病患病歷號碼 (ID)</label>
-        <input id="patientId" placeholder="請輸入病歷號碼" />
+        <input id="patientId" placeholder="請輸入內部病歷號碼" />
       </div>
       <div class="input-group">
-        <label>2. 身分證字號 (自動判定性別)</label>
-        <input id="patientIDCard" placeholder="例: A123456789" maxlength="10" />
+        <label>2. 身分證字號 (第2碼自動判定性別)</label>
+        <input id="patientIDCard" placeholder="例: A123456789" maxlength="10" style="text-transform: uppercase;" />
       </div>
       <div class="input-group">
-        <label>3. 病患年齡 (自動修正生理閾值)</label>
+        <label>3. 病患年齡 (自動修正老化生理閾值)</label>
         <input id="patientAge" type="number" placeholder="例: 45" min="1" max="120" />
       </div>
     </div>
 
     <div id="normCard" class="norm-card">
-      ℹ️ 請先輸入病患「身分證字號」與「年齡」，系統將自動產生量身打造的生理流量常模。
+      ℹ️ 請先輸入病患「身分證字號」與「年齡」，系統將由臨床演算法自動配置量身打造的生理流量常模。
     </div>
 
     <div class="status-bar">
-      <span id="greeting">歡迎使用本系統，請先輸入病患資料並連線裝置。</span>
-      <span id="status">狀態：等待連線</span>
+      <span id="greeting">歡迎使用本系統，請先完成上方病患資料填寫。</span>
+      <span id="status">狀態：等待硬體連線</span>
     </div>
 
     <div class="lights-container">
-      <div style="border-right: 2px solid #e0e0e0; padding-right: 20px; text-align: center;">
-        <h4 style="margin: 0 0 10px 0; color: #666; font-size: 13px;">🔌 實體裝置燈號同步 (硬體)</h4>
-        <div style="display: flex; gap: 20px; justify-content: center;">
+      <div style="border-right: 2px solid #e0e0e0; padding-right: 24px; text-align: center; min-width: 180px;">
+        <h4 style="margin: 0 0 12px 0; color: #666; font-size: 13px;">🔌 實體裝置燈號同步 (硬體限制)</h4>
+        <div style="display: flex; gap: 24px; justify-content: center;">
           <div class="light-wrapper"><div class="light" id="hwGreen"></div><span style="color:#2e7d32; font-weight:bold;">綠燈 (正常)</span></div>
           <div class="light-wrapper"><div class="light" id="hwRed"></div><span style="color:#c62828; font-weight:bold;">紅燈 (警告)</span></div>
         </div>
       </div>
       <div style="text-align: center; flex: 1;">
-        <h4 style="margin: 0 0 10px 0; color: #666; font-size: 13px;">💻 AI 智慧客製化生理細分診斷 (網頁端)</h4>
-        <div style="display: flex; gap: 12px; justify-content: center;">
-          <div class="light-wrapper"><div class="light" id="swLow"></div><span>力道不足</span></div>
-          <div class="light-wrapper"><div class="light" id="swPerfect"></div><span>完美核心區</span></div>
-          <div class="light-wrapper"><div class="light" id="swHigh"></div><span>流速過激</span></div>
+        <h4 style="margin: 0 0 12px 0; color: #666; font-size: 13px;">💻 AI 智慧客製化生理細分診斷 (網頁端)</h4>
+        <div style="display: flex; gap: 16px; justify-content: center;">
+          <div class="light-wrapper"><div class="light" id="swLow"></div><span>流量力道不足</span></div>
+          <div class="light-wrapper"><div class="light" id="swPerfect"></div><span>黃金核心核心區</span></div>
+          <div class="light-wrapper"><div class="light" id="swHigh"></div><span>流速過激危險</span></div>
         </div>
       </div>
     </div>
@@ -134,9 +149,9 @@
     <div class="visual-wrapper">
       <div class="lung-visual-box">
         <svg class="lung-svg" viewBox="0 0 100 100">
-          <path d="M50,10 L50,35 L38,50 M50,35 L62,50" stroke="#bdbdbd" stroke-width="4" fill="none" stroke-linecap="round"/>
-          <path id="leftLung" class="lung-leaf" d="M46,40 C35,35 20,45 22,65 C24,80 40,85 46,75 Z" />
-          <path id="rightLung" class="lung-leaf" d="M54,40 C65,35 80,45 78,65 C76,80 60,85 54,75 Z" />
+          <path d="M50,12 L50,38 L36,54 M50,38 L64,54" stroke="#bdbdbd" stroke-width="4" fill="none" stroke-linecap="round"/>
+          <path id="leftLung" class="lung-leaf" d="M46,42 C35,37 20,47 22,67 C24,82 40,87 46,77 Z" />
+          <path id="rightLung" class="lung-leaf" d="M54,42 C65,37 80,47 78,67 C76,82 60,87 54,77 Z" />
         </svg>
         <div id="lungStateText" class="lung-text">平靜狀態</div>
       </div>
@@ -148,75 +163,79 @@
 
     <div class="data-grid">
       <div class="data-card in">
-        <h4>即時吸氣流量</h4>
+        <h4>即時吸氣流量 (Inhalation)</h4>
         <span><id id="flowInVal">0.00</id> L/min</span>
       </div>
       <div class="data-card out">
-        <h4>即時吐氣流量</h4>
+        <h4>即時吐氣流量 (Exhalation)</h4>
         <span><id id="flowOutVal">0.00</id> L/min</span>
       </div>
       <div class="data-card">
-        <h4>個人化診斷分析</h4>
-        <span id="metricLabel" style="font-size:13px; color:#555;">等待數據...</span>
+        <h4>個人化動態分析指標</h4>
+        <span id="metricLabel" style="font-size:13px; color:#555; font-weight: 500;">等待氣流傳輸...</span>
       </div>
     </div>
     
-    <div id="instruction">請完成病患資料填寫與裝置連線。</div>
+    <div id="instruction">系統就緒。請確認上方個資正確，並點擊「連接外接裝置」進行量測。</div>
 
     <button class="save-btn" id="saveBtn" disabled>儲存數據並同步雲端</button>
   </div>
 
 <script>
-/** =========================
- * ✅ 核心常數與動態常模配置
- * ========================= */
+/** ==========================================
+ * ✅ 1. 核心常數與 Supabase 初始化設定
+ * ========================================== */
 const { createClient } = window.supabase;
 const SUPABASE_URL = 'https://jqdtlkxvyrrpnbkyiigg.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpxZHRsa3h2eXJycG5ia3lpaWdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgyNTAwMTksImV4cCI6MjA2MzgyNjAxOX0.6ufrl0cNDT1LZqge0yTEGzzJ4IlYYubtKis2_ewkERw';
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// 預設標準安全區間 (當尚未輸入資料時的基礎值)
+// 臨床基礎標準區間 (未輸入資料前的安全常模預設值)
 let ACTIVE_LIMITS = {
-  minInflow: 30.0,
-  maxInflow: 90.0,
-  minOutflow: 30.0,
-  maxOutflow: 120.0
+  minInflow: 30.0,   // DPI 吸入有效流速下限
+  maxInflow: 90.0,   // DPI 吸入安全上限
+  minOutflow: 30.0,  // 有效吐氣流速下限
+  maxOutflow: 120.0  // 爆發性吐氣危險上限
 };
 
-let detectedGender = null; // 'M' 或 'F'
+let detectedGender = null; // 'M' 為男，'F' 為女
 let detectedAge = 30;
 
 let serialPort, reader, keepReading = false;
 let startTime = null;
-let flowData = [];
+let flowData = []; // 結構：[[時間(s), 流量(L/min)], ...]
 let serialBuffer = "";
-let currentDetectionMode = 'bi'; 
-let currentCycleMode = 'single'; 
+let currentDetectionMode = 'bi'; // bi: 雙向, in: 純吸, out: 純吐
+let currentCycleMode = 'single'; // single: 單次呼吸, multi: 連續多次
 let isAlerting = false;
 
+// 內建 Web Audio API 高波形合成音效產生器 (無須加載外部音檔)
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 function playAlertTone(freq = 660, type = 'sine', duration = 0.15) {
   try {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    osc.type = type; osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    osc.type = type; 
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.start(); osc.stop(audioCtx.currentTime + duration);
-  } catch(e){}
+    osc.connect(gain); 
+    gain.connect(audioCtx.destination);
+    osc.start(); 
+    osc.stop(audioCtx.currentTime + duration);
+  } catch(e){ console.log("音效環境限制"); }
 }
 
-/** =========================
- * 🧠 智慧個資驗證與動態常模演算法
- * ========================= */
+/** ==========================================
+ * 🧠 2. 智慧個資防錯與臨床常模動態演算法
+ * ========================================== */
 function calculateDynamicNorms() {
   const idCardInput = document.getElementById('patientIDCard');
   const idCard = idCardInput.value.trim().toUpperCase();
   const ageVal = parseInt(document.getElementById('patientAge').value);
   const normCard = document.getElementById('normCard');
 
-  // 1. 身分證字號首碼數位防錯與性別判定
+  // A. 台灣身分證首碼性別判定防錯
   if (idCard.length >= 2) {
     const secondChar = idCard.charAt(1);
     if (secondChar === '1') {
@@ -227,29 +246,30 @@ function calculateDynamicNorms() {
       idCardInput.classList.remove('error');
     } else {
       detectedGender = null;
-      idCardInput.classList.add('error'); // 格式錯誤紅框提示
+      idCardInput.classList.add('error'); // 格式錯誤紅框防錯
     }
   } else {
     detectedGender = null;
+    idCardInput.classList.remove('error');
   }
 
   detectedAge = isNaN(ageVal) ? 30 : ageVal;
 
-  // 2. 臨床大數據演算法：根據性別給予基礎極限
+  // B. 醫學大數據分配：依性別設定基礎閾值上限 (女性生理結構常模較低)
   let baseMinIn = 30.0;
-  let baseMaxIn = (detectedGender === 'F') ? 75.0 : 90.0; // 女性呼吸道與阻力常模稍低
+  let baseMaxIn = (detectedGender === 'F') ? 75.0 : 90.0;
   let baseMinOut = 30.0;
   let baseMaxOut = (detectedGender === 'F') ? 100.0 : 120.0;
 
-  // 3. 根據年齡進行生理功能衰退微調 (30歲後每增加1歲，上限衰減 0.5%)
+  // C. 依老化衰退曲線調整：30歲後每增1歲上限自然下調 0.5% (最低保留 70% 生理彈性)
   if (detectedAge > 30) {
     const ageFactor = 1 - ((detectedAge - 30) * 0.005);
-    const safeFactor = Math.max(0.7, ageFactor); // 設定底限，最多縮減 30%
+    const safeFactor = Math.max(0.7, ageFactor);
     baseMaxIn *= safeFactor;
     baseMaxOut *= safeFactor;
   }
 
-  // 更新目前運作中的安全閾值
+  // 封裝成目前執行的安全極限
   ACTIVE_LIMITS = {
     minInflow: parseFloat(baseMinIn.toFixed(1)),
     maxInflow: parseFloat(baseMaxIn.toFixed(1)),
@@ -257,18 +277,18 @@ function calculateDynamicNorms() {
     maxOutflow: parseFloat(baseMaxOut.toFixed(1))
   };
 
-  // 4. 即時更新常模報告介面
+  // D. 即時渲染常模數據卡
   if (detectedGender) {
     const genderText = (detectedGender === 'M') ? "男性 👨" : "女性 👩";
-    normCard.innerHTML = `🎯 <b>AI 個人化生理常模已建立：</b><br>
+    normCard.innerHTML = `🎯 <b>AI 個人化醫學常模已動態配置：</b><br>
       病患屬性：${detectedAge} 歲 ${genderText} | 
-      吸氣有效區間：<b>${ACTIVE_LIMITS.minInflow} ~ ${ACTIVE_LIMITS.maxInflow} L/min</b> | 
-      吐氣有效區間：<b>${ACTIVE_LIMITS.minOutflow} ~ ${ACTIVE_LIMITS.maxOutflow} L/min</b>`;
+      吸氣黃金效率區：<b>${ACTIVE_LIMITS.minInflow} ~ ${ACTIVE_LIMITS.maxInflow} L/min</b> | 
+      吐氣安全氣流區：<b>${ACTIVE_LIMITS.minOutflow} ~ ${ACTIVE_LIMITS.maxOutflow} L/min</b>`;
     normCard.style.background = "#e8f5e9";
     normCard.style.borderColor = "#81c784";
     normCard.style.color = "#1b5e20";
   } else {
-    normCard.innerHTML = `⚠️ 請輸入正確的身分證字號（第二碼為 1 或 2）以利系統自動分配性別權重。`;
+    normCard.innerHTML = `⚠️ 請輸入正確的身分證字號（第二碼為 1 或 2）與年齡，系統將自動啟動動態臨床權重配置。`;
     normCard.style.background = "#ffebee";
     normCard.style.borderColor = "#ffcdd2";
     normCard.style.color = "#b71c1c";
@@ -279,73 +299,88 @@ function calculateDynamicNorms() {
 document.getElementById('patientIDCard').addEventListener('input', calculateDynamicNorms);
 document.getElementById('patientAge').addEventListener('input', calculateDynamicNorms);
 
-/** =========================
- * ✅ 燈號與擬真動畫動態控制
- * ========================= */
+/** ==========================================
+ * 🔌 3. 軟硬體分工燈號控制與擬真肺部 SVG 動態
+ * ========================================== */
+const leftLung = document.getElementById('leftLung');
+const rightLung = document.getElementById('rightLung');
+const lungStateText = document.getElementById('lungStateText');
+const alertBanner = document.getElementById('alertBanner');
+
 function updateWebAndHwLights(flow) {
   const absF = Math.abs(flow);
   const allLights = ['hwGreen', 'hwRed', 'swLow', 'swPerfect', 'swHigh'];
-  allLights.forEach(id => document.getElementById(id).className = 'light');
+  // 重置清空所有活化顏色
+  allLights.forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.remove('activated-green', 'activated-red', 'activated-yellow');
+  });
 
-  if (flow === 0) return;
+  if (flow === 0) return; // 平靜狀態
 
-  if (flow > 0) { // 吸氣
+  if (flow > 0) { // 📥 吸氣階段 (正數)
     if (absF < ACTIVE_LIMITS.minInflow) {
-      document.getElementById('swLow').classList.add('yellow'); // 網頁細分：不足
-      document.getElementById('hwRed').classList.add('red');       // 實體：紅燈警告
+      document.getElementById('swLow').classList.add('activated-yellow'); // 網頁細分：不足
+      document.getElementById('hwRed').classList.add('activated-red');       // 實體：紅燈警告
     } else if (absF >= ACTIVE_LIMITS.minInflow && absF <= ACTIVE_LIMITS.maxInflow) {
-      document.getElementById('hwGreen').classList.add('green');   // 實體：綠燈
-      document.getElementById('swPerfect').classList.add('green'); // 網頁細分：完美
+      document.getElementById('hwGreen').classList.add('activated-green');   // 實體：綠燈安全
+      document.getElementById('swPerfect').classList.add('activated-green'); // 網頁細分：黃金核心區
     } else {
-      document.getElementById('hwRed').classList.add('red');       // 實體：紅燈
-      document.getElementById('swHigh').classList.add('red');      // 網頁細分：過激
+      document.getElementById('hwRed').classList.add('activated-red');       // 實體：紅燈超標
+      document.getElementById('swHigh').classList.add('activated-red');      // 網頁細分：過度危險
     }
-  } else { // 吐氣
+  } else { // 📤 吐氣階段 (負數)
     if (absF < ACTIVE_LIMITS.minOutflow) {
-      document.getElementById('swLow').classList.add('yellow');
-      document.getElementById('hwRed').classList.add('red');
+      document.getElementById('swLow').classList.add('activated-yellow');
+      document.getElementById('hwRed').classList.add('activated-red');
     } else if (absF >= ACTIVE_LIMITS.minOutflow && absF <= ACTIVE_LIMITS.maxOutflow) {
-      document.getElementById('hwGreen').classList.add('green');
-      document.getElementById('swPerfect').classList.add('green');
+      document.getElementById('hwGreen').classList.add('activated-green');
+      document.getElementById('swPerfect').classList.add('activated-green');
     } else {
-      document.getElementById('hwRed').classList.add('red');
-      document.getElementById('swHigh').classList.add('red');
+      document.getElementById('hwRed').classList.add('activated-red');
+      document.getElementById('swHigh').classList.add('activated-red');
     }
   }
 }
 
 function updateLungAnimation(flow) {
-  if (flow > 0) {
+  if (flow > 0) { // 吸氣正值：朝各自中心等比例放射狀膨脹
     const factor = 1.0 + (Math.min(flow, ACTIVE_LIMITS.maxInflow) / ACTIVE_LIMITS.maxInflow) * 0.4;
     leftLung.style.transform = `scale(${factor})`;
     rightLung.style.transform = `scale(${factor})`;
-    leftLung.style.fill = "#ff5252"; rightLung.style.fill = "#ff5252";
-    lungStateText.innerText = "📥 吸氣中...";
+    leftLung.style.fill = "#ff5252"; 
+    rightLung.style.fill = "#ff5252";
+    lungStateText.innerText = "📥 強力吸氣中";
     lungStateText.style.color = "#d32f2f";
-  } else if (flow < 0) {
+  } else if (flow < 0) { // 吐氣負值：朝中心平滑塌陷縮小
     const absFlow = Math.abs(flow);
     const factor = 1.0 - (Math.min(absFlow, ACTIVE_LIMITS.maxOutflow) / ACTIVE_LIMITS.maxOutflow) * 0.25;
     leftLung.style.transform = `scale(${factor})`;
     rightLung.style.transform = `scale(${factor})`;
-    leftLung.style.fill = "#29b6f6"; rightLung.style.fill = "#29b6f6";
-    lungStateText.innerText = "📤 吐氣中...";
+    leftLung.style.fill = "#29b6f6"; 
+    rightLung.style.fill = "#29b6f6";
+    lungStateText.innerText = "📤 穩定吐氣中";
     lungStateText.style.color = "#0288d1";
-  } else {
-    leftLung.style.transform = "scale(1)"; rightLung.style.transform = "scale(1)";
-    leftLung.style.fill = "#ff8a80"; rightLung.style.fill = "#ff8a80";
-    lungStateText.innerText = "平靜狀態"; lungStateText.style.color = "#555";
+  } else { // 歸零平靜
+    leftLung.style.transform = "scale(1)"; 
+    rightLung.style.transform = "scale(1)";
+    leftLung.style.fill = "#ff8a80"; 
+    rightLung.style.fill = "#ff8a80";
+    lungStateText.innerText = "平靜狀態"; 
+    lungStateText.style.color = "#555";
   }
 
+  // 音效與畫面即時報警攔截
   const absF = Math.abs(flow);
   if ((flow > 0 && absF > ACTIVE_LIMITS.maxInflow) || (flow < 0 && absF > ACTIVE_LIMITS.maxOutflow)) {
     if (!isAlerting) {
       isAlerting = true;
-      document.getElementById('alertBanner').style.display = 'block';
-      playAlertTone(880, 'square', 0.25);
+      alertBanner.style.display = 'block';
+      playAlertTone(880, 'square', 0.25); // 觸發爆發性方波警告音
     }
   } else {
     isAlerting = false;
-    document.getElementById('alertBanner').style.display = 'none';
+    alertBanner.style.display = 'none';
   }
 }
 
@@ -357,34 +392,38 @@ function evaluateInstantRange(flow) {
     if (absF < ACTIVE_LIMITS.minInflow) {
       metricLabel.innerHTML = `<span style="color:#f57c00;font-weight:bold;">吸氣力道不足</span><br>尚差 ${(ACTIVE_LIMITS.minInflow - absF).toFixed(1)} L/min`;
     } else if (absF > ACTIVE_LIMITS.maxInflow) {
-      metricLabel.innerHTML = `<span style="color:#d32f2f;font-weight:bold;">吸氣爆發過激！</span><br>已超標 ${(absF - ACTIVE_LIMITS.maxInflow).toFixed(1)} L/min`;
+      metricLabel.innerHTML = `<span style="color:#d32f2f;font-weight:bold;">吸氣爆發過猛！</span><br>已超標 ${(absF - ACTIVE_LIMITS.maxInflow).toFixed(1)} L/min`;
     } else {
       const percent = ((absF / ACTIVE_LIMITS.maxInflow) * 100).toFixed(0);
-      metricLabel.innerHTML = `<span style="color:#388e3c;font-weight:bold;">黃金吸氣核心區</span><br>已達最大效率之 ${percent}%`;
+      metricLabel.innerHTML = `<span style="color:#388e3c;font-weight:bold;">黃金核心效率區</span><br>已達最大期望值之 ${percent}%`;
     }
   } else if (flow < 0) {
     if (absF < ACTIVE_LIMITS.minOutflow) {
       metricLabel.innerHTML = `<span style="color:#f57c00;font-weight:bold;">吐氣阻力不足</span><br>尚差 ${(ACTIVE_LIMITS.minOutflow - absF).toFixed(1)} L/min`;
     } else if (absF > ACTIVE_LIMITS.maxOutflow) {
-      metricLabel.innerHTML = `<span style="color:#d32f2f;font-weight:bold;">吐氣氣流過猛！</span><br>已超標 ${(absF - ACTIVE_LIMITS.maxOutflow).toFixed(1)} L/min`;
+      metricLabel.innerHTML = `<span style="color:#d32f2f;font-weight:bold;">吐氣流速過激！</span><br>已超標 ${(absF - ACTIVE_LIMITS.maxOutflow).toFixed(1)} L/min`;
     } else {
       const percent = ((absF / ACTIVE_LIMITS.maxOutflow) * 100).toFixed(0);
-      metricLabel.innerHTML = `<span style="color:#0288d1;font-weight:bold;">吐氣狀態優良</span><br>氣道順暢度 ${percent}%`;
+      metricLabel.innerHTML = `<span style="color:#0288d1;font-weight:bold;">氣道暢通度良好</span><br>已達預期指標之 ${percent}%`;
     }
+  } else {
+    metricLabel.innerText = "等待數據流...";
   }
 }
 
-// Chart.js 雙向配置
+/** ==========================================
+ * 📊 4. Chart.js 雙向極限正負值圖表配置
+ * ========================================== */
 const ctx = document.getElementById('flowChart').getContext('2d');
 let chartData = {
   labels: [],
   datasets: [{
-    label: '即時呼吸流速波形 (L/min)',
+    label: '即時呼吸流速曲線 (L/min)',
     data: [],
     borderColor: '#2e7d32',
     backgroundColor: 'rgba(76, 175, 80, 0.08)',
     fill: true,
-    tension: 0.3
+    tension: 0.35
   }]
 };
 const flowChart = new Chart(ctx, {
@@ -396,22 +435,29 @@ const flowChart = new Chart(ctx, {
     aspectRatio: 1.8,
     animation: false,
     scales: {
-      x: { grid: { display: false } },
-      y: { min: -100, max: 100 }
+      x: { grid: { display: false }, title: { display: true, text: '時間序列 (秒)' } },
+      y: { min: -130, max: 130, title: { display: true, text: '吸氣 (+) / 吐氣 (-)' } }
     }
   }
 });
 
+/** ==========================================
+ * 🎛️ 5. 數據解析核心與序列埠連線管理
+ * ========================================== */
 function handleSerialLine(line) {
   if (!line) return;
+  // 精準相容硬體傳輸之正負浮點數 (例 "Flow: 45.2" 或是 "Flow: -32.8")
   const match = line.match(/Flow[:：]\s*([-0-9.]+)/i);
   if (match) {
     let rawFlow = parseFloat(match[1]);
+
+    // 未雨綢繆硬體不相容過濾器 (依選取的模式過濾)
     if (currentDetectionMode === 'in' && rawFlow < 0) rawFlow = 0;
     if (currentDetectionMode === 'out' && rawFlow > 0) rawFlow = 0;
 
     const now = ((Date.now() - startTime) / 1000).toFixed(2);
     
+    // 面板數據分流即時渲染
     if (rawFlow >= 0) {
       document.getElementById('flowInVal').innerText = rawFlow.toFixed(2);
       document.getElementById('flowOutVal').innerText = "0.00";
@@ -420,32 +466,38 @@ function handleSerialLine(line) {
       document.getElementById('flowOutVal').innerText = Math.abs(rawFlow).toFixed(2);
     }
 
+    // 觸發多層次軟硬體燈號同步
     updateWebAndHwLights(rawFlow);
+    // 觸發解剖學放射網格擴張
     updateLungAnimation(rawFlow);
+    // 實時偏離值診斷分析
+    evaluateInstantRange(rawFlow);
 
+    // 單次模式結束防呆：若選擇單次且數據回穩完成一次完整呼吸，可自動判定終止 (此處由醫護決定或連續讀取)
     flowData.push([parseFloat(now), rawFlow]);
     chartData.labels.push(now);
     chartData.datasets[0].data.push(rawFlow);
-    if (chartData.labels.length > 50) {
+    if (chartData.labels.length > 60) {
       chartData.labels.shift();
       chartData.datasets[0].data.shift();
     }
     flowChart.update();
-    evaluateInstantRange(rawFlow);
   }
 }
 
-/** =========================
- * ✅ 基礎硬體連線控制
- * ========================= */
 document.getElementById('connectBtn').onclick = async function () {
   if (keepReading) {
+    // 斷開並安全釋放 Serial 鎖定
     keepReading = false;
     if (reader) await reader.cancel();
     if (serialPort) await serialPort.close();
     this.innerText = "連接外接裝置";
     this.classList.remove('connected');
-    document.getElementById('status').innerText = "狀態：已斷開";
+    document.getElementById('status').innerText = "狀態：量測安全結束並中斷連線";
+    return;
+  }
+  if (!('serial' in navigator)) {
+    alert('您的瀏覽器不支援 Web Serial API，請使用 Chrome 或 Edge 瀏覽器。');
     return;
   }
   try {
@@ -454,12 +506,15 @@ document.getElementById('connectBtn').onclick = async function () {
     keepReading = true;
     this.innerText = "中斷裝置連線";
     this.classList.add('connected');
-    document.getElementById('status').innerText = "狀態：量測中...";
+    document.getElementById('status').innerText = "狀態：連線成功！即時接收硬體波形...";
     startTime = Date.now();
     flowData = [];
+    chartData.labels = [];
+    chartData.datasets[0].data = [];
+    flowChart.update();
     listenSerial();
   } catch (e) {
-    document.getElementById('status').innerText = "連線失敗";
+    document.getElementById('status').innerText = "連線失敗：" + e.message;
   }
 };
 
@@ -482,6 +537,9 @@ async function listenSerial() {
   reader.releaseLock();
 }
 
+/** ==========================================
+ * ⚙️ 6. 介面控制按鈕事件綁定與存檔
+ * ========================================== */
 const setupModeBtn = (id, val, txt) => {
   document.getElementById(id).onclick = function() {
     if(id.startsWith('mode')) {
@@ -492,15 +550,15 @@ const setupModeBtn = (id, val, txt) => {
       currentCycleMode = val;
     }
     this.classList.add('active');
-    document.getElementById('instruction').innerText = `模式切換：${txt}`;
-    playAlertTone(523, 'sine', 0.05);
+    document.getElementById('instruction').innerText = `目前運作核心模式已切換為：${txt}`;
+    playAlertTone(523, 'sine', 0.05); // 輕微點擊提示音
   };
 };
-setupModeBtn('modeBi', 'bi', '雙向自動模式');
-setupModeBtn('modeIn', 'in', '純吸氣模式');
-setupModeBtn('modeOut', 'out', '純吐氣模式');
-setupModeBtn('cycleSingle', 'single', '單次測試模式');
-setupModeBtn('cycleMulti', 'multi', '連續多次監測模式');
+setupModeBtn('modeBi', 'bi', '雙向自動偵測模式 (吸氣為正，吐氣為負)');
+setupModeBtn('modeIn', 'in', '純吸氣監測模式 (自動過濾吐氣負值)');
+setupModeBtn('modeOut', 'out', '純吐氣監測模式 (自動過濾吸氣正值)');
+setupModeBtn('cycleSingle', 'single', '單次呼吸測試模式');
+setupModeBtn('cycleMulti', 'multi', '連續多次生理長效監測模式');
 
 function validateForm() {
   const hasId = document.getElementById('patientId').value.trim() !== "";
@@ -510,22 +568,59 @@ function validateForm() {
 }
 document.getElementById('patientId').addEventListener('input', validateForm);
 
+async function checkLogin() {
+  try {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (user) {
+      document.getElementById('greeting').innerText = `操作醫護人員：${user.email}`;
+      document.getElementById('myfilesBtn').classList.remove('hidden');
+      document.getElementById('loginBtn').classList.add('hidden');
+    }
+  } catch(e){}
+}
+
 document.getElementById('saveBtn').onclick = async function() {
   const id = document.getElementById('patientId').value.trim();
   const idCard = document.getElementById('patientIDCard').value.trim().toUpperCase();
   const age = document.getElementById('patientAge').value.trim();
   const genderStr = (detectedGender === 'M') ? "男" : "女";
 
-  let content = `病患ID: ${id}\n身分證字號: ${idCard}\n判定性別: ${genderStr}\n年齡: ${age}\n量測閾值: IN(${ACTIVE_LIMITS.minInflow}-${ACTIVE_LIMITS.maxInflow}) OUT(${ACTIVE_LIMITS.minOutflow}-${ACTIVE_LIMITS.maxOutflow})\n\n時間(s)\t流量(L/min)\n`;
+  let content = `====================================\n`;
+  content += `  AI智慧型雙向呼吸流量生理監測報告\n`;
+  content += `====================================\n`;
+  content += `病患內部病歷ID: ${id}\n`;
+  content += `身分證字號: ${idCard}\n`;
+  content += `自動判定性別: ${genderStr}\n`;
+  content += `病患年齡: ${age} 歲\n`;
+  content += `量測演算法配置閾值:\n`;
+  content += `  - 吸氣有效範圍: ${ACTIVE_LIMITS.minInflow} ~ ${ACTIVE_LIMITS.maxInflow} L/min\n`;
+  content += `  - 吐氣有效範圍: ${ACTIVE_LIMITS.minOutflow} ~ ${ACTIVE_LIMITS.maxOutflow} L/min\n`;
+  content += `運作模式: ${currentDetectionMode === 'bi' ? '雙向自動' : currentDetectionMode === 'in' ? '純吸氣' : '純吐氣'} | ${currentCycleMode === 'single' ? '單次' : '多次連續'}\n`;
+  content += `------------------------------------\n`;
+  content += `時間序列(秒)\t流速數據(L/min)\n`;
+  
   flowData.forEach(([t, f]) => { content += `${t}\t${f.toFixed(2)}\n`; });
   
   const blob = new Blob([content], { type: "text/plain" });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `${id}_${genderStr}_${age}歲_呼吸數據.txt`;
+  a.download = `呼吸報告_${id}_${idCard}.txt`;
   a.click();
-  alert("本地報告下載完成。");
+  
+  // 檢查並進行 Supabase 雲端備份同步
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (user) {
+    const filePath = `${user.id}/${idCard}_${Date.now()}.txt`;
+    const { error } = await supabaseClient.storage.from('records').upload(filePath, blob);
+    if(!error) alert("臨床數據已成功下載本機並安全加密上傳至雲端儲存空間！");
+    else alert("本地儲存完成，但雲端備份失敗：" + error.message);
+  } else {
+    alert("本地臨床報告下載完成。（提醒：您尚未登入醫護帳號，故數據未同步至雲端伺服器）");
+  }
 };
+
+// 初始啟動
+checkLogin();
 </script>
 </body>
 </html>
