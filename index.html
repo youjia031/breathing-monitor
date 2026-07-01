@@ -18,7 +18,7 @@
     .btn-primary { background: #4e7fff; color: #fff; }
     .btn-primary:hover { background: #3b6ee0; }
     .btn-connect { background: #009688; color: #fff; }
-    .btn-connect.connected { background: #e91e63; }
+    .btn-connect.connected { background: #e91e63 !important; }
     .btn-mode { background: #fff; color: #333; border: 2px solid #ccc; }
     .btn-mode.active { background: #2e7d32; color: #fff; border-color: #2e7d32; }
 
@@ -63,7 +63,7 @@
     .form-row label { font-size: 13px; color: #444; font-weight: bold; }
     .form-row input { padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; transition: border-color 0.2s; }
     .form-row input:focus { border-color: #2e7d32; outline: none; }
-    .form-row input.error { border-color: #ff1744; background: #ffebee; }
+    .form-row input.error { border-color: #ff1744 !important; background: #ffebee !important; }
     
     .save-btn { background: #2e7d32; color: #fff; border: none; border-radius: 8px; padding: 14px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px; width: 100%; transition: background 0.2s, transform 0.1s; }
     .save-btn:hover:not(:disabled) { background: #1b5e20; }
@@ -109,8 +109,8 @@
         <input id="patientId" placeholder="請輸入內部病歷號碼" />
       </div>
       <div class="input-group">
-        <label>2. 身分證字號 (第2碼自動判定性別)</label>
-        <input id="patientIDCard" placeholder="例: A123456789" maxlength="10" style="text-transform: uppercase;" />
+        <label>2. 身分證字號 (10碼，自動嚴格校正)</label>
+        <input id="patientIDCard" placeholder="例: A123456789" maxlength="10" />
       </div>
       <div class="input-group">
         <label>3. 病患年齡 (自動修正老化生理閾值)</label>
@@ -182,7 +182,7 @@
 
 <script>
 /** ==========================================
- * ✅ 1. 全域變數定義 (安全獨立，不受 CDN 影響)
+ * ✅ 1. 全域變數定義
  * ========================================== */
 let supabaseClient = null;
 
@@ -204,7 +204,6 @@ let currentDetectionMode = 'bi';
 let currentCycleMode = 'single'; 
 let isAlerting = false;
 
-// Web Audio API
 let audioCtx = null;
 function playAlertTone(freq = 660, type = 'sine', duration = 0.15) {
   try {
@@ -223,25 +222,36 @@ function playAlertTone(freq = 660, type = 'sine', duration = 0.15) {
 }
 
 /** ==========================================
- * 🧠 2. 智慧常模動態演算法
+ * 🧠 2. 智慧常模動態演算法 (修正 BUG 1：嚴格格式驗證)
  * ========================================== */
 function calculateDynamicNorms() {
   const idCardInput = document.getElementById('patientIDCard');
-  const idCard = idCardInput.value.trim().toUpperCase();
+  
+  // 自動轉換為大寫並去除空白
+  let idCard = idCardInput.value.trim().toUpperCase();
+  idCardInput.value = idCard; 
+
   const ageVal = parseInt(document.getElementById('patientAge').value);
   const normCard = document.getElementById('normCard');
 
-  if (idCard.length >= 2) {
-    const secondChar = idCard.charAt(1);
-    if (secondChar === '1') {
-      detectedGender = 'M';
-      idCardInput.classList.remove('error');
-    } else if (secondChar === '2') {
-      detectedGender = 'F';
-      idCardInput.classList.remove('error');
-    } else {
+  // 中華民國身分證標準正則表達式：1碼大寫英文 + 1碼(1或2) + 8碼數字 = 剛好10碼
+  const twIdRegex = /^[A-Z][12]\d{8}$/;
+
+  if (idCard.length > 0) {
+    if (!twIdRegex.test(idCard)) {
+      // 只要不符合格式（小寫、不足10碼、首碼不是英文、第二碼不是1或2），直接報錯並卡死
       detectedGender = null;
-      idCardInput.classList.add('error'); 
+      idCardInput.classList.add('error');
+      normCard.innerHTML = `⚠️ 身分證字號格式不正確。必須剛好 10 碼（例：A123456789），且第一碼大寫、第二碼為 1 或 2。`;
+      normCard.style.background = "#ffebee";
+      normCard.style.borderColor = "#ffcdd2";
+      normCard.style.color = "#b71c1c";
+      return; // 終止演算法
+    } else {
+      // 格式完全正確，解析性別
+      idCardInput.classList.remove('error');
+      const secondChar = idCard.charAt(1);
+      detectedGender = (secondChar === '1') ? 'M' : 'F';
     }
   } else {
     detectedGender = null;
@@ -278,11 +288,6 @@ function calculateDynamicNorms() {
     normCard.style.background = "#e8f5e9";
     normCard.style.borderColor = "#81c784";
     normCard.style.color = "#1b5e20";
-  } else {
-    normCard.innerHTML = `⚠️ 請輸入正確的身分證字號（第二碼為 1 或 2）與年齡，系統將自動啟動動態臨床權重配置。`;
-    normCard.style.background = "#ffebee";
-    normCard.style.borderColor = "#ffcdd2";
-    normCard.style.color = "#b71c1c";
   }
 }
 
@@ -398,7 +403,7 @@ function evaluateInstantRange(flow) {
 }
 
 /** ==========================================
- * 📊 4. Chart.js 圖表配置 (確保網頁一開啟就顯示)
+ * 📊 4. Chart.js 圖表配置
  * ========================================== */
 const ctx = document.getElementById('flowChart').getContext('2d');
 let chartData = {
@@ -428,19 +433,27 @@ const flowChart = new Chart(ctx, {
 });
 
 /** ==========================================
- * 🎛️ 5. 數據解析核心與序列埠連線管理
+ * 🎛️ 5. 數據解析核心與序列埠連線管理 (修正 BUG 2 & BUG 3)
  * ========================================== */
 function handleSerialLine(line) {
   if (!line) return;
-  const match = line.match(/Flow[:：]\s*([-0-9.]+)/i);
+  
+  // 修正 BUG 3：大幅增強Regex相容性，自動過濾掉字串中的所有隱形空格與大小寫
+  const cleanLine = line.replace(/\s+/g, ''); // 移除所有空格
+  
+  // 只要字串包含 flow、流量、或只有單純數字，全部都能抓到
+  const match = cleanLine.match(/(?:flow|流量)?[:：]?([-0-9.]+)/i);
+  
   if (match) {
     let rawFlow = parseFloat(match[1]);
+    if (isNaN(rawFlow)) return; // 防呆
 
     if (currentDetectionMode === 'in' && rawFlow < 0) rawFlow = 0;
     if (currentDetectionMode === 'out' && rawFlow > 0) rawFlow = 0;
 
     const now = ((Date.now() - startTime) / 1000).toFixed(2);
     
+    // 渲染數值到 HTML
     if (rawFlow >= 0) {
       document.getElementById('flowInVal').innerText = rawFlow.toFixed(2);
       document.getElementById('flowOutVal').innerText = "0.00";
@@ -464,18 +477,30 @@ function handleSerialLine(line) {
   }
 }
 
+// 提取重置按鈕樣式函式 (拔線與主動斷開共用)
+function resetUItoDisconnectedState() {
+  keepReading = false;
+  const connectBtn = document.getElementById('connectBtn');
+  connectBtn.innerText = "連接外接裝置";
+  connectBtn.classList.remove('connected');
+  document.getElementById('status').innerText = "狀態：已中斷連線 (裝置已拔除或關閉)";
+  
+  // 歸零數值
+  document.getElementById('flowInVal').innerText = "0.00";
+  document.getElementById('flowOutVal').innerText = "0.00";
+  updateWebAndHwLights(0);
+  updateLungAnimation(0);
+}
+
 document.getElementById('connectBtn').onclick = async function () {
   if (keepReading) {
-    keepReading = false;
-    if (reader) await reader.cancel();
-    if (serialPort) await serialPort.close();
-    this.innerText = "連接外接裝置";
-    this.classList.remove('connected');
-    document.getElementById('status').innerText = "狀態：量測安全結束並中斷連線";
+    resetUItoDisconnectedState();
+    if (reader) { try { await reader.cancel(); } catch(e){} }
+    if (serialPort) { try { await serialPort.close(); } catch(e){} }
     return;
   }
   if (!('serial' in navigator)) {
-    alert('您的瀏覽器不支援 Web Serial API，請使用桌上型電腦的 Chrome 或 Edge 瀏覽器。');
+    alert('您的瀏覽器不支援 Web Serial API，請使用電腦版 Chrome 或 Edge。');
     return;
   }
   try {
@@ -484,7 +509,7 @@ document.getElementById('connectBtn').onclick = async function () {
     keepReading = true;
     this.innerText = "中斷裝置連線";
     this.classList.add('connected');
-    document.getElementById('status').innerText = "狀態：連線成功！即時接收硬體波形...";
+    document.getElementById('status').innerText = "狀態：連線成功！即時接收數據中...";
     startTime = Date.now();
     flowData = [];
     chartData.labels = [];
@@ -498,21 +523,36 @@ document.getElementById('connectBtn').onclick = async function () {
 
 async function listenSerial() {
   const decoder = new TextDecoderStream();
-  serialPort.readable.pipeTo(decoder.writable);
+  const pipePromise = serialPort.readable.pipeTo(decoder.writable).catch(()=>{});
   reader = decoder.readable.getReader();
-  while (keepReading) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    if (value) {
-      serialBuffer += value;
-      let lines = serialBuffer.split("\n");
-      serialBuffer = lines.pop();
-      for (let line of lines) {
-        handleSerialLine(line.trim());
+  
+  try {
+    while (keepReading) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (value) {
+        serialBuffer += value;
+        let lines = serialBuffer.split("\n");
+        serialBuffer = lines.pop();
+        for (let line of lines) {
+          handleSerialLine(line.trim());
+        }
       }
     }
+  } catch (error) {
+    // 修正 BUG 2：當硬體線路被直接拔除時，這裡會噴 Exception，在此處攔截並自動回復按鈕
+    console.log("硬體裝置已被物理拔除。");
+    resetUItoDisconnectedState();
+  } finally {
+    try { reader.releaseLock(); } catch(e){}
   }
-  reader.releaseLock();
+}
+
+// 物理拔線監聽器 (當 USB 拔掉時，網頁能雙重保障秒切換)
+if ('serial' in navigator) {
+  navigator.serial.addEventListener('disconnect', () => {
+    resetUItoDisconnectedState();
+  });
 }
 
 /** ==========================================
@@ -565,39 +605,25 @@ document.getElementById('saveBtn').onclick = async function() {
   a.download = `呼吸報告_${id}_${idCard}.txt`;
   a.click();
   
-  // 嘗試同步雲端 (若 Supabase 載入成功才會執行)
   try {
     if (supabaseClient) {
       const { data: { user } } = await supabaseClient.auth.getUser();
       if (user) {
         const filePath = `${user.id}/${idCard}_${Date.now()}.txt`;
         const { error } = await supabaseClient.storage.from('records').upload(filePath, blob);
-        if(!error) {
-          alert("數據已成功下載至本機並備份至雲端！");
-          return;
-        }
+        if(!error) { alert("數據已成功下載至本機並備份至雲端！"); return; }
       }
     }
   } catch(e){}
   alert("本地臨床報告下載完成。");
 };
 
-// 獨立隔離初始化 Supabase，就算沒連網也絕不卡死網頁
 window.addEventListener('DOMContentLoaded', () => {
   try {
     if (window.supabase && typeof window.supabase.createClient === 'function') {
       supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      supabaseClient.auth.getUser().then(({ data: { user } }) => {
-        if (user) {
-          document.getElementById('greeting').innerText = `操作醫護人員：${user.email}`;
-          document.getElementById('myfilesBtn').classList.remove('hidden');
-          document.getElementById('loginBtn').classList.add('hidden');
-        }
-      }).catch(()=>{});
     }
-  } catch (e) {
-    console.log("Supabase 初始化跳過或受網域限制，但不影響核心量測功能。");
-  }
+  } catch (e) {}
 });
 </script>
 </body>
