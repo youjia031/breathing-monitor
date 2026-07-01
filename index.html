@@ -31,7 +31,6 @@
     .lights-container { display: flex; justify-content: space-around; background: #f9f9f9; padding: 16px; border-radius: 12px; margin: 20px 0; gap: 20px; flex-wrap: wrap; border: 1px solid #eaeaea; }
     .light-wrapper { display: flex; flex-direction: column; align-items: center; font-size: 12px; color: #666; gap: 6px; min-width: 70px; }
     .light { width: 32px; height: 32px; border-radius: 50%; background: #e0e0e0; border: 2px solid #bdbdbd; transition: all 0.2s ease; }
-    /* 燈號活化顏色狀態 */
     .light.activated-red { background: #ff4b33 !important; box-shadow: 0 0 14px #ff4b33 !important; border-color: #ff1744 !important; }
     .light.activated-green { background: #00e676 !important; box-shadow: 0 0 14px #00e676 !important; border-color: #00c853 !important; }
     .light.activated-yellow { background: #ffb300 !important; box-shadow: 0 0 14px #ffb300 !important; border-color: #ff8f00 !important; }
@@ -176,43 +175,40 @@
       </div>
     </div>
     
-    <div id="instruction">系統就緒。請確認上方個資正確，並點擊「連接外接裝置」進行量測。</div>
+    <div id="instruction">系統就緒。請點擊「連接外接裝置」進行量測。</div>
 
-    <button class="save-btn" id="saveBtn" disabled>儲存數據並同步雲端</button>
+    <button class="save-btn" id="saveBtn">儲存數據並同步雲端</button>
   </div>
 
 <script>
 /** ==========================================
- * ✅ 1. 核心常數與 Supabase 初始化設定
+ * ✅ 1. 全域變數定義 (安全獨立，不受 CDN 影響)
  * ========================================== */
-const { createClient } = window.supabase;
-const SUPABASE_URL = 'https://jqdtlkxvyrrpnbkyiigg.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpxZHRsa3h2eXJycG5ia3lpaWdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgyNTAwMTksImV4cCI6MjA2MzgyNjAxOX0.6ufrl0cNDT1LZqge0yTEGzzJ4IlYYubtKis2_ewkERw';
-const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let supabaseClient = null;
 
-// 臨床基礎標準區間 (未輸入資料前的安全常模預設值)
 let ACTIVE_LIMITS = {
-  minInflow: 30.0,   // DPI 吸入有效流速下限
-  maxInflow: 90.0,   // DPI 吸入安全上限
-  minOutflow: 30.0,  // 有效吐氣流速下限
-  maxOutflow: 120.0  // 爆發性吐氣危險上限
+  minInflow: 30.0,   
+  maxInflow: 90.0,   
+  minOutflow: 30.0,  
+  maxOutflow: 120.0  
 };
 
-let detectedGender = null; // 'M' 為男，'F' 為女
+let detectedGender = null; 
 let detectedAge = 30;
 
 let serialPort, reader, keepReading = false;
 let startTime = null;
-let flowData = []; // 結構：[[時間(s), 流量(L/min)], ...]
+let flowData = []; 
 let serialBuffer = "";
-let currentDetectionMode = 'bi'; // bi: 雙向, in: 純吸, out: 純吐
-let currentCycleMode = 'single'; // single: 單次呼吸, multi: 連續多次
+let currentDetectionMode = 'bi'; 
+let currentCycleMode = 'single'; 
 let isAlerting = false;
 
-// 內建 Web Audio API 高波形合成音效產生器 (無須加載外部音檔)
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+// Web Audio API
+let audioCtx = null;
 function playAlertTone(freq = 660, type = 'sine', duration = 0.15) {
   try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = type; 
@@ -223,11 +219,11 @@ function playAlertTone(freq = 660, type = 'sine', duration = 0.15) {
     gain.connect(audioCtx.destination);
     osc.start(); 
     osc.stop(audioCtx.currentTime + duration);
-  } catch(e){ console.log("音效環境限制"); }
+  } catch(e){}
 }
 
 /** ==========================================
- * 🧠 2. 智慧個資防錯與臨床常模動態演算法
+ * 🧠 2. 智慧常模動態演算法
  * ========================================== */
 function calculateDynamicNorms() {
   const idCardInput = document.getElementById('patientIDCard');
@@ -235,7 +231,6 @@ function calculateDynamicNorms() {
   const ageVal = parseInt(document.getElementById('patientAge').value);
   const normCard = document.getElementById('normCard');
 
-  // A. 台灣身分證首碼性別判定防錯
   if (idCard.length >= 2) {
     const secondChar = idCard.charAt(1);
     if (secondChar === '1') {
@@ -246,7 +241,7 @@ function calculateDynamicNorms() {
       idCardInput.classList.remove('error');
     } else {
       detectedGender = null;
-      idCardInput.classList.add('error'); // 格式錯誤紅框防錯
+      idCardInput.classList.add('error'); 
     }
   } else {
     detectedGender = null;
@@ -255,13 +250,11 @@ function calculateDynamicNorms() {
 
   detectedAge = isNaN(ageVal) ? 30 : ageVal;
 
-  // B. 醫學大數據分配：依性別設定基礎閾值上限 (女性生理結構常模較低)
   let baseMinIn = 30.0;
   let baseMaxIn = (detectedGender === 'F') ? 75.0 : 90.0;
   let baseMinOut = 30.0;
   let baseMaxOut = (detectedGender === 'F') ? 100.0 : 120.0;
 
-  // C. 依老化衰退曲線調整：30歲後每增1歲上限自然下調 0.5% (最低保留 70% 生理彈性)
   if (detectedAge > 30) {
     const ageFactor = 1 - ((detectedAge - 30) * 0.005);
     const safeFactor = Math.max(0.7, ageFactor);
@@ -269,7 +262,6 @@ function calculateDynamicNorms() {
     baseMaxOut *= safeFactor;
   }
 
-  // 封裝成目前執行的安全極限
   ACTIVE_LIMITS = {
     minInflow: parseFloat(baseMinIn.toFixed(1)),
     maxInflow: parseFloat(baseMaxIn.toFixed(1)),
@@ -277,7 +269,6 @@ function calculateDynamicNorms() {
     maxOutflow: parseFloat(baseMaxOut.toFixed(1))
   };
 
-  // D. 即時渲染常模數據卡
   if (detectedGender) {
     const genderText = (detectedGender === 'M') ? "男性 👨" : "女性 👩";
     normCard.innerHTML = `🎯 <b>AI 個人化醫學常模已動態配置：</b><br>
@@ -293,14 +284,13 @@ function calculateDynamicNorms() {
     normCard.style.borderColor = "#ffcdd2";
     normCard.style.color = "#b71c1c";
   }
-  validateForm();
 }
 
 document.getElementById('patientIDCard').addEventListener('input', calculateDynamicNorms);
 document.getElementById('patientAge').addEventListener('input', calculateDynamicNorms);
 
 /** ==========================================
- * 🔌 3. 軟硬體分工燈號控制與擬真肺部 SVG 動態
+ * 🔌 3. 軟硬體分工燈號控制與擬真肺部動態
  * ========================================== */
 const leftLung = document.getElementById('leftLung');
 const rightLung = document.getElementById('rightLung');
@@ -310,26 +300,25 @@ const alertBanner = document.getElementById('alertBanner');
 function updateWebAndHwLights(flow) {
   const absF = Math.abs(flow);
   const allLights = ['hwGreen', 'hwRed', 'swLow', 'swPerfect', 'swHigh'];
-  // 重置清空所有活化顏色
   allLights.forEach(id => {
     const el = document.getElementById(id);
     el.classList.remove('activated-green', 'activated-red', 'activated-yellow');
   });
 
-  if (flow === 0) return; // 平靜狀態
+  if (flow === 0) return;
 
-  if (flow > 0) { // 📥 吸氣階段 (正數)
+  if (flow > 0) { 
     if (absF < ACTIVE_LIMITS.minInflow) {
-      document.getElementById('swLow').classList.add('activated-yellow'); // 網頁細分：不足
-      document.getElementById('hwRed').classList.add('activated-red');       // 實體：紅燈警告
+      document.getElementById('swLow').classList.add('activated-yellow'); 
+      document.getElementById('hwRed').classList.add('activated-red');       
     } else if (absF >= ACTIVE_LIMITS.minInflow && absF <= ACTIVE_LIMITS.maxInflow) {
-      document.getElementById('hwGreen').classList.add('activated-green');   // 實體：綠燈安全
-      document.getElementById('swPerfect').classList.add('activated-green'); // 網頁細分：黃金核心區
+      document.getElementById('hwGreen').classList.add('activated-green');   
+      document.getElementById('swPerfect').classList.add('activated-green'); 
     } else {
-      document.getElementById('hwRed').classList.add('activated-red');       // 實體：紅燈超標
-      document.getElementById('swHigh').classList.add('activated-red');      // 網頁細分：過度危險
+      document.getElementById('hwRed').classList.add('activated-red');       
+      document.getElementById('swHigh').classList.add('activated-red');      
     }
-  } else { // 📤 吐氣階段 (負數)
+  } else { 
     if (absF < ACTIVE_LIMITS.minOutflow) {
       document.getElementById('swLow').classList.add('activated-yellow');
       document.getElementById('hwRed').classList.add('activated-red');
@@ -344,7 +333,7 @@ function updateWebAndHwLights(flow) {
 }
 
 function updateLungAnimation(flow) {
-  if (flow > 0) { // 吸氣正值：朝各自中心等比例放射狀膨脹
+  if (flow > 0) { 
     const factor = 1.0 + (Math.min(flow, ACTIVE_LIMITS.maxInflow) / ACTIVE_LIMITS.maxInflow) * 0.4;
     leftLung.style.transform = `scale(${factor})`;
     rightLung.style.transform = `scale(${factor})`;
@@ -352,7 +341,7 @@ function updateLungAnimation(flow) {
     rightLung.style.fill = "#ff5252";
     lungStateText.innerText = "📥 強力吸氣中";
     lungStateText.style.color = "#d32f2f";
-  } else if (flow < 0) { // 吐氣負值：朝中心平滑塌陷縮小
+  } else if (flow < 0) { 
     const absFlow = Math.abs(flow);
     const factor = 1.0 - (Math.min(absFlow, ACTIVE_LIMITS.maxOutflow) / ACTIVE_LIMITS.maxOutflow) * 0.25;
     leftLung.style.transform = `scale(${factor})`;
@@ -361,7 +350,7 @@ function updateLungAnimation(flow) {
     rightLung.style.fill = "#29b6f6";
     lungStateText.innerText = "📤 穩定吐氣中";
     lungStateText.style.color = "#0288d1";
-  } else { // 歸零平靜
+  } else { 
     leftLung.style.transform = "scale(1)"; 
     rightLung.style.transform = "scale(1)";
     leftLung.style.fill = "#ff8a80"; 
@@ -370,13 +359,12 @@ function updateLungAnimation(flow) {
     lungStateText.style.color = "#555";
   }
 
-  // 音效與畫面即時報警攔截
   const absF = Math.abs(flow);
   if ((flow > 0 && absF > ACTIVE_LIMITS.maxInflow) || (flow < 0 && absF > ACTIVE_LIMITS.maxOutflow)) {
     if (!isAlerting) {
       isAlerting = true;
       alertBanner.style.display = 'block';
-      playAlertTone(880, 'square', 0.25); // 觸發爆發性方波警告音
+      playAlertTone(880, 'square', 0.25); 
     }
   } else {
     isAlerting = false;
@@ -406,13 +394,11 @@ function evaluateInstantRange(flow) {
       const percent = ((absF / ACTIVE_LIMITS.maxOutflow) * 100).toFixed(0);
       metricLabel.innerHTML = `<span style="color:#0288d1;font-weight:bold;">氣道暢通度良好</span><br>已達預期指標之 ${percent}%`;
     }
-  } else {
-    metricLabel.innerText = "等待數據流...";
   }
 }
 
 /** ==========================================
- * 📊 4. Chart.js 雙向極限正負值圖表配置
+ * 📊 4. Chart.js 圖表配置 (確保網頁一開啟就顯示)
  * ========================================== */
 const ctx = document.getElementById('flowChart').getContext('2d');
 let chartData = {
@@ -446,18 +432,15 @@ const flowChart = new Chart(ctx, {
  * ========================================== */
 function handleSerialLine(line) {
   if (!line) return;
-  // 精準相容硬體傳輸之正負浮點數 (例 "Flow: 45.2" 或是 "Flow: -32.8")
   const match = line.match(/Flow[:：]\s*([-0-9.]+)/i);
   if (match) {
     let rawFlow = parseFloat(match[1]);
 
-    // 未雨綢繆硬體不相容過濾器 (依選取的模式過濾)
     if (currentDetectionMode === 'in' && rawFlow < 0) rawFlow = 0;
     if (currentDetectionMode === 'out' && rawFlow > 0) rawFlow = 0;
 
     const now = ((Date.now() - startTime) / 1000).toFixed(2);
     
-    // 面板數據分流即時渲染
     if (rawFlow >= 0) {
       document.getElementById('flowInVal').innerText = rawFlow.toFixed(2);
       document.getElementById('flowOutVal').innerText = "0.00";
@@ -466,14 +449,10 @@ function handleSerialLine(line) {
       document.getElementById('flowOutVal').innerText = Math.abs(rawFlow).toFixed(2);
     }
 
-    // 觸發多層次軟硬體燈號同步
     updateWebAndHwLights(rawFlow);
-    // 觸發解剖學放射網格擴張
     updateLungAnimation(rawFlow);
-    // 實時偏離值診斷分析
     evaluateInstantRange(rawFlow);
 
-    // 單次模式結束防呆：若選擇單次且數據回穩完成一次完整呼吸，可自動判定終止 (此處由醫護決定或連續讀取)
     flowData.push([parseFloat(now), rawFlow]);
     chartData.labels.push(now);
     chartData.datasets[0].data.push(rawFlow);
@@ -487,7 +466,6 @@ function handleSerialLine(line) {
 
 document.getElementById('connectBtn').onclick = async function () {
   if (keepReading) {
-    // 斷開並安全釋放 Serial 鎖定
     keepReading = false;
     if (reader) await reader.cancel();
     if (serialPort) await serialPort.close();
@@ -497,7 +475,7 @@ document.getElementById('connectBtn').onclick = async function () {
     return;
   }
   if (!('serial' in navigator)) {
-    alert('您的瀏覽器不支援 Web Serial API，請使用 Chrome 或 Edge 瀏覽器。');
+    alert('您的瀏覽器不支援 Web Serial API，請使用桌上型電腦的 Chrome 或 Edge 瀏覽器。');
     return;
   }
   try {
@@ -538,7 +516,7 @@ async function listenSerial() {
 }
 
 /** ==========================================
- * ⚙️ 6. 介面控制按鈕事件綁定與存檔
+ * ⚙️ 6. 按鍵事件綁定與存檔
  * ========================================== */
 const setupModeBtn = (id, val, txt) => {
   document.getElementById(id).onclick = function() {
@@ -551,7 +529,7 @@ const setupModeBtn = (id, val, txt) => {
     }
     this.classList.add('active');
     document.getElementById('instruction').innerText = `目前運作核心模式已切換為：${txt}`;
-    playAlertTone(523, 'sine', 0.05); // 輕微點擊提示音
+    playAlertTone(523, 'sine', 0.05); 
   };
 };
 setupModeBtn('modeBi', 'bi', '雙向自動偵測模式 (吸氣為正，吐氣為負)');
@@ -560,30 +538,11 @@ setupModeBtn('modeOut', 'out', '純吐氣監測模式 (自動過濾吸氣正值)
 setupModeBtn('cycleSingle', 'single', '單次呼吸測試模式');
 setupModeBtn('cycleMulti', 'multi', '連續多次生理長效監測模式');
 
-function validateForm() {
-  const hasId = document.getElementById('patientId').value.trim() !== "";
-  const hasIDCard = document.getElementById('patientIDCard').value.trim() !== "" && !document.getElementById('patientIDCard').classList.contains('error');
-  const hasAge = document.getElementById('patientAge').value.trim() !== "";
-  document.getElementById('saveBtn').disabled = !(hasId && hasIDCard && hasAge && flowData.length > 0);
-}
-document.getElementById('patientId').addEventListener('input', validateForm);
-
-async function checkLogin() {
-  try {
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (user) {
-      document.getElementById('greeting').innerText = `操作醫護人員：${user.email}`;
-      document.getElementById('myfilesBtn').classList.remove('hidden');
-      document.getElementById('loginBtn').classList.add('hidden');
-    }
-  } catch(e){}
-}
-
 document.getElementById('saveBtn').onclick = async function() {
-  const id = document.getElementById('patientId').value.trim();
-  const idCard = document.getElementById('patientIDCard').value.trim().toUpperCase();
-  const age = document.getElementById('patientAge').value.trim();
-  const genderStr = (detectedGender === 'M') ? "男" : "女";
+  const id = document.getElementById('patientId').value.trim() || "TEST";
+  const idCard = document.getElementById('patientIDCard').value.trim().toUpperCase() || "UNKNOWN";
+  const age = document.getElementById('patientAge').value.trim() || "30";
+  const genderStr = (detectedGender === 'M') ? "男" : (detectedGender === 'F' ? "女" : "未指定");
 
   let content = `====================================\n`;
   content += `  AI智慧型雙向呼吸流量生理監測報告\n`;
@@ -593,9 +552,8 @@ document.getElementById('saveBtn').onclick = async function() {
   content += `自動判定性別: ${genderStr}\n`;
   content += `病患年齡: ${age} 歲\n`;
   content += `量測演算法配置閾值:\n`;
-  content += `  - 吸氣有效範圍: ${ACTIVE_LIMITS.minInflow} ~ ${ACTIVE_LIMITS.maxInflow} L/min\n`;
-  content += `  - 吐氣有效範圍: ${ACTIVE_LIMITS.minOutflow} ~ ${ACTIVE_LIMITS.maxOutflow} L/min\n`;
-  content += `運作模式: ${currentDetectionMode === 'bi' ? '雙向自動' : currentDetectionMode === 'in' ? '純吸氣' : '純吐氣'} | ${currentCycleMode === 'single' ? '單次' : '多次連續'}\n`;
+  content += `  - 吸氣範圍: ${ACTIVE_LIMITS.minInflow} ~ ${ACTIVE_LIMITS.maxInflow} L/min\n`;
+  content += `  - 吐氣範圍: ${ACTIVE_LIMITS.minOutflow} ~ ${ACTIVE_LIMITS.maxOutflow} L/min\n`;
   content += `------------------------------------\n`;
   content += `時間序列(秒)\t流速數據(L/min)\n`;
   
@@ -607,20 +565,40 @@ document.getElementById('saveBtn').onclick = async function() {
   a.download = `呼吸報告_${id}_${idCard}.txt`;
   a.click();
   
-  // 檢查並進行 Supabase 雲端備份同步
-  const { data: { user } } = await supabaseClient.auth.getUser();
-  if (user) {
-    const filePath = `${user.id}/${idCard}_${Date.now()}.txt`;
-    const { error } = await supabaseClient.storage.from('records').upload(filePath, blob);
-    if(!error) alert("臨床數據已成功下載本機並安全加密上傳至雲端儲存空間！");
-    else alert("本地儲存完成，但雲端備份失敗：" + error.message);
-  } else {
-    alert("本地臨床報告下載完成。（提醒：您尚未登入醫護帳號，故數據未同步至雲端伺服器）");
-  }
+  // 嘗試同步雲端 (若 Supabase 載入成功才會執行)
+  try {
+    if (supabaseClient) {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (user) {
+        const filePath = `${user.id}/${idCard}_${Date.now()}.txt`;
+        const { error } = await supabaseClient.storage.from('records').upload(filePath, blob);
+        if(!error) {
+          alert("數據已成功下載至本機並備份至雲端！");
+          return;
+        }
+      }
+    }
+  } catch(e){}
+  alert("本地臨床報告下載完成。");
 };
 
-// 初始啟動
-checkLogin();
+// 獨立隔離初始化 Supabase，就算沒連網也絕不卡死網頁
+window.addEventListener('DOMContentLoaded', () => {
+  try {
+    if (window.supabase && typeof window.supabase.createClient === 'function') {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      supabaseClient.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          document.getElementById('greeting').innerText = `操作醫護人員：${user.email}`;
+          document.getElementById('myfilesBtn').classList.remove('hidden');
+          document.getElementById('loginBtn').classList.add('hidden');
+        }
+      }).catch(()=>{});
+    }
+  } catch (e) {
+    console.log("Supabase 初始化跳過或受網域限制，但不影響核心量測功能。");
+  }
+});
 </script>
 </body>
 </html>
