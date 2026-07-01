@@ -20,8 +20,10 @@
     .btn-connect { background: #009688; color: #fff; }
     .btn-connect.connected { background: #e91e63 !important; }
     
-    /* 計時器按鈕與獨立側邊欄 */
-    .timer-sidebar { display: flex; flex-direction: column; gap: 12px; background: #f4f7fa; padding: 16px; border-radius: 12px; border: 2px solid #d0e0f0; min-width: 150px; box-sizing: border-box; justify-content: center; }
+    /* ✅ 升級版：圖表左側複合控制面板 */
+    .timer-sidebar { display: flex; flex-direction: column; gap: 12px; background: #f4f7fa; padding: 16px; border-radius: 12px; border: 2px solid #d0e0f0; min-width: 160px; box-sizing: border-box; justify-content: flex-start; }
+    .sidebar-divider { border-top: 1px dashed #cbd5e1; margin: 6px 0; }
+    
     .btn-timer { padding: 10px; font-size: 14px; border-radius: 8px; background: #fff; border: 1px solid #ccc; font-weight: bold; cursor: pointer; text-align: center; width: 100%; box-sizing: border-box; }
     .btn-timer-start { background: #2e7d32; color: #fff; border-color: #2e7d32; }
     .btn-timer-start:hover { background: #1b5e20; }
@@ -38,7 +40,7 @@
     .btn-mode.active { background: #2e7d32; color: #fff; border-color: #2e7d32; }
 
     /* 下拉選單與計時器樣式 */
-    .select-y-scale { padding: 8px 12px; font-size: 14px; font-weight: bold; border: 2px solid #2e7d32; border-radius: 8px; background: #fff; color: #2e7d32; cursor: pointer; outline: none; }
+    .select-y-scale { padding: 10px; font-size: 14px; font-weight: bold; border: 2px solid #2e7d32; border-radius: 8px; background: #fff; color: #2e7d32; cursor: pointer; outline: none; width: 100%; box-sizing: border-box; text-align: center; }
     .timer-input { padding: 8px; width: 100%; font-size: 16px; font-weight: bold; border: 2px solid #4e7fff; border-radius: 8px; text-align: center; box-sizing: border-box; }
     .timer-display { font-size: 18px; font-weight: bold; color: #e91e63; background: #fce4ec; padding: 10px; border-radius: 8px; border: 1px solid #f8bbd0; text-align: center; }
 
@@ -62,12 +64,12 @@
     .lung-leaf { transform-box: fill-box; transform-origin: center; transition: transform 0.1s linear, fill 0.2s ease; fill: #ff8a80; }
     .lung-text { font-weight: bold; font-size: 15px; color: #555; background: rgba(255,255,255,0.8); padding: 4px 10px; border-radius: 10px; margin-top: 10px; border: 1px solid #eee; }
 
-    /* ✅ 圖表+計時器左右並排大外殼 */
+    /* 圖表+計時器左右並排大外殼 */
     .chart-panel-block { flex: 1; min-width: 320px; display: flex; gap: 14px; background: #fff; border-radius: 16px; padding: 14px; border: 1px solid #eaeaea; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
 
     /* 圖表外層滾動容器 */
     .chart-scroll-container { flex: 1; overflow-x: auto; background: #fff; border-radius: 8px; border: 1px solid #f0f0f0; }
-    .chart-inner-wrapper { width: 100%; min-width: 500px; height: 290px; padding: 5px; box-sizing: border-box; }
+    .chart-inner-wrapper { width: 100%; min-width: 500px; height: 320px; padding: 5px; box-sizing: border-box; }
     
     /* 即時數據面板 */
     .data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0; }
@@ -119,16 +121,6 @@
         <button class="btn btn-connect" id="connectBtn">連接外接裝置</button>
         
         <button class="btn btn-reset-all" id="resetAllBtn" title="清除所有資料、圖表與設定，免重整網頁">🔄 全系統重置</button>
-
-        <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
-          <label style="font-size: 13px; font-weight: bold; color: #444;">📊 縱軸範圍：</label>
-          <select id="yScaleSelect" class="select-y-scale">
-            <option value="30">± 30</option>
-            <option value="60">± 60</option>
-            <option value="100" selected>± 100</option>
-            <option value="150">± 150</option>
-          </select>
-        </div>
       </div>
       <div class="btn-group">
         <button class="btn btn-mode active" id="modeBi">🔄 雙向自動模式</button>
@@ -202,6 +194,16 @@
           <button class="btn-timer btn-timer-start" id="timerStartBtn">開始</button>
           <button class="btn-timer btn-timer-pause" id="timerPauseBtn">暫停</button>
           <button class="btn-timer btn-timer-reset" id="timerResetBtn" title="僅重置倒數計時時間，不影響資料">重置計時</button>
+          
+          <div class="sidebar-divider"></div>
+          
+          <div style="text-align: center; font-size: 12px; font-weight: bold; color: #555;">📊 縱軸流速範圍</div>
+          <select id="yScaleSelect" class="select-y-scale">
+            <option value="30">± 30</option>
+            <option value="60">± 60</option>
+            <option value="100" selected>± 100</option>
+            <option value="150">± 150</option>
+          </select>
         </div>
 
         <div class="chart-scroll-container" id="chartScrollParent">
@@ -447,7 +449,7 @@ function evaluateInstantRange(flow) {
 }
 
 /** ==========================================
- * 📊 4. Chart.js 圖表配置 (優化縱軸字體與鬆緊度)
+ * 📊 4. Chart.js 圖表配置 (高清晰縱軸刻度設計)
  * ========================================== */
 const ctx = document.getElementById('flowChart').getContext('2d');
 let chartData = {
@@ -474,16 +476,16 @@ const flowChart = new Chart(ctx, {
         max: 100, 
         title: { display: true, text: '吸氣 (+) / 吐氣 (-)', font: { size: 14, weight: 'bold' } },
         grid: {
-          color: 'rgba(0, 0, 0, 0.08)' // 讓格線稍微明顯，易於肉眼比對
+          color: 'rgba(0, 0, 0, 0.08)' 
         },
         ticks: {
           autoSkip: false,
           stepSize: 20,
           font: {
-            size: 15,          // 🟢 顯著放大數值字體 (原11~12px)
-            weight: 'bold'     // 🟢 加粗處理
+            size: 15,          
+            weight: 'bold'     
           },
-          padding: 12          // 🟢 增加數字與圖表邊緣的間距，讓排版變鬆、好看
+          padding: 12          
         }
       }
     }
@@ -584,7 +586,7 @@ document.getElementById('connectBtn').onclick = async function () {
     keepReading = true;
     this.innerText = "中斷裝置連線";
     this.classList.add('connected');
-    document.getElementById('status').innerText = "狀態：硬體連線成功！請設定右側計時器並按下 [開始] 進行施測。";
+    document.getElementById('status').innerText = "狀態：硬體連線成功！請在圖表左側設定計時器並按下 [開始] 進行施測。";
     
     const initSec = parseInt(document.getElementById('timerLengthInput').value) || 60;
     timeLeft = initSec;
