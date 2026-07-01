@@ -223,7 +223,7 @@
 
 <script>
 /** ==========================================
- * ✅ 1. 全域變數定義
+ * 💾 1. 全域變數定義
  * ========================================== */
 let supabaseClient = null;
 
@@ -239,7 +239,7 @@ let currentDetectionMode = 'bi';
 let currentCycleMode = 'single'; 
 let isAlerting = false;
 
-// ✅ 計時狀態變數
+// 計時器核心管理
 let testTimerId = null;
 let timeLeft = 60;
 let isTimerRunning = false;
@@ -435,7 +435,7 @@ function evaluateInstantRange(flow) {
 }
 
 /** ==========================================
- * 📊 4. Chart.js 圖表配置
+ * 📊 4. Chart.js 圖表配置 (已整合縱軸固定刻度修正)
  * ========================================== */
 const ctx = document.getElementById('flowChart').getContext('2d');
 let chartData = {
@@ -457,7 +457,16 @@ const flowChart = new Chart(ctx, {
     maintainAspectRatio: false,
     scales: {
       x: { grid: { display: false }, title: { display: true, text: '時間序列 (秒)' } },
-      y: { min: -100, max: 100, title: { display: true, text: '吸氣 (+) / 吐氣 (-)' } }
+      y: { 
+        min: -100, 
+        max: 100, 
+        title: { display: true, text: '吸氣 (+) / 吐氣 (-)' },
+        // 強制固定中間刻度數字，不允許被軟體壓縮自動隱藏
+        ticks: {
+          autoSkip: false,
+          stepSize: 20
+        }
+      }
     }
   }
 });
@@ -466,6 +475,16 @@ document.getElementById('yScaleSelect').onchange = function() {
   const limit = parseInt(this.value);
   flowChart.options.scales.y.min = -limit;
   flowChart.options.scales.y.max = limit;
+  
+  // 依據不同的區間，自動調節最完美的間隔線，不論如何橫向捲動，中間數字一定都在
+  if (limit <= 30) {
+    flowChart.options.scales.y.ticks.stepSize = 10;
+  } else if (limit <= 100) {
+    flowChart.options.scales.y.ticks.stepSize = 20;
+  } else {
+    flowChart.options.scales.y.ticks.stepSize = 30;
+  }
+  
   flowChart.update();
 };
 
@@ -481,7 +500,7 @@ function handleSerialLine(line) {
     let rawFlow = parseFloat(match[1]);
     if (isNaN(rawFlow)) return;
 
-    // ✅ 只有計時器在運作「錄製中」，才進行數據處理與圖表繪製
+    // 只有計時器運作中才繪製線條
     if (!isTimerRunning) return;
 
     if (currentDetectionMode === 'in' && rawFlow < 0) rawFlow = 0;
@@ -550,7 +569,6 @@ document.getElementById('connectBtn').onclick = async function () {
     this.classList.add('connected');
     document.getElementById('status').innerText = "狀態：硬體連線成功！請設定計時器並按下 [開始] 進行施測。";
     
-    // 初始化計時器顯示
     const initSec = parseInt(document.getElementById('timerLengthInput').value) || 60;
     timeLeft = initSec;
     document.getElementById('countdownBox').innerText = `${timeLeft} 秒`;
@@ -618,12 +636,11 @@ function pauseTimerLogic() {
 }
 document.getElementById('timerPauseBtn').onclick = pauseTimerLogic;
 
-// 備註：這只是「計時器重置鍵」，只影響時間，不清除波形
 document.getElementById('timerResetBtn').onclick = function() {
   pauseTimerLogic();
   const initSec = parseInt(document.getElementById('timerLengthInput').value) || 60;
   timeLeft = initSec;
-  startTime = null; // 重新錄製新一段數據的時間軸起點
+  startTime = null; 
   document.getElementById('timerLengthInput').disabled = false;
   document.getElementById('countdownBox').innerText = `${timeLeft} 秒`;
   document.getElementById('status').innerText = "狀態：計時器時間已重置，可重新點擊 [開始] 錄製。";
@@ -634,7 +651,6 @@ document.getElementById('timerResetBtn').onclick = function() {
  * ========================================== */
 document.getElementById('resetAllBtn').onclick = async function() {
   if(confirm("確定要進行「全系統重置」嗎？這將會清除當前畫面的所有數據、波形與病患個資。")) {
-    // 1. 停止計時
     pauseTimerLogic();
     const initSec = parseInt(document.getElementById('timerLengthInput').value) || 60;
     timeLeft = initSec;
@@ -642,10 +658,8 @@ document.getElementById('resetAllBtn').onclick = async function() {
     document.getElementById('timerLengthInput').disabled = false;
     document.getElementById('countdownBox').innerText = `${timeLeft} 秒`;
 
-    // 2. 斷開硬體連線
     if (keepReading) { await closeHardwareConnection(); }
 
-    // 3. 清空個資欄位
     document.getElementById('patientId').value = "";
     document.getElementById('patientIDCard').value = "";
     document.getElementById('patientAge').value = "";
@@ -655,14 +669,12 @@ document.getElementById('resetAllBtn').onclick = async function() {
     document.getElementById('normCard').style.borderColor = "#90caf9";
     document.getElementById('normCard').style.color = "#1565c0";
 
-    // 4. 清空即時數據與燈號
     document.getElementById('flowInVal').innerText = "0.00";
     document.getElementById('flowOutVal').innerText = "0.00";
     document.getElementById('metricLabel').innerText = "等待氣流傳輸...";
     updateWebAndHwLights(0);
     updateLungAnimation(0);
 
-    // 5. 徹底清空圖表數據
     flowData = [];
     chartData.labels = [];
     chartData.datasets[0].data = [];
