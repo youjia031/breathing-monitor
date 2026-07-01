@@ -13,7 +13,7 @@
     
     /* 控制面板 */
     .control-panel { background: #f9faf9; padding: 16px; border-radius: 12px; border: 1px solid #e0e6e0; margin-bottom: 20px; }
-    .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+    .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
     .btn { padding: 10px 18px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
     .btn-primary { background: #4e7fff; color: #fff; }
     .btn-primary:hover { background: #3b6ee0; }
@@ -21,6 +21,9 @@
     .btn-connect.connected { background: #e91e63 !important; }
     .btn-mode { background: #fff; color: #333; border: 2px solid #ccc; }
     .btn-mode.active { background: #2e7d32; color: #fff; border-color: #2e7d32; }
+
+    /* 下拉選單樣式 */
+    .select-y-scale { padding: 10px 14px; font-size: 14px; font-weight: bold; border: 2px solid #2e7d32; border-radius: 8px; background: #fff; color: #2e7d32; cursor: pointer; outline: none; }
 
     /* 狀態提示 */
     .status-bar { display: flex; justify-content: space-between; background: #e8f5e9; padding: 10px 16px; border-radius: 8px; margin-bottom: 16px; font-weight: 500; }
@@ -91,6 +94,16 @@
         <button class="btn btn-primary" id="loginBtn">醫護登入</button>
         <button class="btn btn-primary hidden" id="myfilesBtn">紀錄瀏覽</button>
         <button class="btn btn-connect" id="connectBtn">連接外接裝置</button>
+        
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+          <label style="font-size: 13px; font-weight: bold; color: #444;">📊 縱軸範圍(L/min)：</label>
+          <select id="yScaleSelect" class="select-y-scale">
+            <option value="30">± 30 (微弱呼吸/高靈敏)</option>
+            <option value="60">± 60 (標準小流量)</option>
+            <option value="100" selected>± 100 (臨床常設)</option>
+            <option value="150">± 150 (強力肺活量)</option>
+          </select>
+        </div>
       </div>
       <div class="btn-group">
         <button class="btn btn-mode active" id="modeBi">🔄 雙向自動模式</button>
@@ -222,33 +235,27 @@ function playAlertTone(freq = 660, type = 'sine', duration = 0.15) {
 }
 
 /** ==========================================
- * 🧠 2. 智慧常模動態演算法 (修正 BUG 1：嚴格格式驗證)
+ * 🧠 2. 智慧常模動態演算法
  * ========================================== */
 function calculateDynamicNorms() {
   const idCardInput = document.getElementById('patientIDCard');
-  
-  // 自動轉換為大寫並去除空白
   let idCard = idCardInput.value.trim().toUpperCase();
   idCardInput.value = idCard; 
 
   const ageVal = parseInt(document.getElementById('patientAge').value);
   const normCard = document.getElementById('normCard');
-
-  // 中華民國身分證標準正則表達式：1碼大寫英文 + 1碼(1或2) + 8碼數字 = 剛好10碼
   const twIdRegex = /^[A-Z][12]\d{8}$/;
 
   if (idCard.length > 0) {
     if (!twIdRegex.test(idCard)) {
-      // 只要不符合格式（小寫、不足10碼、首碼不是英文、第二碼不是1或2），直接報錯並卡死
       detectedGender = null;
       idCardInput.classList.add('error');
       normCard.innerHTML = `⚠️ 身分證字號格式不正確。必須剛好 10 碼（例：A123456789），且第一碼大寫、第二碼為 1 或 2。`;
       normCard.style.background = "#ffebee";
       normCard.style.borderColor = "#ffcdd2";
       normCard.style.color = "#b71c1c";
-      return; // 終止演算法
+      return;
     } else {
-      // 格式完全正確，解析性別
       idCardInput.classList.remove('error');
       const secondChar = idCard.charAt(1);
       detectedGender = (secondChar === '1') ? 'M' : 'F';
@@ -427,33 +434,36 @@ const flowChart = new Chart(ctx, {
     animation: false,
     scales: {
       x: { grid: { display: false }, title: { display: true, text: '時間序列 (秒)' } },
-      y: { min: -130, max: 130, title: { display: true, text: '吸氣 (+) / 吐氣 (-)' } }
+      y: { min: -100, max: 100, title: { display: true, text: '吸氣 (+) / 吐氣 (-)' } } // 預設 ±100
     }
   }
 });
 
+// ✅ 新增功能：監聽下拉選單，動態切換縱軸範圍（施測前、施測中、施測後皆可隨時切換）
+document.getElementById('yScaleSelect').onchange = function() {
+  const limit = parseInt(this.value);
+  flowChart.options.scales.y.min = -limit;
+  flowChart.options.scales.y.max = limit;
+  flowChart.update(); // 重新渲染圖表縮放，保留歷史波形
+};
+
 /** ==========================================
- * 🎛️ 5. 數據解析核心與序列埠連線管理 (修正 BUG 2 & BUG 3)
+ * 🎛️ 5. 數據解析核心與序列埠連線管理
  * ========================================== */
 function handleSerialLine(line) {
   if (!line) return;
-  
-  // 修正 BUG 3：大幅增強Regex相容性，自動過濾掉字串中的所有隱形空格與大小寫
-  const cleanLine = line.replace(/\s+/g, ''); // 移除所有空格
-  
-  // 只要字串包含 flow、流量、或只有單純數字，全部都能抓到
+  const cleanLine = line.replace(/\s+/g, ''); 
   const match = cleanLine.match(/(?:flow|流量)?[:：]?([-0-9.]+)/i);
   
   if (match) {
     let rawFlow = parseFloat(match[1]);
-    if (isNaN(rawFlow)) return; // 防呆
+    if (isNaN(rawFlow)) return;
 
     if (currentDetectionMode === 'in' && rawFlow < 0) rawFlow = 0;
     if (currentDetectionMode === 'out' && rawFlow > 0) rawFlow = 0;
 
     const now = ((Date.now() - startTime) / 1000).toFixed(2);
     
-    // 渲染數值到 HTML
     if (rawFlow >= 0) {
       document.getElementById('flowInVal').innerText = rawFlow.toFixed(2);
       document.getElementById('flowOutVal').innerText = "0.00";
@@ -477,7 +487,6 @@ function handleSerialLine(line) {
   }
 }
 
-// 提取重置按鈕樣式函式 (拔線與主動斷開共用)
 function resetUItoDisconnectedState() {
   keepReading = false;
   const connectBtn = document.getElementById('connectBtn');
@@ -485,7 +494,6 @@ function resetUItoDisconnectedState() {
   connectBtn.classList.remove('connected');
   document.getElementById('status').innerText = "狀態：已中斷連線 (裝置已拔除或關閉)";
   
-  // 歸零數值
   document.getElementById('flowInVal').innerText = "0.00";
   document.getElementById('flowOutVal').innerText = "0.00";
   updateWebAndHwLights(0);
@@ -523,7 +531,7 @@ document.getElementById('connectBtn').onclick = async function () {
 
 async function listenSerial() {
   const decoder = new TextDecoderStream();
-  const pipePromise = serialPort.readable.pipeTo(decoder.writable).catch(()=>{});
+  serialPort.readable.pipeTo(decoder.writable).catch(()=>{});
   reader = decoder.readable.getReader();
   
   try {
@@ -540,7 +548,6 @@ async function listenSerial() {
       }
     }
   } catch (error) {
-    // 修正 BUG 2：當硬體線路被直接拔除時，這裡會噴 Exception，在此處攔截並自動回復按鈕
     console.log("硬體裝置已被物理拔除。");
     resetUItoDisconnectedState();
   } finally {
@@ -548,7 +555,6 @@ async function listenSerial() {
   }
 }
 
-// 物理拔線監聽器 (當 USB 拔掉時，網頁能雙重保障秒切換)
 if ('serial' in navigator) {
   navigator.serial.addEventListener('disconnect', () => {
     resetUItoDisconnectedState();
