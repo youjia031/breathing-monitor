@@ -19,13 +19,24 @@
     .btn-primary:hover { background: #3b6ee0; }
     .btn-connect { background: #009688; color: #fff; }
     .btn-connect.connected { background: #e91e63 !important; }
+    
+    /* 計時器微型按鈕 */
+    .btn-timer { padding: 6px 12px; font-size: 12px; border-radius: 6px; background: #fff; border: 1px solid #ccc; font-weight: bold; cursor: pointer; }
+    .btn-timer-start { background: #2e7d32; color: #fff; border-color: #2e7d32; }
+    .btn-timer-pause { background: #ffa000; color: #fff; border-color: #ffa000; }
+    .btn-timer-reset { background: #78909c; color: #fff; border-color: #78909c; }
+    
+    /* 全網頁重置按鈕 */
+    .btn-reset-all { background: #d32f2f; color: #fff; }
+    .btn-reset-all:hover { background: #b71c1c; }
+
     .btn-mode { background: #fff; color: #333; border: 2px solid #ccc; }
     .btn-mode.active { background: #2e7d32; color: #fff; border-color: #2e7d32; }
 
     /* 下拉選單與計時器樣式 */
     .select-y-scale { padding: 8px 12px; font-size: 14px; font-weight: bold; border: 2px solid #2e7d32; border-radius: 8px; background: #fff; color: #2e7d32; cursor: pointer; outline: none; }
     .timer-input { padding: 8px; width: 60px; font-size: 14px; font-weight: bold; border: 2px solid #4e7fff; border-radius: 8px; text-align: center; }
-    .timer-display { font-size: 16px; font-weight: bold; color: #e91e63; background: #fce4ec; padding: 6px 12px; border-radius: 8px; border: 1px solid #f8bbd0; display: none; }
+    .timer-display { font-size: 15px; font-weight: bold; color: #e91e63; background: #fce4ec; padding: 6px 12px; border-radius: 8px; border: 1px solid #f8bbd0; }
 
     /* 狀態提示 */
     .status-bar { display: flex; justify-content: space-between; background: #e8f5e9; padding: 10px 16px; border-radius: 8px; margin-bottom: 16px; font-weight: 500; }
@@ -47,7 +58,7 @@
     .lung-leaf { transform-box: fill-box; transform-origin: center; transition: transform 0.1s linear, fill 0.2s ease; fill: #ff8a80; }
     .lung-text { position: absolute; bottom: 18px; font-weight: bold; font-size: 16px; color: #555; background: rgba(255,255,255,0.8); padding: 2px 8px; border-radius: 10px; }
 
-    /* ✅ 為了讓圖表能左右滾動，外層包覆一個滾動容器 */
+    /* 圖表外層滾動容器 */
     .chart-scroll-container { width: 100%; max-width: 580px; overflow-x: auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); border: 1px solid #eaeaea; }
     .chart-inner-wrapper { width: 100%; min-width: 560px; padding: 10px; box-sizing: border-box; }
     
@@ -64,7 +75,7 @@
 
     #instruction { background: #fffde7; border-left: 4px solid #fff59d; padding: 16px; border-radius: 8px; margin: 16px 0; min-height: 24px; font-size: 15px; color: #555; }
 
-    /* 病患基本資料表單區 */
+    /* 表單區 */
     .form-row { display: flex; gap: 16px; margin-top: 24px; flex-wrap: wrap; }
     .form-row .input-group { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 6px; }
     .form-row label { font-size: 13px; color: #444; font-weight: bold; }
@@ -99,19 +110,24 @@
         <button class="btn btn-primary hidden" id="myfilesBtn">紀錄瀏覽</button>
         <button class="btn btn-connect" id="connectBtn">連接外接裝置</button>
         
-        <div style="display: flex; align-items: center; gap: 6px; margin-left: 10px;">
-          <label style="font-size: 13px; font-weight: bold; color: #444;">⏱️ 限時(秒)：</label>
-          <input type="number" id="timerLengthInput" class="timer-input" value="60" min="5" max="3600" />
-          <div id="countdownBox" class="timer-display">剩餘 -- 秒</div>
+        <button class="btn btn-reset-all" id="resetAllBtn" title="清除所有資料、圖表與設定，免重整網頁">🔄 全系統重置</button>
+
+        <div style="display: flex; align-items: center; gap: 6px; background: #f0f4f8; padding: 6px 12px; border-radius: 10px; border: 1px solid #d0e0f0;">
+          <label style="font-size: 12px; font-weight: bold; color: #333;">⏱️ 計時器：</label>
+          <input type="number" id="timerLengthInput" class="timer-input" value="60" min="5" max="3600" style="width:50px; padding:4px;" />
+          <div id="countdownBox" class="timer-display">60 秒</div>
+          <button class="btn-timer btn-timer-start" id="timerStartBtn">開始</button>
+          <button class="btn-timer btn-timer-pause" id="timerPauseBtn">暫停</button>
+          <button class="btn-timer btn-timer-reset" id="timerResetBtn" title="僅重置倒數計時時間，不影響資料">重置計時</button>
         </div>
 
         <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
-          <label style="font-size: 13px; font-weight: bold; color: #444;">📊 縱軸(L/min)：</label>
+          <label style="font-size: 13px; font-weight: bold; color: #444;">📊 縱軸：</label>
           <select id="yScaleSelect" class="select-y-scale">
-            <option value="30">± 30 (微弱呼吸)</option>
-            <option value="60">± 60 (標準小流量)</option>
-            <option value="100" selected>± 100 (臨床常設)</option>
-            <option value="150">± 150 (強力肺活量)</option>
+            <option value="30">± 30</option>
+            <option value="60">± 60</option>
+            <option value="100" selected>± 100</option>
+            <option value="150">± 150</option>
           </select>
         </div>
       </div>
@@ -142,7 +158,7 @@
     </div>
 
     <div id="normCard" class="norm-card">
-      ℹ️ 請先輸入病患「身分證字號」與「年齡」，系統將由臨床演算法自動配置量身打造的生理流量常模.
+      ℹ️ 請先輸入病患「身分證字號」與「年齡」，系統將由臨床演算法自動配置量身打造的生理流量常模。
     </div>
 
     <div class="status-bar">
@@ -211,13 +227,7 @@
  * ========================================== */
 let supabaseClient = null;
 
-let ACTIVE_LIMITS = {
-  minInflow: 30.0,   
-  maxInflow: 90.0,   
-  minOutflow: 30.0,  
-  maxOutflow: 120.0  
-};
-
+let ACTIVE_LIMITS = { minInflow: 30.0, maxInflow: 90.0, minOutflow: 30.0, maxOutflow: 120.0 };
 let detectedGender = null; 
 let detectedAge = 30;
 
@@ -229,9 +239,10 @@ let currentDetectionMode = 'bi';
 let currentCycleMode = 'single'; 
 let isAlerting = false;
 
-// 計時器全域管理
+// ✅ 計時狀態變數
 let testTimerId = null;
-let timeLeft = 0;
+let timeLeft = 60;
+let isTimerRunning = false;
 
 let audioCtx = null;
 function playAlertTone(freq = 660, type = 'sine', duration = 0.15) {
@@ -318,7 +329,7 @@ document.getElementById('patientIDCard').addEventListener('input', calculateDyna
 document.getElementById('patientAge').addEventListener('input', calculateDynamicNorms);
 
 /** ==========================================
- * 🔌 3. 軟硬體分工燈號控制與擬真肺部動態
+ * 🔌 3. 軟硬體生理燈號與擬真肺部動態
  * ========================================== */
 const leftLung = document.getElementById('leftLung');
 const rightLung = document.getElementById('rightLung');
@@ -330,7 +341,7 @@ function updateWebAndHwLights(flow) {
   const allLights = ['hwGreen', 'hwRed', 'swLow', 'swPerfect', 'swHigh'];
   allLights.forEach(id => {
     const el = document.getElementById(id);
-    el.classList.remove('activated-green', 'activated-red', 'activated-yellow');
+    if(el) el.classList.remove('activated-green', 'activated-red', 'activated-yellow');
   });
 
   if (flow === 0) return;
@@ -406,27 +417,25 @@ function evaluateInstantRange(flow) {
 
   if (flow > 0) {
     if (absF < ACTIVE_LIMITS.minInflow) {
-      metricLabel.innerHTML = `<span style="color:#f57c00;font-weight:bold;">吸氣力道不足</span><br>尚差 ${(ACTIVE_LIMITS.minInflow - absF).toFixed(1)} L/min`;
+      metricLabel.innerHTML = `<span style="color:#f57c00;font-weight:bold;">吸氣力道不足</span>`;
     } else if (absF > ACTIVE_LIMITS.maxInflow) {
-      metricLabel.innerHTML = `<span style="color:#d32f2f;font-weight:bold;">吸氣爆發過猛！</span><br>已超標 ${(absF - ACTIVE_LIMITS.maxInflow).toFixed(1)} L/min`;
+      metricLabel.innerHTML = `<span style="color:#d32f2f;font-weight:bold;">吸氣爆發過猛！</span>`;
     } else {
-      const percent = ((absF / ACTIVE_LIMITS.maxInflow) * 100).toFixed(0);
-      metricLabel.innerHTML = `<span style="color:#388e3c;font-weight:bold;">黃金核心效率區</span><br>已達最大期望值之 ${percent}%`;
+      metricLabel.innerHTML = `<span style="color:#388e3c;font-weight:bold;">黃金核心效率區</span>`;
     }
   } else if (flow < 0) {
     if (absF < ACTIVE_LIMITS.minOutflow) {
-      metricLabel.innerHTML = `<span style="color:#f57c00;font-weight:bold;">吐氣阻力不足</span><br>尚差 ${(ACTIVE_LIMITS.minOutflow - absF).toFixed(1)} L/min`;
+      metricLabel.innerHTML = `<span style="color:#f57c00;font-weight:bold;">吐氣阻力不足</span>`;
     } else if (absF > ACTIVE_LIMITS.maxOutflow) {
-      metricLabel.innerHTML = `<span style="color:#d32f2f;font-weight:bold;">吐氣流速過激！</span><br>已超標 ${(absF - ACTIVE_LIMITS.maxOutflow).toFixed(1)} L/min`;
+      metricLabel.innerHTML = `<span style="color:#d32f2f;font-weight:bold;">吐氣流速過激！</span>`;
     } else {
-      const percent = ((absF / ACTIVE_LIMITS.maxOutflow) * 100).toFixed(0);
-      metricLabel.innerHTML = `<span style="color:#0288d1;font-weight:bold;">氣道暢通度良好</span><br>已達預期指標之 ${percent}%`;
+      metricLabel.innerHTML = `<span style="color:#0288d1;font-weight:bold;">氣道暢通度良好</span>`;
     }
   }
 }
 
 /** ==========================================
- * 📊 4. Chart.js 圖表配置 (升級：支援歷史長效滾動)
+ * 📊 4. Chart.js 圖表配置
  * ========================================== */
 const ctx = document.getElementById('flowChart').getContext('2d');
 let chartData = {
@@ -445,7 +454,7 @@ const flowChart = new Chart(ctx, {
   data: chartData,
   options: {
     responsive: true,
-    maintainAspectRatio: false, // 關閉等比例，允許寬度橫向拉長
+    maintainAspectRatio: false,
     scales: {
       x: { grid: { display: false }, title: { display: true, text: '時間序列 (秒)' } },
       y: { min: -100, max: 100, title: { display: true, text: '吸氣 (+) / 吐氣 (-)' } }
@@ -453,7 +462,6 @@ const flowChart = new Chart(ctx, {
   }
 });
 
-// 監聽下拉選單，動態切換縱軸範圍
 document.getElementById('yScaleSelect').onchange = function() {
   const limit = parseInt(this.value);
   flowChart.options.scales.y.min = -limit;
@@ -462,7 +470,7 @@ document.getElementById('yScaleSelect').onchange = function() {
 };
 
 /** ==========================================
- * 🎛️ 5. 數據解析核心與序列埠連線管理 (加入計時與滾動軸)
+ * 🎛️ 5. 序列埠核心與獨立計時器控制邏輯
  * ========================================== */
 function handleSerialLine(line) {
   if (!line) return;
@@ -472,6 +480,9 @@ function handleSerialLine(line) {
   if (match) {
     let rawFlow = parseFloat(match[1]);
     if (isNaN(rawFlow)) return;
+
+    // ✅ 只有計時器在運作「錄製中」，才進行數據處理與圖表繪製
+    if (!isTimerRunning) return;
 
     if (currentDetectionMode === 'in' && rawFlow < 0) rawFlow = 0;
     if (currentDetectionMode === 'out' && rawFlow > 0) rawFlow = 0;
@@ -494,47 +505,30 @@ function handleSerialLine(line) {
     chartData.labels.push(now);
     chartData.datasets[0].data.push(rawFlow);
 
-    // ✅ 升級點：當數據點越來越多時，自動延伸內層畫布寬度，讓下方產生原生的左右滾動條
     const dataLength = chartData.labels.length;
     const innerWrapper = document.getElementById('chartInnerCanvasWrapper');
     const scrollParent = document.getElementById('chartScrollParent');
     
     if (dataLength > 50) {
-      const newWidth = 560 + (dataLength - 50) * 10; // 每多一個點，畫布加寬 10px
+      const newWidth = 560 + (dataLength - 50) * 10;
       innerWrapper.style.width = newWidth + "px";
-      // 量測時自動幫施測者維持在最右側最新數據，施測後可手動自由往左滑動看歷史
       scrollParent.scrollLeft = scrollParent.scrollWidth;
     }
-
     flowChart.update();
   }
 }
 
-function resetUItoDisconnectedState() {
+function resetSerialConnectionUI() {
   keepReading = false;
-  
-  // 清除定時器
-  if (testTimerId) {
-    clearInterval(testTimerId);
-    testTimerId = null;
-  }
-  document.getElementById('countdownBox').style.display = "none";
-  document.getElementById('timerLengthInput').style.display = "inline-block";
-
   const connectBtn = document.getElementById('connectBtn');
   connectBtn.innerText = "連接外接裝置";
   connectBtn.classList.remove('connected');
-  document.getElementById('status').innerText = "狀態：量測安全結束";
-  
-  document.getElementById('flowInVal').innerText = "0.00";
-  document.getElementById('flowOutVal').innerText = "0.00";
-  updateWebAndHwLights(0);
-  updateLungAnimation(0);
+  document.getElementById('status').innerText = "狀態：已中斷外接裝置連線";
+  pauseTimerLogic();
 }
 
-// 主動關閉連接安全鎖
 async function closeHardwareConnection() {
-  resetUItoDisconnectedState();
+  resetSerialConnectionUI();
   if (reader) { try { await reader.cancel(); } catch(e){} }
   if (serialPort) { try { await serialPort.close(); } catch(e){} }
 }
@@ -545,7 +539,7 @@ document.getElementById('connectBtn').onclick = async function () {
     return;
   }
   if (!('serial' in navigator)) {
-    alert('您的瀏覽器不支援 Web Serial API，請使用電腦版 Chrome 或 Edge。');
+    alert('您的瀏覽器不支援 Web Serial API，請使用 Chrome 瀏覽器。');
     return;
   }
   try {
@@ -554,34 +548,12 @@ document.getElementById('connectBtn').onclick = async function () {
     keepReading = true;
     this.innerText = "中斷裝置連線";
     this.classList.add('connected');
-    document.getElementById('status').innerText = "狀態：連線成功！即時接收數據中...";
+    document.getElementById('status').innerText = "狀態：硬體連線成功！請設定計時器並按下 [開始] 進行施測。";
     
-    // 初始化數據與畫布寬度
-    startTime = Date.now();
-    flowData = [];
-    chartData.labels = [];
-    chartData.datasets[0].data = [];
-    document.getElementById('chartInnerCanvasWrapper').style.width = "100%";
-    flowChart.update();
-
-    // ✅ 啟動倒數計時器
-    const timerInput = document.getElementById('timerLengthInput');
-    timeLeft = parseInt(timerInput.value) || 60;
-    timerInput.style.display = "none";
-    const countdownBox = document.getElementById('countdownBox');
-    countdownBox.innerText = `剩餘 ${timeLeft} 秒`;
-    countdownBox.style.display = "inline-block";
-
-    testTimerId = setInterval(async () => {
-      timeLeft--;
-      if (timeLeft <= 0) {
-        countdownBox.innerText = "時間到！";
-        playAlertTone(523, 'sine', 0.5); // 量測時間結束提示音
-        await closeHardwareConnection(); // 自動切斷
-      } else {
-        countdownBox.innerText = `剩餘 ${timeLeft} 秒`;
-      }
-    }, 1000);
+    // 初始化計時器顯示
+    const initSec = parseInt(document.getElementById('timerLengthInput').value) || 60;
+    timeLeft = initSec;
+    document.getElementById('countdownBox').innerText = `${timeLeft} 秒`;
 
     listenSerial();
   } catch (e) {
@@ -593,7 +565,6 @@ async function listenSerial() {
   const decoder = new TextDecoderStream();
   serialPort.readable.pipeTo(decoder.writable).catch(()=>{});
   reader = decoder.readable.getReader();
-  
   try {
     while (keepReading) {
       const { value, done } = await reader.read();
@@ -602,26 +573,109 @@ async function listenSerial() {
         serialBuffer += value;
         let lines = serialBuffer.split("\n");
         serialBuffer = lines.pop();
-        for (let line of lines) {
-          handleSerialLine(line.trim());
-        }
+        for (let line of lines) { handleSerialLine(line.trim()); }
       }
     }
   } catch (error) {
-    resetUItoDisconnectedState();
+    resetSerialConnectionUI();
   } finally {
     try { reader.releaseLock(); } catch(e){}
   }
 }
 
-if ('serial' in navigator) {
-  navigator.serial.addEventListener('disconnect', () => {
-    resetUItoDisconnectedState();
-  });
+/** ==========================================
+ * ⏱️ 6. 獨立計時器三鍵控制功能
+ * ========================================== */
+document.getElementById('timerStartBtn').onclick = function() {
+  if (!keepReading) {
+    alert("請先點擊「連接外接裝置」，確認硬體連線後再開始計時施測！");
+    return;
+  }
+  if (isTimerRunning) return;
+
+  isTimerRunning = true;
+  document.getElementById('timerLengthInput').disabled = true;
+  document.getElementById('status').innerText = "狀態：⏱️ 計時錄製中...";
+  if (!startTime) startTime = Date.now();
+
+  testTimerId = setInterval(async () => {
+    timeLeft--;
+    if (timeLeft <= 0) {
+      document.getElementById('countdownBox').innerText = "0 秒 (完成)";
+      playAlertTone(523, 'sine', 0.5);
+      pauseTimerLogic();
+      document.getElementById('status').innerText = "狀態：🔓 施測時間到，數據錄製安全凍結。";
+    } else {
+      document.getElementById('countdownBox').innerText = `${timeLeft} 秒`;
+    }
+  }, 1000);
+};
+
+function pauseTimerLogic() {
+  isTimerRunning = false;
+  if (testTimerId) { clearInterval(testTimerId); testTimerId = null; }
+  document.getElementById('status').innerText = "狀態：⏱️ 計時已暫停";
 }
+document.getElementById('timerPauseBtn').onclick = pauseTimerLogic;
+
+// 備註：這只是「計時器重置鍵」，只影響時間，不清除波形
+document.getElementById('timerResetBtn').onclick = function() {
+  pauseTimerLogic();
+  const initSec = parseInt(document.getElementById('timerLengthInput').value) || 60;
+  timeLeft = initSec;
+  startTime = null; // 重新錄製新一段數據的時間軸起點
+  document.getElementById('timerLengthInput').disabled = false;
+  document.getElementById('countdownBox').innerText = `${timeLeft} 秒`;
+  document.getElementById('status').innerText = "狀態：計時器時間已重置，可重新點擊 [開始] 錄製。";
+};
 
 /** ==========================================
- * ⚙️ 6. 按鍵事件綁定與存檔
+ * 🔄 7. 全網頁/全系統重置鍵 (免重新整理網頁)
+ * ========================================== */
+document.getElementById('resetAllBtn').onclick = async function() {
+  if(confirm("確定要進行「全系統重置」嗎？這將會清除當前畫面的所有數據、波形與病患個資。")) {
+    // 1. 停止計時
+    pauseTimerLogic();
+    const initSec = parseInt(document.getElementById('timerLengthInput').value) || 60;
+    timeLeft = initSec;
+    startTime = null;
+    document.getElementById('timerLengthInput').disabled = false;
+    document.getElementById('countdownBox').innerText = `${timeLeft} 秒`;
+
+    // 2. 斷開硬體連線
+    if (keepReading) { await closeHardwareConnection(); }
+
+    // 3. 清空個資欄位
+    document.getElementById('patientId').value = "";
+    document.getElementById('patientIDCard').value = "";
+    document.getElementById('patientAge').value = "";
+    document.getElementById('patientIDCard').classList.remove('error');
+    document.getElementById('normCard').innerHTML = `ℹ️ 請先輸入病患「身分證字號」與「年齡」，系統將由臨床演算法自動配置量身打造的生理流量常模。`;
+    document.getElementById('normCard').style.background = "#e3f2fd";
+    document.getElementById('normCard').style.borderColor = "#90caf9";
+    document.getElementById('normCard').style.color = "#1565c0";
+
+    // 4. 清空即時數據與燈號
+    document.getElementById('flowInVal').innerText = "0.00";
+    document.getElementById('flowOutVal').innerText = "0.00";
+    document.getElementById('metricLabel').innerText = "等待氣流傳輸...";
+    updateWebAndHwLights(0);
+    updateLungAnimation(0);
+
+    // 5. 徹底清空圖表數據
+    flowData = [];
+    chartData.labels = [];
+    chartData.datasets[0].data = [];
+    document.getElementById('chartInnerCanvasWrapper').style.width = "100%";
+    flowChart.update();
+
+    document.getElementById('status').innerText = "狀態：全系統重置完畢，隨時可進行新一輪施測。";
+    document.getElementById('instruction').innerText = "系統已還原至初始狀態。";
+  }
+};
+
+/** ==========================================
+ * ⚙️ 8. 其他按鍵事件與下載功能
  * ========================================== */
 const setupModeBtn = (id, val, txt) => {
   document.getElementById(id).onclick = function() {
@@ -634,7 +688,6 @@ const setupModeBtn = (id, val, txt) => {
     }
     this.classList.add('active');
     document.getElementById('instruction').innerText = `目前運作核心模式已切換為：${txt}`;
-    playAlertTone(523, 'sine', 0.05); 
   };
 };
 setupModeBtn('modeBi', 'bi', '雙向自動偵測模式');
@@ -643,22 +696,12 @@ setupModeBtn('modeOut', 'out', '純吐氣監測模式');
 setupModeBtn('cycleSingle', 'single', '單次呼吸測試模式');
 setupModeBtn('cycleMulti', 'multi', '連續多次生理長效監測模式');
 
-document.getElementById('saveBtn').onclick = async function() {
+document.getElementById('saveBtn').onclick = function() {
   const id = document.getElementById('patientId').value.trim() || "TEST";
   const idCard = document.getElementById('patientIDCard').value.trim().toUpperCase() || "UNKNOWN";
-  const age = document.getElementById('patientAge').value.trim() || "30";
-  const genderStr = (detectedGender === 'M') ? "男" : (detectedGender === 'F' ? "女" : "未指定");
-
-  let content = `====================================\n`;
-  content += `  AI智慧型雙向呼吸流量生理監測報告\n`;
-  content += `====================================\n`;
-  content += `病患內部病歷ID: ${id}\n`;
-  content += `身分證字號: ${idCard}\n`;
-  content += `自動判定性別: ${genderStr}\n`;
-  content += `病患年齡: ${age} 歲\n`;
-  content += `------------------------------------\n`;
-  content += `時間序列(秒)\t流速數據(L/min)\n`;
   
+  let content = `====================================\n  AI智慧型雙向呼吸流量生理監測報告\n====================================\n`;
+  content += `病患內部病歷ID: ${id}\n身分證字號: ${idCard}\n------------------------------------\n時間序列(秒)\t流速數據(L/min)\n`;
   flowData.forEach(([t, f]) => { content += `${t}\t${f.toFixed(2)}\n`; });
   
   const blob = new Blob([content], { type: "text/plain" });
@@ -666,16 +709,7 @@ document.getElementById('saveBtn').onclick = async function() {
   a.href = URL.createObjectURL(blob);
   a.download = `呼吸報告_${id}_${idCard}.txt`;
   a.click();
-  alert("本地臨床報告下載完成。");
 };
-
-window.addEventListener('DOMContentLoaded', () => {
-  try {
-    if (window.supabase && typeof window.supabase.createClient === 'function') {
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    }
-  } catch (e) {}
-});
 </script>
 </body>
 </html>
