@@ -32,6 +32,10 @@
     .btn-timer-reset { background: #78909c; color: #fff; border-color: #78909c; }
     .btn-timer-reset:hover { background: #546e7a; }
     
+    /* 🟢 新增的獨立清空圖表按鈕樣式 */
+    .btn-clear-chart { background: #ff9100; color: #fff; border-color: #ff9100; }
+    .btn-clear-chart:hover { background: #ff6d00; }
+    
     /* 全網頁重置按鈕 */
     .btn-reset-all { background: #d32f2f; color: #fff; }
     .btn-reset-all:hover { background: #b71c1c; }
@@ -119,6 +123,7 @@
         <button class="btn btn-primary" id="loginBtn">醫護登入</button>
         <button class="btn btn-primary hidden" id="myfilesBtn">紀錄瀏覽</button>
         <button class="btn btn-connect" id="connectBtn">連接外接裝置</button>
+        
         <button class="btn btn-reset-all" id="resetAllBtn" title="清除所有資料、圖表與設定，免重整網頁">🔄 全系統重置</button>
       </div>
       <div class="btn-group">
@@ -193,6 +198,8 @@
           <button class="btn-timer btn-timer-start" id="timerStartBtn">開始</button>
           <button class="btn-timer btn-timer-pause" id="timerPauseBtn">暫停</button>
           <button class="btn-timer btn-timer-reset" id="timerResetBtn" title="僅重置倒數計時時間，不影響資料">重置計時</button>
+          
+          <button class="btn-timer btn-clear-chart" id="clearChartBtn" title="僅擦拭目前的圖表波形，保留個資與計時">📊 清空圖表波形</button>
           
           <div class="sidebar-divider"></div>
           
@@ -492,26 +499,20 @@ document.getElementById('yScaleSelect').onchange = function() {
 };
 
 /** ==========================================
- * 🎛️ 5. 序列埠核心 (★包含網頁端防噪濾網升級)
+ * 🎛️ 5. 序列埠核心 (包含雜訊過濾)
  * ========================================== */
 function handleSerialLine(line) {
   if (!line) return;
-  
-  // 1. 去除空白，並進行精準格式清洗
   const cleanLine = line.replace(/\s+/g, ''); 
-  
-  // 使用更嚴謹的正規表達式抓取數值
   const match = cleanLine.match(/(?:flow|流量)?[:：]?([-+]?[0-9.]+)/i);
   
   if (match) {
     let rawFlow = parseFloat(match[1]);
     if (isNaN(rawFlow)) return;
     
-    // 🛑 【網頁端生理噪訊過濾機制】
-    // 平穩常態呼吸下，單次生理流速絕不可能突然暴衝超過 ±160 L/min。
-    // 如果收到破百或幾百的荒謬突波，網頁程式直接將其判定為電子雜訊攔截，不計入圖表。
+    // 🛑 【網頁端生理噪訊過濾機制】過濾因為硬體休眠/中斷造成的破百暴衝雜訊
     if (Math.abs(rawFlow) > 160.0) {
-      console.warn(`[噪訊防禦系統] 已成功過濾突波雜訊: ${rawFlow} L/min`);
+      console.warn(`[噪訊防禦系統] 已攔截異常突波雜訊: ${rawFlow} L/min`);
       return; 
     }
 
@@ -604,7 +605,7 @@ async function listenSerial() {
 }
 
 /** ==========================================
- * ⏱️ 6. 獨立計時器控制功能（支援即時打字同步）
+ * ⏱️ 6. 獨立計時器控制功能
  * ========================================== */
 const timerInputEl = document.getElementById('timerLengthInput');
 const countdownBoxEl = document.getElementById('countdownBox');
@@ -661,6 +662,31 @@ document.getElementById('timerResetBtn').onclick = function() {
   document.getElementById('status').innerText = "狀態：計時器時間已重置，可重新點擊 [開始] 錄製。";
 };
 
+// 🟢 核心功能：[📊 清空圖表波形] 點擊事件控制
+document.getElementById('clearChartBtn').onclick = function() {
+  // 1. 暫停計時錄製，時間與起點重設（但不洗掉個資）
+  pauseTimerLogic();
+  startTime = null;
+  timerInputEl.disabled = false;
+  syncTimerFromInput();
+
+  // 2. 歸零面板上的即時數值與動態肺部
+  document.getElementById('flowInVal').innerText = "0.00";
+  document.getElementById('flowOutVal').innerText = "0.00";
+  document.getElementById('metricLabel').innerText = "圖表波形已洗淨，等待氣流...";
+  updateWebAndHwLights(0);
+  updateLungAnimation(0);
+
+  // 3. 澈底洗刷圖表畫布與陣列數據
+  flowData = [];
+  chartData.labels = [];
+  chartData.datasets[0].data = [];
+  document.getElementById('chartInnerCanvasWrapper').style.width = "100%";
+  flowChart.update();
+
+  document.getElementById('status').innerText = "狀態：🎨 歷史波形已獨立洗淨，病患個資維持不變。";
+};
+
 /** ==========================================
  * 🔄 7. 全網頁/全系統重置鍵
  * ========================================== */
@@ -700,7 +726,7 @@ document.getElementById('resetAllBtn').onclick = async function() {
 };
 
 /** ==========================================
- * ⚙️ 8. 其他模式與檔案導出核心
+ * ⚙️ 8. 其他模式與檔案導出
  * ========================================== */
 const setupModeBtn = (id, val, txt) => {
   document.getElementById(id).onclick = function() {
