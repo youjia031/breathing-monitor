@@ -20,6 +20,10 @@
     .btn-connect { background: #009688; color: #fff; }
     .btn-connect.connected { background: #e91e63 !important; }
     
+    /* ⚙️ 校正系統按鈕 */
+    .btn-calib { background: #607d8b; color: #fff; }
+    .btn-calib:hover { background: #455a64; }
+    
     /* 圖表左側複合控制面板 */
     .timer-sidebar { display: flex; flex-direction: column; gap: 12px; background: #f4f7fa; padding: 16px; border-radius: 12px; border: 2px solid #d0e0f0; min-width: 160px; box-sizing: border-box; justify-content: flex-start; }
     .sidebar-divider { border-top: 1px dashed #cbd5e1; margin: 6px 0; }
@@ -31,8 +35,6 @@
     .btn-timer-pause:hover { background: #e68a00; }
     .btn-timer-reset { background: #78909c; color: #fff; border-color: #78909c; }
     .btn-timer-reset:hover { background: #546e7a; }
-    
-    /* 🟢 新增的獨立清空圖表按鈕樣式 */
     .btn-clear-chart { background: #ff9100; color: #fff; border-color: #ff9100; }
     .btn-clear-chart:hover { background: #ff6d00; }
     
@@ -61,17 +63,15 @@
     .light.activated-green { background: #00e676 !important; box-shadow: 0 0 14px #00e676 !important; border-color: #00c853 !important; }
     .light.activated-yellow { background: #ffb300 !important; box-shadow: 0 0 14px #ffb300 !important; border-color: #ff8f00 !important; }
 
-    /* 生理視覺與圖表側邊整合呈現區 */
+    /* 生理視覺呈現區 */
     .visual-wrapper { display: flex; gap: 24px; justify-content: center; align-items: stretch; margin: 20px 0; flex-wrap: wrap; }
     .lung-visual-box { width: 220px; height: auto; min-height: 250px; background: #fafafa; border-radius: 16px; box-shadow: inset 0 2px 8px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; border: 1px solid #ebebeb; padding: 10px; box-sizing: border-box; }
     .lung-svg { width: 140px; height: 140px; overflow: visible; }
     .lung-leaf { transform-box: fill-box; transform-origin: center; transition: transform 0.1s linear, fill 0.2s ease; fill: #ff8a80; }
     .lung-text { font-weight: bold; font-size: 15px; color: #555; background: rgba(255,255,255,0.8); padding: 4px 10px; border-radius: 10px; margin-top: 10px; border: 1px solid #eee; }
 
-    /* 圖表+計時器左右並排大外殼 */
+    /* 圖表大外殼 */
     .chart-panel-block { flex: 1; min-width: 320px; display: flex; gap: 14px; background: #fff; border-radius: 16px; padding: 14px; border: 1px solid #eaeaea; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
-
-    /* 圖表外層滾動容器 */
     .chart-scroll-container { flex: 1; overflow-x: auto; background: #fff; border-radius: 8px; border: 1px solid #f0f0f0; }
     .chart-inner-wrapper { width: 100%; min-width: 500px; height: 320px; padding: 5px; box-sizing: border-box; }
     
@@ -86,20 +86,24 @@
     /* 智慧常模動態報告卡 */
     .norm-card { background: #e3f2fd; border: 1px solid #90caf9; padding: 14px; border-radius: 8px; margin: 16px 0; font-size: 14px; color: #1565c0; line-height: 1.6; box-shadow: 0 2px 6px rgba(21,101,192,0.05); }
 
-    #instruction { background: #fffde7; border-left: 4px solid #fff59d; padding: 16px; border-radius: 8px; margin: 16px 0; min-height: 24px; font-size: 15px; color: #555; }
-
-    /* 表單區 */
-    .form-row { display: flex; gap: 16px; margin-top: 24px; flex-wrap: wrap; }
-    .form-row .input-group { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 6px; }
-    .form-row label { font-size: 13px; color: #444; font-weight: bold; }
-    .form-row input { padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; transition: border-color 0.2s; }
-    .form-row input:focus { border-color: #2e7d32; outline: none; }
-    .form-row input.error { border-color: #ff1744 !important; background: #ffebee !important; }
+    /* 彈出式校正控制台樣式 */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+    .modal-box { background: #fff; padding: 24px; border-radius: 16px; max-width: 440px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+    .modal-box h3 { margin: 0 0 12px 0; color: #37474f; border-bottom: 2px solid #eceff1; padding-bottom: 8px; }
     
-    .save-btn { background: #2e7d32; color: #fff; border: none; border-radius: 8px; padding: 14px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px; width: 100%; transition: background 0.2s, transform 0.1s; }
-    .save-btn:hover:not(:disabled) { background: #1b5e20; }
-    .save-btn:active:not(:disabled) { transform: scale(0.99); }
-    .save-btn:disabled { background: #ccc; cursor: not-allowed; opacity: 0.7; }
+    /* 🟢 新增：智慧自動校正按鈕區 */
+    .auto-calib-zone { background: #f0f4f8; padding: 14px; border-radius: 10px; border: 1px solid #d0e0f0; margin-bottom: 16px; text-align: center; }
+    .btn-auto-run { background: #0288d1; color: #fff; border: none; padding: 10px 16px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 8px; width: 100%; font-size: 14px; }
+    .btn-auto-run:hover { background: #01579b; }
+    .btn-auto-run:disabled { background: #b0bec5; cursor: not-allowed; }
+
+    .calib-group { margin-bottom: 14px; display: flex; flex-direction: column; gap: 4px; }
+    .calib-group label { font-size: 12px; font-weight: bold; color: #555; }
+    .calib-group input { padding: 8px; border: 2px solid #cfd8dc; border-radius: 6px; font-size: 14px; text-align: center; font-weight: bold; background: #fdfdfd; }
+    .modal-btn-group { display: flex; gap: 10px; margin-top: 16px; }
+    .modal-btn { flex: 1; padding: 12px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; }
+    .btn-confirm { background: #2e7d32; color: #fff; }
+    .btn-cancel { background: #cfd8dc; color: #37474f; }
 
     .hidden { display: none !important; }
     @media (max-width: 850px) {
@@ -124,7 +128,9 @@
         <button class="btn btn-primary hidden" id="myfilesBtn">紀錄瀏覽</button>
         <button class="btn btn-connect" id="connectBtn">連接外接裝置</button>
         
-        <button class="btn btn-reset-all" id="resetAllBtn" title="清除所有資料、圖表與設定，免重整網頁">🔄 全系統重置</button>
+        <button class="btn btn-calib" id="openCalibBtn" title="開啟臨床軟體自動校正面板">⚙️ 系統校正設定</button>
+        
+        <button class="btn btn-reset-all" id="resetAllBtn" title="清除所有資料、圖表與設定">🔄 全系統重置</button>
       </div>
       <div class="btn-group">
         <button class="btn btn-mode active" id="modeBi">🔄 雙向自動模式</button>
@@ -134,6 +140,39 @@
       <div class="btn-group">
         <button class="btn btn-mode active" id="cycleSingle">⏱️ 單次測試模式</button>
         <button class="btn btn-mode" id="cycleMulti">🔁 連續多次模式</button>
+      </div>
+    </div>
+
+    <div id="calibModal" class="modal-overlay hidden">
+      <div class="modal-box">
+        <h3>🔧 軟體臨床自動校正面板</h3>
+        
+        <div class="auto-calib-zone">
+          <div style="font-size: 13px; font-weight: bold; color: #01579b;">🎯 零點智慧自測歸零</div>
+          <div style="font-size: 11px; color: #546e7a; margin-top: 4px; line-height:1.4;">
+            請確保流量計此時<b>平放且完全沒有氣流</b>，點擊下方按鈕，系統將自動偵測並扣除硬體底噪偏差。
+          </div>
+          <button class="btn-auto-run" id="startAutoZeroBtn">開始 3 秒自動歸零校正</button>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <div class="calib-group" style="margin-top: 10px;">
+          <label>目前自測得到的靜態偏差值 (Offset Offset)</label>
+          <input type="number" id="calibOffsetVal" value="0.00" disabled style="background:#eceff1; color:#555;" />
+        </div>
+        <div class="calib-group">
+          <label>吸氣補償倍率 (Inhalation Scale)</label>
+          <input type="number" id="calibInFactor" value="1.00" step="0.01" />
+        </div>
+        <div class="calib-group">
+          <label>吐氣補償倍率 (Exhalation Scale)</label>
+          <input type="number" id="calibOutFactor" value="1.00" step="0.01" />
+        </div>
+        <div class="modal-btn-group">
+          <button class="modal-btn btn-confirm" id="saveCalibBtn">儲存並套用</button>
+          <button class="modal-btn btn-cancel" id="closeCalibBtn">關閉</button>
+        </div>
       </div>
     </div>
 
@@ -190,16 +229,14 @@
       </div>
 
       <div class="chart-panel-block">
-        
         <div class="timer-sidebar">
           <div style="text-align: center; font-size: 12px; font-weight: bold; color: #555;">⏱️ 施測計時器</div>
           <input type="number" id="timerLengthInput" class="timer-input" value="60" min="5" max="3600" />
           <div id="countdownBox" class="timer-display">60 秒</div>
           <button class="btn-timer btn-timer-start" id="timerStartBtn">開始</button>
           <button class="btn-timer btn-timer-pause" id="timerPauseBtn">暫停</button>
-          <button class="btn-timer btn-timer-reset" id="timerResetBtn" title="僅重置倒數計時時間，不影響資料">重置計時</button>
-          
-          <button class="btn-timer btn-clear-chart" id="clearChartBtn" title="僅擦拭目前的圖表波形，保留個資與計時">📊 清空圖表波形</button>
+          <button class="btn-timer btn-timer-reset" id="timerResetBtn">重置計時</button>
+          <button class="btn-timer btn-clear-chart" id="clearChartBtn">📊 清空圖表波形</button>
           
           <div class="sidebar-divider"></div>
           
@@ -217,7 +254,6 @@
             <canvas id="flowChart"></canvas>
           </div>
         </div>
-
       </div>
     </div>
 
@@ -237,7 +273,6 @@
     </div>
     
     <div id="instruction">系統就緒。請點擊「連接外接裝置」進行量測。</div>
-
     <button class="save-btn" id="saveBtn">儲存數據並同步雲端</button>
   </div>
 
@@ -251,6 +286,14 @@ let ACTIVE_LIMITS = { minInflow: 30.0, maxInflow: 90.0, minOutflow: 30.0, maxOut
 let detectedGender = null; 
 let detectedAge = 30;
 
+// 🟢 核心校正參數管理
+let CALIBRATION_FACTORS = { inhalation: 1.00, exhalation: 1.00 };
+let HARDWARE_OFFSET = 0.00; // 🟢 自動測得的靜態零點偏差值
+
+// 自動歸零自測狀態管理
+let isAutoCalibrating = false;
+let autoCalibBuffer = [];
+
 let serialPort, reader, keepReading = false;
 let startTime = null;
 let flowData = []; 
@@ -259,7 +302,6 @@ let currentDetectionMode = 'bi';
 let currentCycleMode = 'single'; 
 let isAlerting = false;
 
-// 計時器管理
 let testTimerId = null;
 let timeLeft = 60;
 let isTimerRunning = false;
@@ -270,14 +312,11 @@ function playAlertTone(freq = 660, type = 'sine', duration = 0.15) {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    osc.type = type; 
-    osc.frequency.value = freq;
+    osc.type = type; osc.frequency.value = freq;
     gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
-    osc.connect(gain); 
-    gain.connect(audioCtx.destination);
-    osc.start(); 
-    osc.stop(audioCtx.currentTime + duration);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + duration);
   } catch(e){}
 }
 
@@ -288,63 +327,42 @@ function calculateDynamicNorms() {
   const idCardInput = document.getElementById('patientIDCard');
   let idCard = idCardInput.value.trim().toUpperCase();
   idCardInput.value = idCard; 
-
   const ageVal = parseInt(document.getElementById('patientAge').value);
   const normCard = document.getElementById('normCard');
   const twIdRegex = /^[A-Z][12]\d{8}$/;
 
   if (idCard.length > 0) {
     if (!twIdRegex.test(idCard)) {
-      detectedGender = null;
-      idCardInput.classList.add('error');
+      detectedGender = null; idCardInput.classList.add('error');
       normCard.innerHTML = `⚠️ 身分證字號格式不正確。`;
-      normCard.style.background = "#ffebee";
-      normCard.style.borderColor = "#ffcdd2";
-      normCard.style.color = "#b71c1c";
       return;
     } else {
       idCardInput.classList.remove('error');
-      const secondChar = idCard.charAt(1);
-      detectedGender = (secondChar === '1') ? 'M' : 'F';
+      detectedGender = (idCard.charAt(1) === '1') ? 'M' : 'F';
     }
-  } else {
-    detectedGender = null;
-    idCardInput.classList.remove('error');
-  }
+  } else { detectedGender = null; idCardInput.classList.remove('error'); }
 
   detectedAge = isNaN(ageVal) ? 30 : ageVal;
-
   let baseMinIn = 30.0;
   let baseMaxIn = (detectedGender === 'F') ? 75.0 : 90.0;
   let baseMinOut = 30.0;
   let baseMaxOut = (detectedGender === 'F') ? 100.0 : 120.0;
 
   if (detectedAge > 30) {
-    const ageFactor = 1 - ((detectedAge - 30) * 0.005);
-    const safeFactor = Math.max(0.7, ageFactor);
-    baseMaxIn *= safeFactor;
-    baseMaxOut *= safeFactor;
+    const safeFactor = Math.max(0.7, 1 - ((detectedAge - 30) * 0.005));
+    baseMaxIn *= safeFactor; baseMaxOut *= safeFactor;
   }
-
   ACTIVE_LIMITS = {
-    minInflow: parseFloat(baseMinIn.toFixed(1)),
-    maxInflow: parseFloat(baseMaxIn.toFixed(1)),
-    minOutflow: parseFloat(baseMinOut.toFixed(1)),
-    maxOutflow: parseFloat(baseMaxOut.toFixed(1))
+    minInflow: parseFloat(baseMinIn.toFixed(1)), maxInflow: parseFloat(baseMaxIn.toFixed(1)),
+    minOutflow: parseFloat(baseMinOut.toFixed(1)), maxOutflow: parseFloat(baseMaxOut.toFixed(1))
   };
-
   if (detectedGender) {
     const genderText = (detectedGender === 'M') ? "男性 👨" : "女性 👩";
     normCard.innerHTML = `🎯 <b>AI 個人化醫學常模已動態配置：</b><br>
-      病患屬性：${detectedAge} 歲 ${genderText} | 
-      吸氣黃金效率區：<b>${ACTIVE_LIMITS.minInflow} ~ ${ACTIVE_LIMITS.maxInflow} L/min</b> | 
-      吐氣安全氣流區：<b>${ACTIVE_LIMITS.minOutflow} ~ ${ACTIVE_LIMITS.maxOutflow} L/min</b>`;
-    normCard.style.background = "#e8f5e9";
-    normCard.style.borderColor = "#81c784";
-    normCard.style.color = "#1b5e20";
+      病患屬性：${detectedAge} 歲 ${genderText} | 吸氣效率區：<b>${ACTIVE_LIMITS.minInflow} ~ ${ACTIVE_LIMITS.maxInflow} L/min</b> | 吐氣安全區：<b>${ACTIVE_LIMITS.minOutflow} ~ ${ACTIVE_LIMITS.maxOutflow} L/min</b>`;
+    normCard.style.background = "#e8f5e9"; normCard.style.borderColor = "#81c784"; normCard.style.color = "#1b5e20";
   }
 }
-
 document.getElementById('patientIDCard').addEventListener('input', calculateDynamicNorms);
 document.getElementById('patientAge').addEventListener('input', calculateDynamicNorms);
 
@@ -358,99 +376,54 @@ const alertBanner = document.getElementById('alertBanner');
 
 function updateWebAndHwLights(flow) {
   const absF = Math.abs(flow);
-  const allLights = ['hwGreen', 'hwRed', 'swLow', 'swPerfect', 'swHigh'];
-  allLights.forEach(id => {
-    const el = document.getElementById(id);
-    if(el) el.classList.remove('activated-green', 'activated-red', 'activated-yellow');
+  ['hwGreen', 'hwRed', 'swLow', 'swPerfect', 'swHigh'].forEach(id => {
+    document.getElementById(id).classList.remove('activated-green', 'activated-red', 'activated-yellow');
   });
-
   if (flow === 0) return;
-
   if (flow > 0) { 
-    if (absF < ACTIVE_LIMITS.minInflow) {
-      document.getElementById('swLow').classList.add('activated-yellow'); 
-      document.getElementById('hwRed').classList.add('activated-red');       
-    } else if (absF >= ACTIVE_LIMITS.minInflow && absF <= ACTIVE_LIMITS.maxInflow) {
-      document.getElementById('hwGreen').classList.add('activated-green');   
-      document.getElementById('swPerfect').classList.add('activated-green'); 
-    } else {
-      document.getElementById('hwRed').classList.add('activated-red');       
-      document.getElementById('swHigh').classList.add('activated-red');      
-    }
+    if (absF < ACTIVE_LIMITS.minInflow) { document.getElementById('swLow').classList.add('activated-yellow'); document.getElementById('hwRed').classList.add('activated-red'); } 
+    else if (absF >= ACTIVE_LIMITS.minInflow && absF <= ACTIVE_LIMITS.maxInflow) { document.getElementById('hwGreen').classList.add('activated-green'); document.getElementById('swPerfect').classList.add('activated-green'); } 
+    else { document.getElementById('hwRed').classList.add('activated-red'); document.getElementById('swHigh').classList.add('activated-red'); }
   } else { 
-    if (absF < ACTIVE_LIMITS.minOutflow) {
-      document.getElementById('swLow').classList.add('activated-yellow');
-      document.getElementById('hwRed').classList.add('activated-red');
-    } else if (absF >= ACTIVE_LIMITS.minOutflow && absF <= ACTIVE_LIMITS.maxOutflow) {
-      document.getElementById('hwGreen').classList.add('activated-green');
-      document.getElementById('swPerfect').classList.add('activated-green');
-    } else {
-      document.getElementById('hwRed').classList.add('activated-red');
-      document.getElementById('swHigh').classList.add('activated-red');
-    }
+    if (absF < ACTIVE_LIMITS.minOutflow) { document.getElementById('swLow').classList.add('activated-yellow'); document.getElementById('hwRed').classList.add('activated-red'); } 
+    else if (absF >= ACTIVE_LIMITS.minOutflow && absF <= ACTIVE_LIMITS.maxOutflow) { document.getElementById('hwGreen').classList.add('activated-green'); document.getElementById('swPerfect').classList.add('activated-green'); } 
+    else { document.getElementById('hwRed').classList.add('activated-red'); document.getElementById('swHigh').classList.add('activated-red'); }
   }
 }
 
 function updateLungAnimation(flow) {
   if (flow > 0) { 
     const factor = 1.0 + (Math.min(flow, ACTIVE_LIMITS.maxInflow) / ACTIVE_LIMITS.maxInflow) * 0.4;
-    leftLung.style.transform = `scale(${factor})`;
-    rightLung.style.transform = `scale(${factor})`;
-    leftLung.style.fill = "#ff5252"; 
-    rightLung.style.fill = "#ff5252";
-    lungStateText.innerText = "📥 強力吸氣中";
-    lungStateText.style.color = "#d32f2f";
+    leftLung.style.transform = `scale(${factor})`; rightLung.style.transform = `scale(${factor})`;
+    leftLung.style.fill = "#ff5252"; rightLung.style.fill = "#ff5252";
+    lungStateText.innerText = "📥 強力吸氣中"; lungStateText.style.color = "#d32f2f";
   } else if (flow < 0) { 
-    const absFlow = Math.abs(flow);
-    const factor = 1.0 - (Math.min(absFlow, ACTIVE_LIMITS.maxOutflow) / ACTIVE_LIMITS.maxOutflow) * 0.25;
-    leftLung.style.transform = `scale(${factor})`;
-    rightLung.style.transform = `scale(${factor})`;
-    leftLung.style.fill = "#29b6f6"; 
-    rightLung.style.fill = "#29b6f6";
-    lungStateText.innerText = "📤 穩定吐氣中";
-    lungStateText.style.color = "#0288d1";
+    const factor = 1.0 - (Math.min(Math.abs(flow), ACTIVE_LIMITS.maxOutflow) / ACTIVE_LIMITS.maxOutflow) * 0.25;
+    leftLung.style.transform = `scale(${factor})`; rightLung.style.transform = `scale(${factor})`;
+    leftLung.style.fill = "#29b6f6"; rightLung.style.fill = "#29b6f6";
+    lungStateText.innerText = "📤 穩定吐氣中"; lungStateText.style.color = "#0288d1";
   } else { 
-    leftLung.style.transform = "scale(1)"; 
-    rightLung.style.transform = "scale(1)";
-    leftLung.style.fill = "#ff8a80"; 
-    rightLung.style.fill = "#ff8a80";
-    lungStateText.innerText = "平靜狀態"; 
-    lungStateText.style.color = "#555";
+    leftLung.style.transform = "scale(1)"; rightLung.style.transform = "scale(1)";
+    leftLung.style.fill = "#ff8a80"; rightLung.style.fill = "#ff8a80";
+    lungStateText.innerText = "平靜狀態"; lungStateText.style.color = "#555";
   }
-
   const absF = Math.abs(flow);
   if ((flow > 0 && absF > ACTIVE_LIMITS.maxInflow) || (flow < 0 && absF > ACTIVE_LIMITS.maxOutflow)) {
-    if (!isAlerting) {
-      isAlerting = true;
-      alertBanner.style.display = 'block';
-      playAlertTone(880, 'square', 0.25); 
-    }
-  } else {
-    isAlerting = false;
-    alertBanner.style.display = 'none';
-  }
+    if (!isAlerting) { isAlerting = true; alertBanner.style.display = 'block'; playAlertTone(880, 'square', 0.25); }
+  } else { isAlerting = false; alertBanner.style.display = 'none'; }
 }
 
 function evaluateInstantRange(flow) {
   const metricLabel = document.getElementById('metricLabel');
   const absF = Math.abs(flow);
-
   if (flow > 0) {
-    if (absF < ACTIVE_LIMITS.minInflow) {
-      metricLabel.innerHTML = `<span style="color:#f57c00;font-weight:bold;">吸氣力道不足</span>`;
-    } else if (absF > ACTIVE_LIMITS.maxInflow) {
-      metricLabel.innerHTML = `<span style="color:#d32f2f;font-weight:bold;">吸氣爆發過猛！</span>`;
-    } else {
-      metricLabel.innerHTML = `<span style="color:#388e3c;font-weight:bold;">黃金核心效率區</span>`;
-    }
+    if (absF < ACTIVE_LIMITS.minInflow) metricLabel.innerHTML = `<span style="color:#f57c00;font-weight:bold;">吸氣力道不足</span>`;
+    else if (absF > ACTIVE_LIMITS.maxInflow) metricLabel.innerHTML = `<span style="color:#d32f2f;font-weight:bold;">吸氣爆發過猛！</span>`;
+    else metricLabel.innerHTML = `<span style="color:#388e3c;font-weight:bold;">黃金核心效率區</span>`;
   } else if (flow < 0) {
-    if (absF < ACTIVE_LIMITS.minOutflow) {
-      metricLabel.innerHTML = `<span style="color:#f57c00;font-weight:bold;">吐氣阻力不足</span>`;
-    } else if (absF > ACTIVE_LIMITS.maxOutflow) {
-      metricLabel.innerHTML = `<span style="color:#d32f2f;font-weight:bold;">吐氣流速過激！</span>`;
-    } else {
-      metricLabel.innerHTML = `<span style="color:#0288d1;font-weight:bold;">氣道暢通度良好</span>`;
-    }
+    if (absF < ACTIVE_LIMITS.minOutflow) metricLabel.innerHTML = `<span style="color:#f57c00;font-weight:bold;">吐氣阻力不足</span>`;
+    else if (absF > ACTIVE_LIMITS.maxOutflow) metricLabel.innerHTML = `<span style="color:#d32f2f;font-weight:bold;">吐氣流速過激！</span>`;
+    else metricLabel.innerHTML = `<span style="color:#0288d1;font-weight:bold;">氣道暢通度良好</span>`;
   }
 }
 
@@ -460,46 +433,26 @@ function evaluateInstantRange(flow) {
 const ctx = document.getElementById('flowChart').getContext('2d');
 let chartData = {
   labels: [],
-  datasets: [{
-    label: '即時呼吸流速曲線 (L/min)',
-    data: [],
-    borderColor: '#2e7d32',
-    backgroundColor: 'rgba(76, 175, 80, 0.08)',
-    fill: true,
-    tension: 0.35
-  }]
+  datasets: [{ label: '即時呼吸流速曲線 (L/min)', data: [], borderColor: '#2e7d32', backgroundColor: 'rgba(76, 175, 80, 0.08)', fill: true, tension: 0.35 }]
 };
 const flowChart = new Chart(ctx, {
-  type: 'line',
-  data: chartData,
+  type: 'line', data: chartData,
   options: {
-    responsive: true,
-    maintainAspectRatio: false,
+    responsive: true, maintainAspectRatio: false,
     scales: {
       x: { grid: { display: false }, title: { display: true, text: '時間序列 (秒)' } },
-      y: { 
-        min: -100, 
-        max: 100, 
-        title: { display: true, text: '吸氣 (+) / 吐氣 (-)', font: { size: 14, weight: 'bold' } },
-        grid: { color: 'rgba(0, 0, 0, 0.08)' },
-        ticks: { autoSkip: false, stepSize: 20, font: { size: 15, weight: 'bold' }, padding: 12 }
-      }
+      y: { min: -100, max: 100, title: { display: true, text: '吸氣 (+) / 吐氣 (-)', font: { size: 14, weight: 'bold' } }, grid: { color: 'rgba(0, 0, 0, 0.08)' }, ticks: { autoSkip: false, stepSize: 20, font: { size: 15, weight: 'bold' }, padding: 12 } }
     }
   }
 });
-
 document.getElementById('yScaleSelect').onchange = function() {
-  const limit = parseInt(this.value);
-  flowChart.options.scales.y.min = -limit;
-  flowChart.options.scales.y.max = limit;
-  if (limit <= 30) { flowChart.options.scales.y.ticks.stepSize = 10; } 
-  else if (limit <= 100) { flowChart.options.scales.y.ticks.stepSize = 20; } 
-  else { flowChart.options.scales.y.ticks.stepSize = 30; }
+  const limit = parseInt(this.value); flowChart.options.scales.y.min = -limit; flowChart.options.scales.y.max = limit;
+  if (limit <= 30) { flowChart.options.scales.y.ticks.stepSize = 10; } else if (limit <= 100) { flowChart.options.scales.y.ticks.stepSize = 20; } else { flowChart.options.scales.y.ticks.stepSize = 30; }
   flowChart.update();
 };
 
 /** ==========================================
- * 🎛️ 5. 序列埠核心 (包含雜訊過濾)
+ * 🎛️ 5. 序列埠核心 (★智慧融合自測歸零補償)
  * ========================================== */
 function handleSerialLine(line) {
   if (!line) return;
@@ -510,13 +463,23 @@ function handleSerialLine(line) {
     let rawFlow = parseFloat(match[1]);
     if (isNaN(rawFlow)) return;
     
-    // 🛑 【網頁端生理噪訊過濾機制】過濾因為硬體休眠/中斷造成的破百暴衝雜訊
-    if (Math.abs(rawFlow) > 160.0) {
-      console.warn(`[噪訊防禦系統] 已攔截異常突波雜訊: ${rawFlow} L/min`);
-      return; 
+    // 🛑 網頁端突波噪訊過濾
+    if (Math.abs(rawFlow) > 160.0) { return; }
+
+    // 🟢 智慧補強一：如果此時正在執行「3 秒靜態自測歸零」，網頁只收集數據，不畫圖
+    if (isAutoCalibrating) {
+      autoCalibBuffer.push(rawFlow);
+      return;
     }
 
+    // 🟢 智慧補強二：扣除剛剛自測出來的靜態硬體偏差值 (Hardware Offset Offset)
+    rawFlow = rawFlow - HARDWARE_OFFSET;
+
     if (!isTimerRunning) return;
+
+    // 套用倍率補償
+    if (rawFlow > 0) { rawFlow = rawFlow * CALIBRATION_FACTORS.inhalation; } 
+    else if (rawFlow < 0) { rawFlow = rawFlow * CALIBRATION_FACTORS.exhalation; }
 
     if (currentDetectionMode === 'in' && rawFlow < 0) rawFlow = 0;
     if (currentDetectionMode === 'out' && rawFlow > 0) rawFlow = 0;
@@ -531,233 +494,205 @@ function handleSerialLine(line) {
       document.getElementById('flowOutVal').innerText = Math.abs(rawFlow).toFixed(2);
     }
 
-    updateWebAndHwLights(rawFlow);
-    updateLungAnimation(rawFlow);
-    evaluateInstantRange(rawFlow);
+    updateWebAndHwLights(rawFlow); updateLungAnimation(rawFlow); evaluateInstantRange(rawFlow);
 
-    flowData.push([parseFloat(now), rawFlow]);
-    chartData.labels.push(now);
-    chartData.datasets[0].data.push(rawFlow);
+    flowData.push([parseFloat(now), rawFlow]); chartData.labels.push(now); chartData.datasets[0].data.push(rawFlow);
 
     const dataLength = chartData.labels.length;
-    const innerWrapper = document.getElementById('chartInnerCanvasWrapper');
-    const scrollParent = document.getElementById('chartScrollParent');
-    
     if (dataLength > 50) {
-      const newWidth = 500 + (dataLength - 50) * 10;
-      innerWrapper.style.width = newWidth + "px";
-      scrollParent.scrollLeft = scrollParent.scrollWidth;
+      document.getElementById('chartInnerCanvasWrapper').style.width = (500 + (dataLength - 50) * 10) + "px";
+      document.getElementById('chartScrollParent').scrollLeft = document.getElementById('chartScrollParent').scrollWidth;
     }
     flowChart.update();
   }
 }
 
 function resetSerialConnectionUI() {
-  keepReading = false;
-  const connectBtn = document.getElementById('connectBtn');
-  connectBtn.innerText = "連接外接裝置";
-  connectBtn.classList.remove('connected');
-  document.getElementById('status').innerText = "狀態：已中斷外接裝置連線";
-  pauseTimerLogic();
+  keepReading = false; document.getElementById('connectBtn').innerText = "連接外接裝置";
+  document.getElementById('connectBtn').classList.remove('connected');
+  document.getElementById('status').innerText = "狀態：已中斷外接裝置連線"; pauseTimerLogic();
 }
-
 async function closeHardwareConnection() {
   resetSerialConnectionUI();
   if (reader) { try { await reader.cancel(); } catch(e){} }
   if (serialPort) { try { await serialPort.close(); } catch(e){} }
 }
-
 document.getElementById('connectBtn').onclick = async function () {
   if (keepReading) { await closeHardwareConnection(); return; }
-  if (!('serial' in navigator)) { alert('您的瀏覽器不支援 Web Serial API，請使用 Chrome 瀏覽器。'); return; }
+  if (!('serial' in navigator)) { alert('您的瀏覽器不支援 Web Serial API'); return; }
   try {
-    serialPort = await navigator.serial.requestPort();
-    await serialPort.open({ baudRate: 9600 });
-    keepReading = true;
-    this.innerText = "中斷裝置連線";
-    this.classList.add('connected');
-    document.getElementById('status').innerText = "狀態：硬體連線成功！請在圖表左側設定計時器並按下 [開始] 進行施測。";
-    
-    syncTimerFromInput();
-    listenSerial();
-  } catch (e) {
-    document.getElementById('status').innerText = "連線失敗：" + e.message;
-  }
+    serialPort = await navigator.serial.requestPort(); await serialPort.open({ baudRate: 9600 });
+    keepReading = true; this.innerText = "中斷裝置連線"; this.classList.add('connected');
+    document.getElementById('status').innerText = "狀態：硬體連線成功！請點擊 [開始] 進行施測。";
+    syncTimerFromInput(); listenSerial();
+  } catch (e) { document.getElementById('status').innerText = "連線失敗：" + e.message; }
 };
-
 async function listenSerial() {
-  const decoder = new TextDecoderStream();
-  serialPort.readable.pipeTo(decoder.writable).catch(()=>{});
+  const decoder = new TextDecoderStream(); serialPort.readable.pipeTo(decoder.writable).catch(()=>{});
   reader = decoder.readable.getReader();
   try {
     while (keepReading) {
-      const { value, done } = await reader.read();
-      if (done) break;
+      const { value, done } = await reader.read(); if (done) break;
       if (value) {
-        serialBuffer += value;
-        let lines = serialBuffer.split("\n");
-        serialBuffer = lines.pop();
+        serialBuffer += value; let lines = serialBuffer.split("\n"); serialBuffer = lines.pop();
         for (let line of lines) { handleSerialLine(line.trim()); }
       }
     }
-  } catch (error) { resetSerialConnectionUI(); } 
-  finally { try { reader.releaseLock(); } catch(e){} }
+  } catch (error) { resetSerialConnectionUI(); } finally { try { reader.releaseLock(); } catch(e){} }
 }
 
 /** ==========================================
- * ⏱️ 6. 獨立計時器控制功能
+ * ⏱️ 6. 獨立計時器與清空圖表
  * ========================================== */
 const timerInputEl = document.getElementById('timerLengthInput');
 const countdownBoxEl = document.getElementById('countdownBox');
-
 function syncTimerFromInput() {
   if (!isTimerRunning) {
-    const sec = parseInt(timerInputEl.value);
-    timeLeft = isNaN(sec) || sec < 5 ? 60 : sec;
+    const sec = parseInt(timerInputEl.value); timeLeft = isNaN(sec) || sec < 5 ? 60 : sec;
     countdownBoxEl.innerText = `${timeLeft} 秒`;
   }
 }
-
 timerInputEl.addEventListener('input', syncTimerFromInput);
-timerInputEl.addEventListener('change', syncTimerFromInput);
-
 document.getElementById('timerStartBtn').onclick = function() {
-  if (!keepReading) {
-    alert("請先點擊「連接外接裝置」，確認硬體連線後再開始計時施測！");
-    return;
-  }
+  if (!keepReading) { alert("請先點擊「連接外接裝置」！"); return; }
   if (isTimerRunning) return;
-  if (!startTime) { syncTimerFromInput(); }
-
-  isTimerRunning = true;
-  timerInputEl.disabled = true;
+  isTimerRunning = true; timerInputEl.disabled = true;
   document.getElementById('status').innerText = "狀態：⏱️ 計時錄製中...";
   if (!startTime) startTime = Date.now();
-
   testTimerId = setInterval(async () => {
     timeLeft--;
     if (timeLeft <= 0) {
-      countdownBoxEl.innerText = "0 秒 (完成)";
-      playAlertTone(523, 'sine', 0.5);
-      pauseTimerLogic();
+      countdownBoxEl.innerText = "0 秒 (完成)"; playAlertTone(523, 'sine', 0.5); pauseTimerLogic();
       document.getElementById('status').innerText = "狀態：🔓 施測時間到，數據錄製安全凍結。";
+    } else { countdownBoxEl.innerText = `${timeLeft} 秒`; }
+  }, 1000);
+};
+function pauseTimerLogic() { isTimerRunning = false; if (testTimerId) { clearInterval(testTimerId); testTimerId = null; } }
+document.getElementById('timerPauseBtn').onclick = function() { pauseTimerLogic(); document.getElementById('status').innerText = "狀態：⏱️ 計時已暫停"; };
+document.getElementById('timerResetBtn').onclick = function() { pauseTimerLogic(); startTime = null; timerInputEl.disabled = false; syncTimerFromInput(); document.getElementById('status').innerText = "狀態：計時器時間已重置。"; };
+
+document.getElementById('clearChartBtn').onclick = function() {
+  pauseTimerLogic(); startTime = null; timerInputEl.disabled = false; syncTimerFromInput();
+  document.getElementById('flowInVal').innerText = "0.00"; document.getElementById('flowOutVal').innerText = "0.00";
+  document.getElementById('metricLabel').innerText = "圖表波形已洗淨，等待氣流...";
+  updateWebAndHwLights(0); updateLungAnimation(0);
+  flowData = []; chartData.labels = []; chartData.datasets[0].data = [];
+  document.getElementById('chartInnerCanvasWrapper').style.width = "100%"; flowChart.update();
+  document.getElementById('status').innerText = "狀態：🎨 歷史波形已獨立洗淨。";
+};
+
+/** ==========================================
+ * ⚙️ 7. 智慧自動校正與手動面板控制
+ * ========================================== */
+const calibModal = document.getElementById('calibModal');
+const autoBtn = document.getElementById('startAutoZeroBtn');
+
+document.getElementById('openCalibBtn').onclick = function() {
+  document.getElementById('calibInFactor').value = CALIBRATION_FACTORS.inhalation.toFixed(2);
+  document.getElementById('calibOutFactor').value = CALIBRATION_FACTORS.exhalation.toFixed(2);
+  document.getElementById('calibOffsetVal').value = HARDWARE_OFFSET.toFixed(2);
+  calibModal.classList.remove('hidden');
+};
+document.getElementById('closeCalibBtn').onclick = function() { calibModal.classList.add('hidden'); };
+
+// 🟢 核心修正：讓網頁自己測靜態偏差值 (Offset)
+document.getElementById('startAutoZeroBtn').onclick = function() {
+  if (!keepReading) {
+    alert("請先成功連接外接裝置，網頁才能讀取硬體底噪數值！");
+    return;
+  }
+  
+  isAutoCalibrating = true;
+  autoCalibBuffer = [];
+  autoBtn.disabled = true;
+  
+  let countdown = 3;
+  autoBtn.innerText = `🛑 請保持平放... 自測倒數 ${countdown} 秒`;
+  playAlertTone(880, 'sine', 0.1);
+
+  const calibTimer = setInterval(() => {
+    countdown--;
+    if (countdown <= 0) {
+      clearInterval(calibTimer);
+      isAutoCalibrating = false;
+      
+      // 計算 3 秒內收集到的所有數據的數學平均值（偏差量）
+      if (autoCalibBuffer.length > 0) {
+        const sum = autoCalibBuffer.reduce((a, b) => a + b, 0);
+        HARDWARE_OFFSET = sum / autoCalibBuffer.length;
+      } else {
+        HARDWARE_OFFSET = 0.0;
+      }
+      
+      // 更新顯示到校正面板
+      document.getElementById('calibOffsetVal').value = HARDWARE_OFFSET.toFixed(2);
+      autoBtn.disabled = false;
+      autoBtn.innerText = "🎯 重新自動歸零校正";
+      document.getElementById('status').innerText = `狀態：⚙️ 零點自測完成！偵測到靜態偏差為 ${HARDWARE_OFFSET.toFixed(2)} L/min，已自動鎖定扣除。`;
+      playAlertTone(523, 'sine', 0.3);
     } else {
-      countdownBoxEl.innerText = `${timeLeft} 秒`;
+      autoBtn.innerText = `🛑 請保持平放... 自測倒數 ${countdown} 秒`;
     }
   }, 1000);
 };
 
-function pauseTimerLogic() {
-  isTimerRunning = false;
-  if (testTimerId) { clearInterval(testTimerId); testTimerId = null; }
-  document.getElementById('status').innerText = "狀態：⏱️ 計時已暫停";
-}
-document.getElementById('timerPauseBtn').onclick = pauseTimerLogic;
-
-document.getElementById('timerResetBtn').onclick = function() {
-  pauseTimerLogic();
-  startTime = null; 
-  timerInputEl.disabled = false;
-  syncTimerFromInput();
-  document.getElementById('status').innerText = "狀態：計時器時間已重置，可重新點擊 [開始] 錄製。";
-};
-
-// 🟢 核心功能：[📊 清空圖表波形] 點擊事件控制
-document.getElementById('clearChartBtn').onclick = function() {
-  // 1. 暫停計時錄製，時間與起點重設（但不洗掉個資）
-  pauseTimerLogic();
-  startTime = null;
-  timerInputEl.disabled = false;
-  syncTimerFromInput();
-
-  // 2. 歸零面板上的即時數值與動態肺部
-  document.getElementById('flowInVal').innerText = "0.00";
-  document.getElementById('flowOutVal').innerText = "0.00";
-  document.getElementById('metricLabel').innerText = "圖表波形已洗淨，等待氣流...";
-  updateWebAndHwLights(0);
-  updateLungAnimation(0);
-
-  // 3. 澈底洗刷圖表畫布與陣列數據
-  flowData = [];
-  chartData.labels = [];
-  chartData.datasets[0].data = [];
-  document.getElementById('chartInnerCanvasWrapper').style.width = "100%";
-  flowChart.update();
-
-  document.getElementById('status').innerText = "狀態：🎨 歷史波形已獨立洗淨，病患個資維持不變。";
+document.getElementById('saveCalibBtn').onclick = function() {
+  const inf = parseFloat(document.getElementById('calibInFactor').value);
+  const outf = parseFloat(document.getElementById('calibOutFactor').value);
+  if (isNaN(inf) || isNaN(outf) || inf <= 0 || outf <= 0) { alert('請輸入大於 0 的正確倍率！'); return; }
+  
+  CALIBRATION_FACTORS.inhalation = inf;
+  CALIBRATION_FACTORS.exhalation = outf;
+  
+  calibModal.classList.add('hidden');
+  document.getElementById('status').innerText = `狀態：⚙️ 校正補償已即時套用生效！`;
 };
 
 /** ==========================================
- * 🔄 7. 全網頁/全系統重置鍵
+ * 🔄 8. 全網頁/全系統重置鍵
  * ========================================== */
 document.getElementById('resetAllBtn').onclick = async function() {
   if(confirm("確定要進行「全系統重置」嗎？這將會清除當前畫面的所有數據、波形與病患個資。")) {
-    pauseTimerLogic();
-    startTime = null;
-    timerInputEl.disabled = false;
-    syncTimerFromInput();
-
+    pauseTimerLogic(); startTime = null; timerInputEl.disabled = false; syncTimerFromInput();
+    HARDWARE_OFFSET = 0.00; // 重置偏差量
     if (keepReading) { await closeHardwareConnection(); }
-
-    document.getElementById('patientId').value = "";
-    document.getElementById('patientIDCard').value = "";
-    document.getElementById('patientAge').value = "";
+    document.getElementById('patientId').value = ""; document.getElementById('patientIDCard').value = ""; document.getElementById('patientAge').value = "";
     document.getElementById('patientIDCard').classList.remove('error');
     document.getElementById('normCard').innerHTML = `ℹ️ 請先輸入病患「身分證字號」與「年齡」，系統將由臨床演算法自動配置量身打造的生理流量常模。`;
-    document.getElementById('normCard').style.background = "#e3f2fd";
-    document.getElementById('normCard').style.borderColor = "#90caf9";
-    document.getElementById('normCard').style.color = "#1565c0";
-
-    document.getElementById('flowInVal').innerText = "0.00";
-    document.getElementById('flowOutVal').innerText = "0.00";
+    document.getElementById('normCard').style.background = "#e3f2fd"; document.getElementById('normCard').style.borderColor = "#90caf9"; document.getElementById('normCard').style.color = "#1565c0";
+    document.getElementById('flowInVal').innerText = "0.00"; document.getElementById('flowOutVal').innerText = "0.00";
     document.getElementById('metricLabel').innerText = "等待氣流傳輸...";
-    updateWebAndHwLights(0);
-    updateLungAnimation(0);
-
-    flowData = [];
-    chartData.labels = [];
-    chartData.datasets[0].data = [];
-    document.getElementById('chartInnerCanvasWrapper').style.width = "100%";
-    flowChart.update();
-
-    document.getElementById('status').innerText = "狀態：全系統重置完畢，隨時可進行新一輪施測。";
-    document.getElementById('instruction').innerText = "系統已還原至初始狀態。";
+    updateWebAndHwLights(0); updateLungAnimation(0);
+    flowData = []; chartData.labels = []; chartData.datasets[0].data = [];
+    document.getElementById('chartInnerCanvasWrapper').style.width = "100%"; flowChart.update();
+    document.getElementById('status').innerText = "狀態：全系統重置完畢。";
   }
 };
 
 /** ==========================================
- * ⚙️ 8. 其他模式與檔案導出
+ * ⚙️ 9. 其他模式與檔案導出
  * ========================================== */
 const setupModeBtn = (id, val, txt) => {
   document.getElementById(id).onclick = function() {
     if(id.startsWith('mode')) {
-      ['modeBi','modeIn','modeOut'].forEach(b => document.getElementById(b).classList.remove('active'));
-      currentDetectionMode = val;
+      ['modeBi','modeIn','modeOut'].forEach(b => document.getElementById(b).classList.remove('active')); currentDetectionMode = val;
     } else {
-      ['cycleSingle','cycleMulti'].forEach(b => document.getElementById(b).classList.remove('active'));
-      currentCycleMode = val;
+      ['cycleSingle','cycleMulti'].forEach(b => document.getElementById(b).classList.remove('active')); currentCycleMode = val;
     }
-    this.classList.add('active');
-    document.getElementById('instruction').innerText = `目前運作核心模式已切換為：${txt}`;
+    this.classList.add('active'); document.getElementById('instruction').innerText = `目前運作核心模式已切換為：${txt}`;
   };
 };
-setupModeBtn('modeBi', 'bi', '雙向自動偵測模式');
-setupModeBtn('modeIn', 'in', '純吸氣監測模式');
-setupModeBtn('modeOut', 'out', '純吐氣監測模式');
-setupModeBtn('cycleSingle', 'single', '單次呼吸測試模式');
-setupModeBtn('cycleMulti', 'multi', '連續多次生理長效監測模式');
+setupModeBtn('modeBi', 'bi', '雙向自動偵測模式'); setupModeBtn('modeIn', 'in', '純吸氣監測模式'); setupModeBtn('modeOut', 'out', '純吐氣監測模式');
+setupModeBtn('cycleSingle', 'single', '單次呼吸測試模式'); setupModeBtn('cycleMulti', 'multi', '連續多次生理長效監測模式');
 
 document.getElementById('saveBtn').onclick = function() {
   const id = document.getElementById('patientId').value.trim() || "TEST";
   const idCard = document.getElementById('patientIDCard').value.trim().toUpperCase() || "UNKNOWN";
   let content = `====================================\n  AI智慧型雙向呼吸流量生理監測報告\n====================================\n`;
-  content += `病患內部病歷ID: ${id}\n身分證字號: ${idCard}\n------------------------------------\n時間序列(秒)\t流速數據(L/min)\n`;
+  content += `病患內部病歷ID: ${id}\n身分證字號: ${idCard}\n自動扣除零點偏差量: ${HARDWARE_OFFSET.toFixed(2)} L/min\n吸氣補償倍率: ${CALIBRATION_FACTORS.inhalation} / 吐氣補償倍率: ${CALIBRATION_FACTORS.exhalation}\n------------------------------------\n時間序列(秒)\t流速數據(L/min)\n`;
   flowData.forEach(([t, f]) => { content += `${t}\t${f.toFixed(2)}\n`; });
   const blob = new Blob([content], { type: "text/plain" });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `呼吸報告_${id}_${idCard}.txt`;
-  a.click();
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `呼吸報告_${id}_${idCard}.txt`; a.click();
 };
 </script>
 </body>
