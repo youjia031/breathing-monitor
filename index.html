@@ -61,7 +61,7 @@
     .light { width: 32px; height: 32px; border-radius: 50%; background: #e0e0e0; border: 2px solid #bdbdbd; transition: all 0.2s ease; }
     .light.activated-red { background: #ff4b33 !important; box-shadow: 0 0 14px #ff4b33 !important; border-color: #ff1744 !important; }
     .light.activated-green { background: #00e676 !important; box-shadow: 0 0 14px #00e676 !important; border-color: #00c853 !important; }
-    .light.activated-yellow { background: #ffb300 !important; box-shadow: 0 0 14px #ffb300 !important; border-color: #ff8f00 !important; }
+    .light.activated-yellow { background: #ffb300 !important; box-shadow: 0 0 14px #ff8f00 !important; }
 
     /* 🎮 遊戲互動面板 */
     .game-panel-block { background: #1a202c; border-radius: 16px; padding: 14px; margin: 20px 0; border: 3px solid #e91e63; box-shadow: 0 6px 20px rgba(233,30,99,0.15); display: flex; flex-direction: column; align-items: center; gap: 10px; }
@@ -348,7 +348,7 @@ function playAlertTone(freq = 660, type = 'sine', duration = 0.15) {
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = audioCtx.createOscillator(); 
-    const gain = audioCtx.createGain(); // 🟢 修正：已補回 audioCtx. 呼叫
+    const gain = audioCtx.createGain(); 
     osc.type = type; osc.frequency.value = freq; gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
     osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + duration);
   } catch(e){}
@@ -385,7 +385,7 @@ function updateDetectionModeLayout(mode) {
     
     gameSelectDropdown.value = "balloon";
     currentGameType = "balloon";
-    document.getElementById('gameTitleLabel').innerText = "運輸 遊戲項目：🎈 熱氣球環遊世界";
+    document.getElementById('gameTitleLabel').innerText = "🎮 遊戲項目：🎈 熱氣球環遊世界";
     updateCycleModeConstraints();
   } 
   else if (mode === 'in') {
@@ -468,7 +468,7 @@ function calculateDynamicNorms() {
   if (idCard.length > 0) {
     if (!twIdRegex.test(idCard)) {
       detectedGender = null; idCardInput.classList.add('error');
-      normCard.innerHTML = `⚠️ <b>身分證字號格式不正確：</b> 請輸入首字英文字母。`;
+      normCard.innerHTML = `⚠️ <b>身分證字號格式不正確：</b> 請輸入正確格式。`;
       return;
     } else { idCardInput.classList.remove('error'); detectedGender = (idCard.charAt(1) === '1') ? 'M' : 'F'; }
   } else { detectedGender = null; idCardInput.classList.remove('error'); }
@@ -653,18 +653,55 @@ async function listenSerialLoop() {
   }
 }
 
+// 🟢 徹底升級：抗干擾深度釋放與連接防護機制
 document.getElementById('connectBtn').onclick = async function () {
   try {
     if (keepReading) {
-      keepReading = false; if (serialPort) { await serialPort.close().catch(()=>{}); serialPort = null; }
-      this.innerText = "連接外接裝置"; this.classList.remove('connected');
-      document.getElementById('status').innerText = "狀態：等待硬體連線"; return;
+      document.getElementById('status').innerText = "狀態：正在安全中斷並釋放序列埠...";
+      keepReading = false;
+      
+      if (serialPort) {
+        try {
+          if (serialPort.readable) {
+            const reader = serialPort.readable.getReader();
+            await reader.cancel().catch(()=>{});
+            reader.releaseLock();
+          }
+          await serialPort.close().catch(()=>{});
+        } catch(err){
+          console.log("釋放緩衝警告:", err);
+        }
+        serialPort = null;
+      }
+      
+      this.innerText = "連接外接裝置";
+      this.classList.remove('connected');
+      document.getElementById('status').innerText = "狀態：已安全中斷，連接埠已完整釋放。";
+      return;
     }
-    serialPort = await navigator.serial.requestPort(); await serialPort.open({ baudRate: 9600 });
-    keepReading = true; this.innerText = "中斷裝置連線"; this.classList.add('connected');
-    document.getElementById('status').innerText = "狀態：連線成功！";
-    updateDetectionModeLayout(currentDetectionMode); listenSerialLoop(); 
-  } catch (e) { alert("連線失敗：" + e.message); }
+
+    document.getElementById('status').innerText = "狀態：正在等待使用者選擇 COM 連接埠...";
+    serialPort = await navigator.serial.requestPort();
+    
+    try { await serialPort.close().catch(()=>{}); } catch(e){}
+    await serialPort.open({ baudRate: 9600 });
+    
+    keepReading = true;
+    this.innerText = "中斷裝置連線";
+    this.classList.add('connected');
+    document.getElementById('status').innerText = "狀態：連線成功！生理數據通道已準備就緒。";
+    
+    updateDetectionModeLayout(currentDetectionMode);
+    listenSerialLoop(); 
+    
+  } catch (e) {
+    keepReading = false;
+    this.innerText = "連接外接裝置";
+    this.classList.remove('connected');
+    console.error("序列埠連線失敗詳細資訊:", e);
+    document.getElementById('status').innerText = `❌ 連線失敗：${e.message}。請拔插 USB 並重試。`;
+    alert("❌ 連線失敗！\n原因：" + e.message + "\n\n提示：請先拔插 USB 傳輸線，或檢查是否有其他網頁軟體佔用了該連接埠。");
+  }
 };
 
 /** ==========================================
@@ -836,7 +873,6 @@ function gameRenderLoop() {
   document.getElementById('gameScoreVal').innerText = gameScore;
 }
 
-// 啟動初始化為雙向複合模式
 updateDetectionModeLayout('bi');
 switchViewMode("dual"); 
 gameRenderLoop();
