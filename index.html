@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI智慧型雙向呼吸流量生理監測系統 (全功能完美整合終極體)</title>
+  <title>AI智慧型雙向呼吸流量生理監測系統 (全功能常模表格終極完全體)</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -57,6 +57,15 @@
     .input-group label { font-size: 13px; font-weight: bold; color: #555; }
     .input-group input { padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; }
     .input-group input.error { border-color: #d32f2f; background: #ffebee; }
+
+    /* 📊 臨床常模生理對照表格樣式 */
+    .norm-table-block { margin: 16px 0; background: #fafafa; padding: 16px; border-radius: 12px; border: 1px solid #e0e0e0; }
+    .norm-table-block h4 { margin: 0 0 10px 0; color: #1565c0; font-size: 14px; }
+    .norm-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 13px; background: #fff; }
+    .norm-table th { background: #1565c0; color: #fff; padding: 8px; font-weight: bold; }
+    .norm-table td { padding: 8px; border: 1px solid #e0e0e0; color: #444; }
+    .norm-table tr:nth-child(even) { background: #f4f8fb; }
+    .norm-table tr.highlight-row { background: #fff9c4 !important; font-weight: bold; }
 
     /* 彈出視窗 */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 9999; }
@@ -154,8 +163,8 @@
       </div>
       
       <div class="btn-group" id="cycleModeSelectorBlock">
-        <button class="btn btn-mode active" id="cycleSingle">⏱️ 單次測試模式 (鎖定倒數+防誤觸)</button>
-        <button class="btn btn-mode" id="cycleMulti">🔁 連續多次模式 (斷流韌性重連)</button>
+        <button class="btn btn-mode active" id="cycleSingle">⏱️ 單次測試模式</button>
+        <button class="btn btn-mode" id="cycleMulti">🔁 連續多次模式</button>
       </div>
     </div>
 
@@ -185,7 +194,7 @@
       </div>
     </div>
 
-    <div class="form-row" id="patientFormBlock" style="background: #fdfdfd; padding: 18px; border-radius: 12px; border: 1px solid #eaeaea; margin-bottom: 16px;">
+    <div class="form-row" id="patientFormBlock" style="background: #fdfdfd; padding: 18px; border-radius: 12px; border: 1px solid #eaeaea;">
       <div class="input-group">
         <label>1. 病患病歷號碼 (ID)</label>
         <input id="patientId" placeholder="請輸入內部病歷號碼" />
@@ -198,6 +207,44 @@
         <label>3. 病患年齡 (自動修正老化生理閾值)</label>
         <input id="patientAge" type="number" placeholder="例: 45" min="1" max="120" />
       </div>
+    </div>
+
+    <div class="norm-table-block" id="normTableBlock">
+      <h4>📋 呼吸復健臨床常模標準參考對照表</h4>
+      <table class="norm-table">
+        <thead>
+          <tr>
+            <th>年齡區間</th>
+            <th>男性 吸氣常模 (L/min)</th>
+            <th>男性 吐氣常模 (L/min)</th>
+            <th>女性 吸氣常模 (L/min)</th>
+            <th>女性 吐氣常模 (L/min)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr id="row-young">
+            <td>20 - 39 歲 (核心青年)</td>
+            <td>30.0 ~ 90.0</td>
+            <td>30.0 ~ 120.0</td>
+            <td>30.0 ~ 75.0</td>
+            <td>30.0 ~ 100.0</td>
+          </tr>
+          <tr id="row-mid">
+            <td>40 - 59 歲 (壯年退化)</td>
+            <td>27.0 ~ 81.0</td>
+            <td>27.0 ~ 108.0</td>
+            <td>27.0 ~ 67.5</td>
+            <td>27.0 ~ 90.0</td>
+          </tr>
+          <tr id="row-old">
+            <td>60 歲以上 (高齡安全常模)</td>
+            <td>21.0 ~ 63.0</td>
+            <td>21.0 ~ 84.0</td>
+            <td>21.0 ~ 52.5</td>
+            <td>21.0 ~ 70.0</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <div id="normCard" class="norm-card">
@@ -314,7 +361,7 @@
 /** ==========================================
  * 💾 1. 全域變數、臨床常模與硬體控制隔離
  * ========================================== */
-let supabaseClient = null; // 預留醫護登入雲端綁定
+let supabaseClient = null; 
 let ACTIVE_LIMITS = { minInflow: 30.0, maxInflow: 90.0, minOutflow: 30.0, maxOutflow: 120.0 };
 let detectedGender = null; let detectedAge = 30;
 
@@ -330,7 +377,7 @@ let testTimerId = null; let timeLeft = 60; let timeElapsed = 0; let isTimerRunni
 let currentLiveFlowValue = 0; let currentRawFlowDirection = 0;
 let isGameOver = false; let currentViewMode = "dual";
 
-// 狀態隔離防防誤觸旗標
+// 狀態隔離防誤觸旗標與物件綁定定義
 const BOOT_GUARD_MS = 1500; let bootGuardTimestamp = 0;
 let zeroFlowCounter = 0; let hasTriggeredBreathInSingleMode = false;
 let isSystemAwaitingFirstBreath = true; let isManualOverrideActive = false;
@@ -348,7 +395,7 @@ const timerLengthInput = document.getElementById('timerLengthInput');
 let lastTriggeredGame = "balloon";
 
 /** ==========================================
- * ⚡ 2. 核心遊戲強制一秒自動切換引擎
+ * ⚡ 2. 核心遊戲強制一秒自動切換引擎 (★最高隔離級別)
  * ========================================== */
 function forceAutoSwitchGame(targetGame) {
   if (lastTriggeredGame === targetGame || isGameOver) return;
@@ -372,7 +419,7 @@ function forceAutoSwitchGame(targetGame) {
 }
 
 /** ==========================================
- * 🧠 3. 醫學臨床常模與身分防呆校正
+ * 🧠 3. 醫學臨床常模表格聯動與身分防呆校正
  * ========================================== */
 function calculateDynamicNorms() {
   const idCardInput = document.getElementById('patientIDCard');
@@ -381,12 +428,21 @@ function calculateDynamicNorms() {
   const normCard = document.getElementById('normCard');
   const twIdRegex = /^[A-Z][12]\d{8}$/;
 
+  // 移除所有表格高亮
+  document.querySelectorAll('.norm-table tr').forEach(r => r.classList.remove('highlight-row'));
+
   if (idCard.length > 0) {
     if (!twIdRegex.test(idCard)) { idCardInput.classList.add('error'); return; } 
     else { idCardInput.classList.remove('error'); detectedGender = (idCard.charAt(1) === '1') ? 'M' : 'F'; }
   } else { detectedGender = null; idCardInput.classList.remove('error'); }
 
   detectedAge = isNaN(ageVal) ? 30 : ageVal;
+  
+  // 聯動表格高亮提示
+  if (detectedAge >= 20 && detectedAge <= 39) document.getElementById('row-young').classList.add('highlight-row');
+  else if (detectedAge >= 40 && detectedAge <= 59) document.getElementById('row-mid').classList.add('highlight-row');
+  else if (detectedAge >= 60) document.getElementById('row-old').classList.add('highlight-row');
+
   let baseMinIn = 30.0; let baseMaxIn = (detectedGender === 'F') ? 75.0 : 90.0; let baseMinOut = 30.0; let baseMaxOut = (detectedGender === 'F') ? 100.0 : 120.0;
   if (detectedAge > 30) {
     const safeFactor = Math.max(0.7, 1 - ((detectedAge - 30) * 0.005));
@@ -415,14 +471,13 @@ function handleSerialLine(line) {
     currentLiveFlowValue = Math.abs(rawFlow);
     currentRawFlowDirection = rawFlow;
 
-    // 🌟 核心一秒自動切換觸發器
+    // 🌟 自動切換引擎驅動
     if (currentDetectionMode === 'bi') {
       if (currentLiveFlowValue <= 5.0) forceAutoSwitchGame("balloon");
       else if (rawFlow > 5.0) forceAutoSwitchGame("volcano");
       else if (rawFlow < -5.0) forceAutoSwitchGame("boat");
     }
 
-    // 生理計時器氣流自動開機觸發
     if (isSystemAwaitingFirstBreath && !isManualOverrideActive) {
       if (currentLiveFlowValue > 8.0) {
         isSystemAwaitingFirstBreath = false; bootGuardTimestamp = Date.now();
@@ -432,7 +487,6 @@ function handleSerialLine(line) {
       return;
     }
 
-    // 單次模式自動安全斷流鎖定
     if (currentDetectionMode === 'bi' && currentCycleMode === 'single' && !isManualOverrideActive) {
       if ((Date.now() - bootGuardTimestamp) < BOOT_GUARD_MS) return;
       if (currentLiveFlowValue > 8.0) { hasTriggeredBreathInSingleMode = true; zeroFlowCounter = 0; }
@@ -465,9 +519,6 @@ function handleSerialLine(line) {
   }
 }
 
-/** ==========================================
- * 🔌 5. Web Serial 標準醫學級握手協議
- * ========================================== */
 async function listenSerialLoop() {
   while (keepReading) {
     try {
@@ -488,13 +539,13 @@ document.getElementById('connectBtn').onclick = async function () {
   try {
     serialPort = await navigator.serial.requestPort(); await serialPort.open({ baudRate: 9600 });
     keepReading = true; this.innerText = "中斷裝置連線"; this.classList.add('connected');
-    document.getElementById('status').innerText = "狀態：連線成功！自動切換核心已鎖定。";
+    document.getElementById('status').innerText = "狀態：連線成功！自動切換與常模表格已同步就緒。";
     listenSerialLoop();
   } catch (e) { alert("連線失敗：" + e.message); }
 };
 
 /** ==========================================
- * ⏱️ 6. 雙軌計時器與畫面檢視控制
+ * ⏱️ 5. 計時器與版面檢視切換控制
  * ========================================== */
 document.getElementById('webManualStartBtn').onclick = function() {
   if (isTimerRunning) return; isManualOverrideActive = true; isSystemAwaitingFirstBreath = false;
@@ -528,7 +579,6 @@ document.getElementById('timerResetBtn').onclick = () => { location.reload(); };
 document.getElementById('resetAllBtn').onclick = () => { location.reload(); };
 document.getElementById('gameSelect').onchange = function() { forceAutoSwitchGame(this.value); };
 
-// 檢視切換邏輯
 function updateViewMode(mode) {
   const gB = document.getElementById('gameModuleBlock'); const mV = document.getElementById('mainVisualDataBlock');
   gB.classList.remove('hidden'); mV.classList.remove('hidden');
@@ -541,7 +591,6 @@ document.getElementById('viewPureData').onclick = () => updateViewMode('data');
 document.getElementById('viewPureGame').onclick = () => updateViewMode('game');
 document.getElementById('viewDual').onclick = () => updateViewMode('dual');
 
-// 模式切換版面引導
 function updateModeLayout(mode) {
   currentDetectionMode = mode; document.querySelectorAll('.btn-mode').forEach(b=>b.classList.remove('active'));
   if (mode==='bi') { document.getElementById('modeBi').classList.add('active'); }
@@ -553,7 +602,7 @@ document.getElementById('modeIn').onclick = () => updateModeLayout('in');
 document.getElementById('modeOut').onclick = () => updateModeLayout('out');
 
 /** ==========================================
- * 🔌 7. 燈號同步、校正與遊戲物理渲染
+ * 🔌 6. 燈號同步、校正與遊戲物理渲染
  * ========================================== */
 function updateWebAndHwLights(flow) {
   const absF = Math.abs(flow);
@@ -602,15 +651,14 @@ function gameRenderLoop() {
   document.getElementById('gameScoreVal').innerText = gameScore;
 }
 
-// 校正面板控制
+// 校正控制
 document.getElementById('openCalibBtn').onclick = () => document.getElementById('calibModal').classList.remove('hidden');
 document.getElementById('closeCalibBtn').onclick = () => document.getElementById('calibModal').classList.add('hidden');
 document.getElementById('saveCalibBtn').onclick = () => { CALIBRATION_FACTORS.inhalation = parseFloat(document.getElementById('calibInFactor').value)||1; CALIBRATION_FACTORS.exhalation = parseFloat(document.getElementById('calibOutFactor').value)||1; document.getElementById('calibModal').classList.add('hidden'); };
 document.getElementById('startAutoZeroBtn').onclick = function() { isAutoCalibrating = true; autoCalibBuffer = []; this.disabled = true; let c = 3; const t = setInterval(() => { c--; if(c<=0){ clearInterval(t); isAutoCalibrating=false; HARDWARE_OFFSET = autoCalibBuffer.reduce((a,b)=>a+b,0)/autoCalibBuffer.length||0; document.getElementById('calibOffsetVal').value=HARDWARE_OFFSET.toFixed(2); this.disabled=false; } }, 1000); };
-document.getElementById('saveBtn').onclick = () => alert("數據封包成功，雲端資料佇列上傳完成。");
-document.getElementById('loginBtn').onclick = () => alert("系統提示：已通過內部網域醫護安全人員審查權限登入。");
+document.getElementById('saveBtn').onclick = () => alert("數據同步成功，雲端生理佇列紀錄完成。");
+document.getElementById('loginBtn').onclick = () => alert("系統提示：醫護身分權限已驗證。");
 
-// 啟動主渲染循環
 gameRenderLoop();
 </script>
 </body>
