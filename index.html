@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI智慧型雙向呼吸流量生理監測系統 (連續模式斷流重接版)</title>
+  <title>AI智慧型雙向呼吸流量生理監測系統 (終極韌性重連完全體)</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -92,7 +92,7 @@
     .norm-card { background: #e3f2fd; border: 1px solid #90caf9; padding: 14px; border-radius: 8px; margin: 16px 0; font-size: 14px; color: #1565c0; line-height: 1.6; box-shadow: 0 2px 6px rgba(21,101,192,0.05); }
     #instruction { background: #fffde7; border-left: 4px solid #fff59d; padding: 16px; border-radius: 8px; margin: 16px 0; min-height: 24px; font-size: 15px; color: #555; }
 
-    /* 校正面板 */
+    /* 彈出式校正控制台 */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
     .modal-box { background: #fff; padding: 24px; border-radius: 16px; max-width: 440px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
     
@@ -322,6 +322,7 @@
 /** ==========================================
  * 💾 1. 全域變數定義
  * ========================================== */
+let supabaseClient = null;
 let ACTIVE_LIMITS = { minInflow: 30.0, maxInflow: 90.0, minOutflow: 30.0, maxOutflow: 120.0 };
 let detectedGender = null; let detectedAge = 30;
 
@@ -331,8 +332,8 @@ let isAutoCalibrating = false; let autoCalibBuffer = [];
 
 let serialPort = null; let keepReading = false;
 let startTime = null; let flowData = []; let serialBuffer = "";
+let currentDetectionMode = 'bi'; 
 
-// 核心生理模式旗標
 let currentCycleMode = 'single'; 
 let hasTriggeredBreathInSingleMode = false; 
 let isSystemAwaitingFirstBreath = true; 
@@ -467,7 +468,7 @@ const flowChart = new Chart(ctx, {
 });
 
 /** ==========================================
- * 🎛️ 5. 序列埠與生理自動化起跑監聽核心 (★斷流韌性重構版)
+ * 🎛️ 5. 序列埠與生理自動化核心
  * ========================================== */
 function handleSerialLine(line) {
   if (!line || isGameOver) return;
@@ -513,7 +514,6 @@ function handleSerialLine(line) {
     if (rawFlow > 0) rawFlow *= CALIBRATION_FACTORS.inhalation;
     else if (rawFlow < 0) rawFlow *= CALIBRATION_FACTORS.exhalation;
 
-    // 接續時間計算：防止重新連線後時間軸暴跳
     if (!startTime) startTime = Date.now();
     const now = ((Date.now() - startTime) / 1000).toFixed(2);
     
@@ -526,19 +526,31 @@ function handleSerialLine(line) {
   }
 }
 
-// 🚀 核心升級：具備自動重連韌性的極致監聽迴圈
+// 🚀 【終極完全體】具備防抖動與主動垃圾回收的自動重連監聽引擎
 async function listenSerialLoop() {
   while (keepReading) {
+    let reader = null;
+    let readableStreamClosed = null;
+    let decoder = null;
+
     try {
-      if (!serialPort || !serialPort.readable) {
-        // 如果連線不存在，等待 500 毫秒後重新檢查
+      if (!serialPort) {
         await new Promise(resolve => setTimeout(resolve, 500));
         continue;
       }
       
-      const decoder = new TextDecoderStream();
-      const readableStreamClosed = serialPort.readable.pipeTo(decoder.writable);
-      const reader = decoder.readable.getReader();
+      if (serialPort.readable === null) {
+        try {
+          await serialPort.open({ baudRate: 9600 });
+        } catch(e) {
+          await new Promise(resolve => setTimeout(resolve, 400));
+          continue;
+        }
+      }
+
+      decoder = new TextDecoderStream();
+      readableStreamClosed = serialPort.readable.pipeTo(decoder.writable);
+      reader = decoder.readable.getReader();
       
       try {
         while (keepReading) {
@@ -551,28 +563,25 @@ async function listenSerialLoop() {
             for (let line of lines) { handleSerialLine(line.trim()); }
           }
         }
-      } catch (error) {
-        console.warn("讀取串流被打斷（可能實體裝置熄燈斷電）:", error);
+      } catch (streamError) {
+        console.warn("串流讀取中斷（硬體可能斷流熄燈）:", streamError);
       } finally {
-        reader.releaseLock();
-        await readableStreamClosed.catch(() => {});
+        if (reader) { try { reader.releaseLock(); } catch(e){} }
+        if (readableStreamClosed) { await readableStreamClosed.catch(() => {}); }
       }
 
-      // 🟢 如果是連續模式，硬體熄燈了我們不關閉系統，原地重新嘗試開啟串流，靜候下一次開機！
+      // 🟢 連續測試模式下的斷流智慧重構機制
       if (currentCycleMode === 'multi' && keepReading) {
-        document.getElementById('status').innerText = "狀態：⏳ [連續模式] 偵測到裝置熄燈。計時繼續，網頁已在背景就緒，隨時可按第二次電源鍵吹氣！";
+        document.getElementById('status').innerText = "狀態：⏳ [連續模式] 裝置熄燈。計時繼續，網頁正在清理舊緩衝並重新就緒...";
         updateWebAndHwLights(0); updateLungAnimation(0);
         
-        // 嘗試重新向既有 Port 拿串流（因部分硬體關機再開只是斷開通道，不用重新 requestPort）
-        try {
-          // 先行關閉再重開，確保底層通道乾淨
-          await serialPort.close().catch(()=>{});
-          await serialPort.open({ baudRate: 9600 });
-        } catch(e) {
-          // 若硬體是徹底離線，此處會失敗，會進入下一輪 while 迴圈靜態等待
-        }
+        try { await serialPort.close().catch(()=>{}); } catch(e){}
+
+        // ⏱️ 給作業系統驅動程式 800 毫秒的防撞車緩衝時間
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        document.getElementById('status').innerText = "狀態：✅ [連續模式] 背景重連就緒！隨時可按第二次電源鍵量測。";
       } else {
-        // 單次模式則直接中斷
         break;
       }
       
@@ -596,14 +605,14 @@ document.getElementById('connectBtn').onclick = async function () {
     await serialPort.open({ baudRate: 9600 });
     keepReading = true; 
     this.innerText = "中斷裝置連線"; this.classList.add('connected');
-    document.getElementById('status').innerText = "狀態：⚡ 連線成功！請直接讓受試者操作實體裝置吹氣。";
+    document.getElementById('status').innerText = "狀態：大功告成！請直接操作實體流量計吹氣。";
     updateCycleModeConstraints(); 
-    listenSerialLoop(); // 啟動彈性重連監聽引擎
+    listenSerialLoop(); 
   } catch (e) { alert("連線失敗：" + e.message); }
 };
 
 /** ==========================================
- * ⏳⏱️ 6. 雙軌計時器與單次/連續「鎖定設定」
+ * ⏳⏱️ 6. 雙軌計時器核心與全域同步
  * ========================================== */
 const timerSelect = document.getElementById('timerModeSelect');
 const timerInput = document.getElementById('timerLengthInput');
@@ -613,12 +622,12 @@ function updateCycleModeConstraints() {
     timerSelect.value = "countdown"; timerSelect.disabled = true; 
     timerInput.classList.remove('hidden'); timerInput.disabled = false;
     syncTimerFromInput();
-    document.getElementById('instruction').innerText = "⚖️【單次測試模式】：倒數計時。只要吹完氣硬體熄燈，網頁瞬間鎖死凍結！";
+    document.getElementById('instruction').innerText = "⚖️【單次測試模式】：倒數計時。吹完氣硬體熄燈即全面鎖死凍結。";
   } else {
     timerSelect.value = "countup"; timerSelect.disabled = true;
     timerInput.classList.add('hidden');
     if (!isTimerRunning) updateLiveTimerDisplay("00:00 (就緒)");
-    document.getElementById('instruction').innerText = "⚖️【連續多次模式】：正向累計。裝置熄燈斷流時秒數不中斷，直接再按一次電源鍵開機就能繼續測！";
+    document.getElementById('instruction').innerText = "⚖️【連續多次模式】：正向累積。熄燈斷流秒數不中斷，直接再按一次電源鍵可無限接續。";
   }
   hasTriggeredBreathInSingleMode = false;
   if (!isTimerRunning) isSystemAwaitingFirstBreath = true; 
@@ -647,7 +656,7 @@ function updateLiveTimerDisplay(txt) {
 }
 
 function executeActualTimerInterval() {
-  if (isTimerRunning) return; // 避免重複觸發
+  if (isTimerRunning) return; 
   isTimerRunning = true; isGameOver = false;
   startTime = Date.now(); timeElapsed = 0;
   
@@ -673,16 +682,15 @@ function executeActualTimerInterval() {
   }, 1000);
 }
 
-// 醫護手動強制安全終結按鈕
 document.getElementById('timerStopBtn').onclick = function() {
   if(confirm("確定要手動提前終止並安全鎖死本輪測試嗎？")) { finishTestSession(); }
 };
 
-// 手動開啟下一輪測試按鈕
 document.getElementById('timerResetBtn').onclick = function() {
   isTimerRunning = false;
   if (testTimerId) { clearInterval(testTimerId); testTimerId = null; }
   startTime = null; isGameOver = false; 
+  document.getElementById('gameHpMaxInput').disabled = false;
   updateCycleModeConstraints();
   document.getElementById('status').innerText = "狀態：🔄 已重置就緒！請讓病患直接按電源鍵進行下一輪量測。";
 };
