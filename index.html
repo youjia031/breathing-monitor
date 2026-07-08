@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI智慧型雙向呼吸流量生理監測系統 (開機雜訊盲區過濾完全體)</title>
+  <title>AI智慧型雙向呼吸流量生理監測系統 (盲區參數化長效過濾版)</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -293,14 +293,14 @@
     <div class="data-grid" id="dataGridBlock">
       <div class="data-card in">
         <h4>即時吸氣流量 (Inhalation)</h4>
-        <span><id id="flowInVal">0.00</id> L/min</span >
+        <span><id id="flowInVal">0.00</id> L/min</span>
       </div>
       <div class="data-card out">
         <h4>即時吐氣流量 (Exhalation)</h4>
         <span><id id="flowOutVal">0.00</id> L/min</span>
       </div>
       <div class="data-card">
-        <h4>個人化動態分析指標</h4>
+        <h4>個人化動態 analysis 指標</h4>
         <span id="metricLabel" style="font-size:13px; color:#555; font-weight: 500;">等待氣流傳輸...</span>
       </div>
     </div>
@@ -311,7 +311,7 @@
 
 <script>
 /** ==========================================
- * 💾 1. 全域變數定義
+ * 💾 1. 全域變數與臨床參數設定
  * ========================================== */
 let supabaseClient = null;
 let ACTIVE_LIMITS = { minInflow: 30.0, maxInflow: 90.0, minOutflow: 30.0, maxOutflow: 120.0 };
@@ -330,9 +330,12 @@ let currentCycleMode = 'single';
 let hasTriggeredBreathInSingleMode = false; 
 let isSystemAwaitingFirstBreath = true; 
 
-// 🟢 升級：引入開機盲區計時器與抖動低頻濾波計數
-let bootGuardTimestamp = 0; // 紀錄開機瞬間的時間戳記
-let zeroFlowCounter = 0;    // 穩定零流量計數器，防單次測試誤殺
+// 🟢 核心過濾參數：開機防誤觸盲區長度（毫秒）
+// 如果測試後發現 1.5 秒太長或太短，可以直接修改下面這個全域數字（例：改為 2000 或 1200）
+const BOOT_GUARD_MS = 1500; 
+
+let bootGuardTimestamp = 0; 
+let zeroFlowCounter = 0;    
 
 let testTimerId = null;
 let timeLeft = 60; let timeElapsed = 0;
@@ -464,7 +467,7 @@ const flowChart = new Chart(ctx, {
 });
 
 /** ==========================================
- * 🎛️ 5. 序列埠與生理自動化核心 (★開機盲區防誤觸升級版)
+ * 🎛️ 5. 序列埠與生理自動化核心 (★開機參數化長效盲區過濾)
  * ========================================== */
 function handleSerialLine(line) {
   if (!line || isGameOver) return;
@@ -482,8 +485,8 @@ function handleSerialLine(line) {
     if (isSystemAwaitingFirstBreath) {
       if (currentAbs > 8.0) {
         isSystemAwaitingFirstBreath = false; 
-        bootGuardTimestamp = Date.now(); // 🟢 標記開機時間點，啟動盲區計時
-        zeroFlowCounter = 0;             // 清空計數器
+        bootGuardTimestamp = Date.now(); // 標記開機時間點，啟動長效盲區計時
+        zeroFlowCounter = 0;             
         executeActualTimerInterval();        
       } else {
         currentLiveFlowValue = 0;
@@ -491,29 +494,30 @@ function handleSerialLine(line) {
       }
     }
 
-    // 🟢 核心重構：單次測試模式鎖死判定（完美跳過開機前 500 毫秒的聲音雜訊）
+    // 單次測試模式鎖死判定
     if (currentCycleMode === 'single') {
       let msSinceBoot = Date.now() - bootGuardTimestamp;
       
-      if (msSinceBoot < 500) {
-        // 🔒 在開機前 500 毫秒盲區內：不進行任何「熄燈斷流」判定！
-        // 這樣就能完美把按電源鍵產生的巨響與突波當成垃圾扔掉
-        if (currentAbs > 8.0) {
-          hasTriggeredBreathInSingleMode = true; // 盲區內的突波也算引導激活
-        }
-      } else {
-        // 🔓 超過 500 毫秒盲區，病患進入正常吹氣狀態：
+      // 🟢 核心升級：動態讀取 BOOT_GUARD_MS 變數（目前為 1500 毫秒）
+      if (msSinceBoot < BOOT_GUARD_MS) {
+        // 在開機 1.5 秒的長效安全盲區內：100% 阻斷並忽略任何「熄燈鎖死」的判定！
+        // 這能徹底消耗、蒸發掉電源鍵實體震動或蜂鳴器高頻嗶聲的一切干擾
         if (currentAbs > 8.0) {
           hasTriggeredBreathInSingleMode = true; 
-          zeroFlowCounter = 0; // 有氣流，清空計數器
+        }
+      } else {
+        // 超過 1.5 秒盲區，病患此時才是真正穩定呼氣階段：
+        if (currentAbs > 8.0) {
+          hasTriggeredBreathInSingleMode = true; 
+          zeroFlowCounter = 0; 
         } else {
-          // 氣流低於 8，代表可能吹完了。為了防止呼吸波動短暫降為0，必須連續 3 筆數據皆低於8才鎖死
+          // 氣流真正跌落，必須連續 3 筆數據皆低於 8 才予以凍結，杜絕氣流微弱波動造成誤殺
           if (hasTriggeredBreathInSingleMode && isTimerRunning) {
             zeroFlowCounter++;
-            if (zeroFlowCounter >= 3) { // 連續 3 次都低於 8，判定實體裝置熄燈！
+            if (zeroFlowCounter >= 3) { 
               rawFlow = 0; currentLiveFlowValue = 0;
               updateWebAndHwLights(0); updateLungAnimation(0);
-              document.getElementById('status').innerText = "狀態：🔒 [單次模式] 已成功過濾開機雜訊。吹氣結束，數據全面安全凍結。";
+              document.getElementById('status').innerText = `狀態：🔒 [單次模式] 已跳過開機 ${BOOT_GUARD_MS/1000} 秒雜訊區。本輪量測結束，數據已全面鎖死。`;
               finishTestSession(); 
               return;
             }
@@ -600,7 +604,7 @@ function updateCycleModeConstraints() {
     timerSelect.value = "countdown"; timerSelect.disabled = true; 
     timerInput.classList.remove('hidden'); timerInput.disabled = false;
     syncTimerFromInput();
-    document.getElementById('instruction').innerText = "⚖️【單次測試模式】：倒數計時。具備開機 0.5 秒音頻脈衝防誤觸盲區，吹氣結束自動凍結。";
+    document.getElementById('instruction').innerText = `⚖️【單次測試模式】：倒數計時。具備開機 ${BOOT_GUARD_MS/1000} 秒參數化盲區過濾，吹氣結束自動凍結。`;
   } else {
     timerSelect.value = "countup"; timerSelect.disabled = true;
     timerInput.classList.add('hidden');
@@ -701,7 +705,8 @@ function gameRenderLoop() {
   let access = checkGameAccessibility();
   if (!access.ok) {
     gCtx.fillStyle = "rgba(0,0,0,0.85)"; gCtx.fillRect(0, 0, canvas.width, canvas.height);
-    gCtx.fillStyle = "#ffb300"; gCtx.font = "bold 15px Arial"; gCtx.textAlign = "center"; gCtx.fillText(access.msg, canvas.width / 2, canvas.height / 2); return;
+    gCtx.fillStyle = "#ffb300"; gCtx.font = "bold 15px Arial"; gCtx.textAlign = "center";
+    gCtx.fillText(access.msg, canvas.width / 2, canvas.height / 2); return;
   }
   if (isSystemAwaitingFirstBreath) {
     gCtx.fillStyle = "rgba(0,0,0,0.4)"; gCtx.fillRect(0, 0, canvas.width, canvas.height);
@@ -710,7 +715,8 @@ function gameRenderLoop() {
   }
   if (isGameOver) {
     gCtx.fillStyle = "rgba(0, 0, 0, 0.8)"; gCtx.fillRect(0, 0, canvas.width, canvas.height);
-    gCtx.fillStyle = "#ff1744"; gCtx.font = "bold 24px Arial"; gCtx.textAlign = "center"; gCtx.fillText("💥 SYSTEM LOCKED / GAME OVER 💥", canvas.width / 2, canvas.height / 2 - 10);
+    gCtx.fillStyle = "#ff1744"; gCtx.font = "bold 24px Arial"; gCtx.textAlign = "center";
+    gCtx.fillText("💥 SYSTEM LOCKED / GAME OVER 💥", canvas.width / 2, canvas.height / 2 - 10);
     gCtx.fillStyle = "#fff"; gCtx.font = "13px Arial"; gCtx.fillText("本輪測試已結束。醫護點擊下方「重置/下一輪測試」即可開啟全新一輪。", canvas.width / 2, canvas.height / 2 + 25); return;
   }
 
