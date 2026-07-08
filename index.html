@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI智慧型雙向呼吸流量生理監測系統 (智慧狀態機過濾完全體)</title>
+  <title>AI智慧型雙向呼吸流量生理監測系統 (遊戲排版無縫切換完全體)</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -121,9 +121,9 @@
       <!-- 畫面檢視開關切換鍵 -->
       <div class="btn-group" style="background: #edf2f7; padding: 6px; border-radius: 10px; margin-top: 6px;">
         <span style="font-size: 13px; font-weight: bold; color: #4a5568; margin: 0 10px;">🖥️ 畫面檢視開關：</span>
-        <button class="btn btn-view-mode active" id="viewPureData">📊 純數據模式</button>
+        <button class="btn btn-view-mode" id="viewPureData">📊 純數據模式</button>
         <button class="btn btn-view-mode" id="viewPureGame">🎮 純遊戲模式</button>
-        <button class="btn btn-view-mode" id="viewDual">🔁 雙向複合模式</button>
+        <button class="btn btn-view-mode active" id="viewDual">🔁 雙向複合模式</button>
       </div>
 
       <div class="btn-group" style="margin-top: 10px;">
@@ -211,7 +211,7 @@
     </div>
 
     <!-- 🎮 遊戲互動面板 -->
-    <div id="gameModuleBlock" class="game-panel-block hidden">
+    <div id="gameModuleBlock" class="game-panel-block">
       <div class="game-score-board">
         <span id="gameTitleLabel">🎮 遊戲項目：熱氣球環遊世界</span>
         <div class="game-ctrl-btns">
@@ -325,14 +325,14 @@ let hasTriggeredBreathInSingleMode = false;
 let isSystemAwaitingFirstBreath = true; 
 
 // 🟢 雙階段防誤觸機制變數
-const BOOT_GUARD_MS = 1500; // 開機盲區長度（1.5秒）
+const BOOT_GUARD_MS = 1500; 
 let bootGuardTimestamp = 0; 
 let zeroFlowCounter = 0;    
 
 let testTimerId = null;
 let timeLeft = 60; let timeElapsed = 0;
 let isTimerRunning = false;
-let currentViewMode = "data";
+let currentViewMode = "dual"; // 預設雙向複合模式
 
 // 遊戲物理引擎變數
 const canvas = document.getElementById('gameCanvas');
@@ -347,7 +347,7 @@ let audioCtx = null;
 function playAlertTone(freq = 660, type = 'sine', duration = 0.15) {
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = audioCtx.createOscillator(); const gain = createGain();
+    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
     osc.type = type; osc.frequency.value = freq; gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
     osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + duration);
   } catch(e){}
@@ -392,9 +392,11 @@ function calculateDynamicNorms() {
 document.getElementById('patientIDCard').addEventListener('input', calculateDynamicNorms);
 document.getElementById('patientAge').addEventListener('input', calculateDynamicNorms);
 
+// 🟢 徹底修正：畫面檢視切換排版控制
 function switchViewMode(mode) {
   currentViewMode = mode;
   document.querySelectorAll('.btn-view-mode').forEach(b => b.classList.remove('active'));
+  
   const gameBlock = document.getElementById('gameModuleBlock');
   const mainVisualBlock = document.getElementById('mainVisualDataBlock');
   const dataGridBlock = document.getElementById('dataGridBlock');
@@ -402,12 +404,28 @@ function switchViewMode(mode) {
   const chartSide = document.getElementById('chartPanelBlock');
   const lungBox = document.getElementById('lungVisualBox');
 
-  gameBlock.classList.add('hidden'); mainVisualBlock.classList.remove('hidden');
-  chartSide.classList.remove('hidden'); lungBox.classList.remove('hidden'); dataGridBlock.classList.remove('hidden'); lightsBlock.classList.remove('hidden');
+  // 先把全部顯示解開
+  gameBlock.classList.remove('hidden'); 
+  mainVisualBlock.classList.remove('hidden');
+  chartSide.classList.remove('hidden'); 
+  lungBox.classList.remove('hidden'); 
+  dataGridBlock.classList.remove('hidden'); 
+  lightsBlock.classList.remove('hidden');
 
-  if (mode === "data") { document.getElementById('viewPureData').classList.add('active'); } 
-  else if (mode === "game") { document.getElementById('viewPureGame').classList.add('active'); gameBlock.classList.remove('hidden'); chartSide.classList.add('hidden'); lungBox.classList.add('hidden'); dataGridBlock.classList.add('hidden'); lightsBlock.classList.add('hidden'); } 
-  else if (mode === "dual") { document.getElementById('viewDual').classList.add('active'); gameBlock.classList.remove('hidden'); }
+  if (mode === "data") { 
+    document.getElementById('viewPureData').classList.add('active'); 
+    gameBlock.classList.add('hidden'); // 隱藏遊戲
+  } 
+  else if (mode === "game") { 
+    document.getElementById('viewPureGame').classList.add('active'); 
+    mainVisualBlock.classList.add('hidden'); // 隱藏整個生理視覺區(含圖表與肺部)
+    dataGridBlock.classList.add('hidden'); 
+    lightsBlock.classList.add('hidden'); 
+  } 
+  else if (mode === "dual") { 
+    document.getElementById('viewDual').classList.add('active'); 
+    // 兩者皆並存顯示
+  }
 }
 document.getElementById('viewPureData').onclick = () => switchViewMode("data");
 document.getElementById('viewPureGame').onclick = () => switchViewMode("game");
@@ -459,7 +477,7 @@ const flowChart = new Chart(ctx, {
 });
 
 /** ==========================================
- * 🎛️ 5. 序列埠與生理自動化狀態機 (★終極雙階段修復版)
+ * 🎛️ 5. 序列埠與生理自動化狀態機
  * ========================================== */
 function handleSerialLine(line) {
   if (!line || isGameOver) return;
@@ -473,37 +491,33 @@ function handleSerialLine(line) {
 
     let currentAbs = Math.abs(rawFlow);
 
-    // 🟢 階段一：等待受試者按下實體電源鍵 (此時可能是按鍵音或吹氣突波)
+    // 階段一：等待受試者按下實體電源鍵
     if (isSystemAwaitingFirstBreath) {
       if (currentAbs > 8.0) {
         isSystemAwaitingFirstBreath = false; 
-        bootGuardTimestamp = Date.now();   // 啟動 1.5 秒硬開機盲區計時
-        hasTriggeredBreathInSingleMode = false; // 重設真正吹氣判定的旗標
+        bootGuardTimestamp = Date.now();   
+        hasTriggeredBreathInSingleMode = false; 
         zeroFlowCounter = 0;               
-        executeActualTimerInterval();      // 網頁計時器起跑
+        executeActualTimerInterval();      
       }
-      return; // 第一筆觸發訊號不計入波形畫圖
+      return; 
     }
 
-    // 🟢 階段二：單次測試模式鎖死判定 (完美拆分「盲區」與「真正吹氣判斷」)
+    // 階段二：單次測試模式鎖死判定
     if (currentCycleMode === 'single') {
       let msSinceBoot = Date.now() - bootGuardTimestamp;
       
       if (msSinceBoot < BOOT_GUARD_MS) {
-        // 🔒 1.5 秒盲區內：100% 略過「吹完氣熄燈」判斷，不管此時流量多高多低，絕對不准鎖死！
         currentLiveFlowValue = 0; 
         return; 
       } else {
-        // 🔓 超過 1.5 秒：盲區安然度過，病患可能正在深呼吸，或者剛剛開始吹氣
         if (currentAbs > 8.0) {
-          // 🎯 抓到了！病患深呼吸後，真正「大口呼氣」的訊號產生
           hasTriggeredBreathInSingleMode = true; 
-          zeroFlowCounter = 0; // 只要有吹氣，重設降零計數器
+          zeroFlowCounter = 0; 
         } else {
-          // 只有在【病患已經有真正吹過氣 (hasTriggeredBreathInSingleMode === true)】的前提下，降到 8 以下才會開始算熄燈！
           if (hasTriggeredBreathInSingleMode && isTimerRunning) {
             zeroFlowCounter++;
-            if (zeroFlowCounter >= 4) { // 連續 4 筆皆低於 8，判定病人真的吹完了！
+            if (zeroFlowCounter >= 4) { 
               rawFlow = 0; currentLiveFlowValue = 0;
               updateWebAndHwLights(0); updateLungAnimation(0);
               document.getElementById('status').innerText = `狀態：🔒 [單次模式] 偵測到吹氣平穩結束，數據已全面安全凍結鎖死。`;
@@ -664,19 +678,20 @@ function finishTestSession() {
   isTimerRunning = false; isSystemAwaitingFirstBreath = false;
   if (testTimerId) { clearInterval(testTimerId); testTimerId = null; }
   isGameOver = true; document.getElementById('status').innerText = "狀態：🔒 施測終止，本輪數據已全面安全凍結。";
-  if (currentViewMode === "game") switchViewMode("dual");
 }
 
 document.getElementById('clearChartBtn').onclick = function() { document.getElementById('timerResetBtn').click(); flowData = []; chartData.labels = []; chartData.datasets[0].data = []; flowChart.update(); };
 document.getElementById('resetAllBtn').onclick = function() { if(confirm("重置全系統？")) location.reload(); };
 
 /** ==========================================
- * 🎮 7. 互動遊戲引擎核心
+ * 🎮 7. 互動遊戲引擎核心 (🟢徹底解鎖即時切換)
  * ========================================== */
+// 監聽側邊欄的遊戲下拉選單
 document.getElementById('gameSelect').onchange = function() {
   currentGameType = this.value;
   const titles = { balloon: "🎮 遊戲：🎈 熱氣球環遊世界", rocket: "🎮 遊戲：🚀 太空火箭避障賽", boat: "🎮 遊戲：⛵ 瘋狂小帆船賽", volcano: "🎮 遊戲：🌋 憤怒小火山爆發" };
-  document.getElementById('gameTitleLabel').innerText = titles[currentGameType]; gameObstacles = []; volcanoEnergy = 0; boatX = 50; playerY = 130;
+  document.getElementById('gameTitleLabel').innerText = titles[currentGameType]; 
+  gameObstacles = []; volcanoEnergy = 0; boatX = 50; playerY = 130; // 切換時清空舊狀態
 };
 
 function checkGameAccessibility() {
@@ -697,16 +712,19 @@ function gameRenderLoop() {
     gCtx.fillStyle = "#ffb300"; gCtx.font = "bold 15px Arial"; gCtx.textAlign = "center";
     gCtx.fillText(access.msg, canvas.width / 2, canvas.height / 2); return;
   }
+  
+  // 🟢 徹底修正：移除原本會阻擋遊戲顯示的黑色就緒遮罩，改用精簡提示文字渲染在左上角
   if (isSystemAwaitingFirstBreath) {
-    gCtx.fillStyle = "rgba(0,0,0,0.4)"; gCtx.fillRect(0, 0, canvas.width, canvas.height);
-    gCtx.fillStyle = "#63b3ed"; gCtx.font = "bold 16px Arial"; gCtx.textAlign = "center";
-    gCtx.fillText("⚡ 系統就緒！受試者隨時「按下實體電源鍵吹氣」即可直接起跑遊戲...", canvas.width / 2, canvas.height / 2); return;
+    gCtx.fillStyle = "rgba(0,150,136,0.2)"; gCtx.fillRect(0, 0, canvas.width, 30);
+    gCtx.fillStyle = "#00e676"; gCtx.font = "bold 12px Arial"; gCtx.textAlign = "left";
+    gCtx.fillText("⚡ 設備就緒：受試者隨時按下「實體電源鍵吹氣」即可直接起跑遊戲...", 15, 20);
   }
+
   if (isGameOver) {
     gCtx.fillStyle = "rgba(0, 0, 0, 0.8)"; gCtx.fillRect(0, 0, canvas.width, canvas.height);
     gCtx.fillStyle = "#ff1744"; gCtx.font = "bold 24px Arial"; gCtx.textAlign = "center";
     gCtx.fillText("💥 SYSTEM LOCKED / GAME OVER 💥", canvas.width / 2, canvas.height / 2 - 10);
-    gCtx.fillStyle = "#fff"; gCtx.font = "13px Arial"; gCtx.fillText("本輪測試已結束。醫護點擊下方「重置/下一輪測試」即可開啟全新一輪。", canvas.width / 2, canvas.height / 2 + 25); return;
+    gCtx.fillStyle = "#fff"; gCtx.font = "13px Arial"; gCtx.fillText("本輪測試已結束。醫護點擊左側「重置/下一輪測試」即可開啟全新一輪。", canvas.width / 2, canvas.height / 2 + 25); return;
   }
 
   // A. 熱氣球
@@ -757,7 +775,9 @@ function gameRenderLoop() {
   document.getElementById('gameScoreVal').innerText = gameScore;
 }
 
-updateCycleModeConstraints(); gameRenderLoop();
+// 啟動時套用初始排版檢視
+switchViewMode("dual"); 
+gameRenderLoop();
 
 /** ==========================================
  * ⚙UE 8. 校正與檔案導出
