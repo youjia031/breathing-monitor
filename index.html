@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI智慧型雙向呼吸流量生理監測系統 (雙軌手自動無衝突完全體)</title>
+  <title>AI智慧型雙向呼吸流量生理監測系統 (模式遊戲全自動連動完全體)</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { font-family: 'Noto Sans TC', Arial, sans-serif; background: #f0f4f1; margin: 0; color: #333; }
+    body { font-family: 'Noto Sans TC', Arial, sans-serif; background: #f0f4f1; margin: 0; color: #333; transition: background 0.3s; }
     .container { max-width: 1100px; margin: 30px auto; background: #fff; border-radius: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); padding: 32px; box-sizing: border-box; }
     .header h2 { margin: 0 0 20px 0; color: #2e7d32; font-size: 26px; text-align: center; border-bottom: 2px solid #e0e0e0; padding-bottom: 12px; }
     
@@ -134,8 +134,8 @@
         <button class="btn btn-mode" id="modeOut">📤 純吐氣模式</button>
       </div>
       
-      <div class="btn-group">
-        <button class="btn btn-mode active" id="cycleSingle">⏱️ 單次測試模式 (鎖定倒數+雙軌狀態隔離)</button>
+      <div class="btn-group" id="cycleModeSelectorBlock">
+        <button class="btn btn-mode active" id="cycleSingle">⏱️ 單次測試模式 (鎖定倒數+雙階段開機防誤觸)</button>
         <button class="btn btn-mode" id="cycleMulti">🔁 連續多次模式 (鎖定累計+斷流韌性重連)</button>
       </div>
     </div>
@@ -212,7 +212,7 @@
       <div class="game-score-board">
         <span id="gameTitleLabel">🎮 遊戲項目：熱氣球環遊世界</span>
         <div class="game-ctrl-btns">
-          <span style="background: #2b6cb0; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;">📢 點擊「開始施測」手動強制起跑，或操作實體裝置吹氣喚醒</span>
+          <span style="background: #2b6cb0; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;">📢 點擊左側開始或讓裝置吹氣起跑</span>
           <span style="color: #63b3ed; font-family: monospace; margin-left: 10px; font-size: 15px;" id="gameLiveTimerDisplay">時間: 60秒</span>
         </div>
         <div class="hp-setup-box">
@@ -246,7 +246,7 @@
           
           <div class="sidebar-divider"></div>
           
-          <div style="text-align: center; font-size: 11px; font-weight: bold; color: #4e7fff;">⏱️ 計時器設定</div>
+          <div style="text-align: center; font-size: 11px; font-weight: bold; color: #4e7fff;" id="timerTitleLabel">⏱️ 計時器設定</div>
           <select id="timerModeSelect" class="select-timer-mode">
             <option value="countdown">⏳ 倒數計時模式</option>
             <option value="countup">⏱️ 正向累計模式</option>
@@ -259,14 +259,12 @@
           <button class="btn-timer btn-timer-reset" id="timerResetBtn">🔄 重置/下一輪測試</button>
           <button class="btn-timer btn-clear-chart" id="clearChartBtn">📊 清空圖表波形</button>
           
-          <div class="sidebar-divider"></div>
+          <div class="sidebar-divider" id="gameSelectDivider"></div>
 
-          <div style="text-align: center; font-size: 11px; font-weight: bold; color: #e91e63;">🎮 選擇互動遊戲</div>
+          <div style="text-align: center; font-size: 11px; font-weight: bold; color: #e91e63;" id="gameSelectTitle">🎮 選擇互動遊戲</div>
           <select id="gameSelect" class="select-game">
             <option value="balloon">🎈 熱氣球環遊世界</option>
             <option value="rocket">🚀 太空火箭避障賽</option>
-            <option value="boat">⛵ 瘋狂小帆船賽</option>
-            <option value="volcano">🌋 憤怒小火山爆發</option>
           </select>
           
           <div class="sidebar-divider"></div>
@@ -295,7 +293,7 @@
         <span><id id="flowOutVal">0.00</id> L/min</span>
       </div>
       <div class="data-card">
-        <h4>個人化動態 analysis 指標</h4>
+        <h4>個人化動態分析指標</h4>
         <span id="metricLabel" style="font-size:13px; color:#555; font-weight: 500;">等待氣流傳輸...</span>
       </div>
     </div>
@@ -318,18 +316,18 @@ let isAutoCalibrating = false; let autoCalibBuffer = [];
 
 let serialPort = null; let keepReading = false;
 let startTime = null; let flowData = []; let serialBuffer = "";
-let currentDetectionMode = 'bi'; 
 
-// 核心生理模式旗標
-let currentCycleMode = 'single'; 
+// 🟢 核心模式變數
+let currentDetectionMode = 'bi'; // 'bi' (雙向), 'in' (純吸氣), 'out' (純吐氣)
+let currentCycleMode = 'single'; // 'single' (單次), 'multi' (連續)
 let hasTriggeredBreathInSingleMode = false; 
 let isSystemAwaitingFirstBreath = true; 
 
-// 雙軌手自動邏輯核心變數
+// 防誤觸與狀態隔離變數
 const BOOT_GUARD_MS = 1500; 
 let bootGuardTimestamp = 0; 
 let zeroFlowCounter = 0;    
-let isManualOverrideActive = false; // 🟢 標記是否手動強制啟動
+let isManualOverrideActive = false; 
 
 let testTimerId = null;
 let timeLeft = 60; let timeElapsed = 0;
@@ -356,8 +354,121 @@ function playAlertTone(freq = 660, type = 'sine', duration = 0.15) {
 }
 
 /** ==========================================
- * 🧠 2. 身分證字號防呆與演算法
+ * 🧠 2. 模式切換與遊戲自動鎖定連動 (★本次核心修改)
  * ========================================== */
+function updateDetectionModeLayout(mode) {
+  currentDetectionMode = mode;
+  
+  // 取得 DOM 物件
+  const cycleBlock = document.getElementById('cycleModeSelectorBlock');
+  const gameSelectTitle = document.getElementById('gameSelectTitle');
+  const gameSelectDropdown = document.getElementById('gameSelect');
+  const gameSelectDivider = document.getElementById('gameSelectDivider');
+  const timerTitle = document.getElementById('timerTitleLabel');
+  
+  document.querySelectorAll('#modeBi, #modeIn, #modeOut').forEach(b => b.classList.remove('active'));
+  
+  // 徹底重置計時與狀態旗標
+  if (testTimerId) { clearInterval(testTimerId); testTimerId = null; }
+  isTimerRunning = false; isGameOver = false;
+  isSystemAwaitingFirstBreath = true;
+  hasTriggeredBreathInSingleMode = false;
+  isManualOverrideActive = false;
+
+  // 1️⃣ 【雙向自動模式】➔ 允許單次/連續，可挑選熱氣球或火箭
+  if (mode === 'bi') {
+    document.getElementById('modeBi').classList.add('active');
+    document.body.style.background = "#f0f4f1";
+    cycleBlock.classList.remove('hidden');
+    
+    gameSelectTitle.classList.remove('hidden');
+    gameSelectDropdown.classList.remove('hidden');
+    gameSelectDivider.classList.remove('hidden');
+    timerTitle.innerText = "⏱️ 計時器設定";
+    
+    // 預設切回熱氣球
+    gameSelectDropdown.value = "balloon";
+    gameSelectDropdown.dispatchEvent(new Event('change'));
+    updateCycleModeConstraints();
+  } 
+  
+  // 2️⃣ 【純吸氣模式】➔ 鎖死火山爆發，隱藏單次/連續，改為正向累計耐力訓練
+  else if (mode === 'in') {
+    document.getElementById('modeIn').classList.add('active');
+    document.body.style.background = "#fffdeb"; // 暖黃色區隔
+    cycleBlock.classList.add('hidden'); // 隱藏單次/連續切換
+    
+    gameSelectTitle.classList.add('hidden');
+    gameSelectDropdown.classList.add('hidden');
+    gameSelectDivider.classList.add('hidden');
+    timerTitle.innerText = "⏱️ 吸氣耐力練習計時";
+    
+    timerSelect.value = "countup"; timerSelect.disabled = true;
+    timerInput.classList.add('hidden');
+    updateLiveTimerDisplay("00:00 (等待吸氣)");
+
+    currentGameType = "volcano";
+    document.getElementById('gameTitleLabel').innerText = " Ul 遊戲項目：🌋 憤怒小火山爆發 (吸氣特化)";
+    document.getElementById('instruction').innerText = "🏋️【純吸氣復健模式】：正向累積。自動跳過開機音，大口吸氣即可累積火山能量，不限次數。";
+  } 
+  
+  // 3️⃣ 【純吐氣模式】➔ 鎖死瘋狂帆船，隱藏單次/連續，改為正向累計耐力訓練
+  else if (mode === 'out') {
+    document.getElementById('modeOut').classList.add('active');
+    document.body.style.background = "#edf2f7"; // 藍灰色區隔
+    cycleBlock.classList.add('hidden');
+    
+    gameSelectTitle.classList.add('hidden');
+    gameSelectDropdown.classList.add('hidden');
+    gameSelectDivider.classList.add('hidden');
+    timerTitle.innerText = "⏱️ 吐氣耐力練習計時";
+    
+    timerSelect.value = "countup"; timerSelect.disabled = true;
+    timerInput.classList.add('hidden');
+    updateLiveTimerDisplay("00:00 (等待吐氣)");
+
+    currentGameType = "boat";
+    document.getElementById('gameTitleLabel').innerText = "🎮 遊戲項目：⛵ 瘋狂小帆船賽 (吐氣特化)";
+    document.getElementById('instruction').innerText = "🏋️【純吐氣復健模式】：正向累積。自動跳過開機音，穩定吐氣即可推動帆船前進，不限次數。";
+  }
+}
+
+// 綁定主模式按鈕
+document.getElementById('modeBi').onclick = () => updateDetectionModeLayout('bi');
+document.getElementById('modeIn').onclick = () => updateDetectionModeLayout('in');
+document.getElementById('modeOut').onclick = () => updateDetectionModeLayout('out');
+
+function updateCycleModeConstraints() {
+  if (currentDetectionMode !== 'bi') return; // 吸吐氣專用計時，不套用單次/連續邏輯
+
+  if (currentCycleMode === 'single') {
+    timerSelect.value = "countdown"; timerSelect.disabled = true; 
+    timerInput.classList.remove('hidden'); timerInput.disabled = false;
+    syncTimerFromInput();
+    document.getElementById('instruction').innerText = `⚖️【單次測試模式】：倒數計時。手自動獨立解耦架構，完美隔離按鍵音，精準捕捉單次吹氣。`;
+  } else {
+    timerSelect.value = "countup"; timerSelect.disabled = true;
+    timerInput.classList.add('hidden');
+    if (!isTimerRunning) updateLiveTimerDisplay("00:00 (就緒)");
+    document.getElementById('instruction').innerText = "⚖️【連續多次模式】：正向累積。實體裝置關機重開，數據可完美無縫接續。";
+  }
+  if (!isTimerRunning) {
+    isSystemAwaitingFirstBreath = true;
+    hasTriggeredBreathInSingleMode = false;
+    isManualOverrideActive = false; 
+  }
+}
+
+document.getElementById('cycleSingle').onclick = function() {
+  document.querySelectorAll('#cycleSingle, #cycleMulti').forEach(b => b.classList.remove('active'));
+  this.classList.add('active'); currentCycleMode = 'single'; updateCycleModeConstraints();
+};
+document.getElementById('cycleMulti').onclick = function() {
+  document.querySelectorAll('#cycleSingle, #cycleMulti').forEach(b => b.classList.remove('active'));
+  this.classList.add('active'); currentCycleMode = 'multi'; updateCycleModeConstraints();
+};
+
+
 function calculateDynamicNorms() {
   const idCardInput = document.getElementById('patientIDCard');
   let idCard = idCardInput.value.trim().toUpperCase(); idCardInput.value = idCard; 
@@ -369,12 +480,8 @@ function calculateDynamicNorms() {
     if (!twIdRegex.test(idCard)) {
       detectedGender = null; idCardInput.classList.add('error');
       normCard.innerHTML = `⚠️ <b>身分證字號格式不正確：</b> 請輸入首字英文字母，且第二碼為 1(男) 或 2(女) 的 10 碼正確格式。`;
-      normCard.style.background = "#ffebee"; normCard.style.borderColor = "#ffcdd2"; normCard.style.color = "#b71c1c";
       return;
-    } else {
-      idCardInput.classList.remove('error');
-      detectedGender = (idCard.charAt(1) === '1') ? 'M' : 'F';
-    }
+    } else { idCardInput.classList.remove('error'); detectedGender = (idCard.charAt(1) === '1') ? 'M' : 'F'; }
   } else { detectedGender = null; idCardInput.classList.remove('error'); }
 
   detectedAge = isNaN(ageVal) ? 30 : ageVal;
@@ -388,7 +495,6 @@ function calculateDynamicNorms() {
     const genderText = (detectedGender === 'M') ? "男性 👨" : "女性 👩";
     document.getElementById('greeting').innerText = `目前病患個資：${detectedAge}歲 ${genderText}`;
     normCard.innerHTML = `🎯 <b>AI 個人化醫學常模已配置：</b><br>吸氣常模：<b>${ACTIVE_LIMITS.minInflow} ~ ${ACTIVE_LIMITS.maxInflow}</b> | 吐氣常模：<b>${ACTIVE_LIMITS.minOutflow} ~ ${ACTIVE_LIMITS.maxOutflow} L/min</b>`;
-    normCard.style.background = "#e8f5e9"; normCard.style.borderColor = "#81c784"; normCard.style.color = "#1b5e20";
   }
 }
 document.getElementById('patientIDCard').addEventListener('input', calculateDynamicNorms);
@@ -397,17 +503,10 @@ document.getElementById('patientAge').addEventListener('input', calculateDynamic
 function switchViewMode(mode) {
   currentViewMode = mode;
   document.querySelectorAll('.btn-view-mode').forEach(b => b.classList.remove('active'));
-  
-  const gameBlock = document.getElementById('gameModuleBlock');
-  const mainVisualBlock = document.getElementById('mainVisualDataBlock');
-  const dataGridBlock = document.getElementById('dataGridBlock');
-  const lightsBlock = document.getElementById('lightsBlock');
-  const chartSide = document.getElementById('chartPanelBlock');
-  const lungBox = document.getElementById('lungVisualBox');
-
-  gameBlock.classList.remove('hidden'); mainVisualBlock.classList.remove('hidden');
-  chartSide.classList.remove('hidden'); lungBox.classList.remove('hidden'); dataGridBlock.classList.remove('hidden'); lightsBlock.classList.remove('hidden');
-
+  const gameBlock = document.getElementById('gameModuleBlock'); const mainVisualBlock = document.getElementById('mainVisualDataBlock');
+  const dataGridBlock = document.getElementById('dataGridBlock'); const lightsBlock = document.getElementById('lightsBlock');
+  const chartSide = document.getElementById('chartPanelBlock'); const lungBox = document.getElementById('lungVisualBox');
+  gameBlock.classList.remove('hidden'); mainVisualBlock.classList.remove('hidden'); chartSide.classList.remove('hidden'); lungBox.classList.remove('hidden'); dataGridBlock.classList.remove('hidden'); lightsBlock.classList.remove('hidden');
   if (mode === "data") { document.getElementById('viewPureData').classList.add('active'); gameBlock.classList.add('hidden'); } 
   else if (mode === "game") { document.getElementById('viewPureGame').classList.add('active'); mainVisualBlock.classList.add('hidden'); dataGridBlock.classList.add('hidden'); lightsBlock.classList.add('hidden'); } 
   else if (mode === "dual") { document.getElementById('viewDual').classList.add('active'); }
@@ -452,17 +551,7 @@ function updateLungAnimation(flow) {
 }
 
 /** ==========================================
- * 📊 4. Chart.js 圖表配置
- * ========================================== */
-const ctx = document.getElementById('flowChart').getContext('2d');
-let chartData = { labels: [], datasets: [{ label: '即時呼吸流速 (L/min)', data: [], borderColor: '#2e7d32', backgroundColor: 'rgba(76, 175, 80, 0.08)', fill: true, tension: 0.35 }] };
-const flowChart = new Chart(ctx, {
-  type: 'line', data: chartData,
-  options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: false } }, y: { min: -100, max: 100 } } }
-});
-
-/** ==========================================
- * 🎛️ 5. 序列埠與生理自動化狀態機 (★獨立無衝突解耦架構)
+ * 🎛️ 5. 序列埠與生理自動化狀態機 (★本次智慧多模式過濾核心)
  * ========================================== */
 function handleSerialLine(line) {
   if (!line || isGameOver) return;
@@ -471,12 +560,21 @@ function handleSerialLine(line) {
   if (match) {
     let rawFlow = parseFloat(match[1]) - HARDWARE_OFFSET;
     if (isNaN(rawFlow) || Math.abs(rawFlow) > 160.0) return;
-
     if (isAutoCalibrating) { autoCalibBuffer.push(rawFlow); return; }
 
     let currentAbs = Math.abs(rawFlow);
 
-    // 🟢 自動喚醒：只有在「沒有手動點按鈕」的前提下，才觸發自動計時
+    // 🟢 智慧模式過濾防呆：根據目前選定模式，強行修正物理流向
+    if (currentDetectionMode === 'in') {
+      // 純吸氣模式：不管晶片送正送負，只要有大於3的訊號通通強迫修正為「正數（吸氣）」
+      if (currentAbs > 3.0) rawFlow = currentAbs; else rawFlow = 0;
+    } else if (currentDetectionMode === 'out') {
+      // 純吐氣模式：不管晶片送正送負，只要有大於3的訊號通通強迫修正為「負數（吐氣）」
+      if (currentAbs > 3.0) rawFlow = -currentAbs; else rawFlow = 0;
+    }
+    currentAbs = Math.abs(rawFlow);
+
+    // 氣流自動喚醒起跑機制
     if (isSystemAwaitingFirstBreath && !isManualOverrideActive) {
       if (currentAbs > 8.0) {
         isSystemAwaitingFirstBreath = false; 
@@ -485,34 +583,25 @@ function handleSerialLine(line) {
         zeroFlowCounter = 0;               
         executeActualTimerInterval();      
       }
-      return; // 消耗掉開機音，此筆資料不畫線
+      return; // 消耗掉開機聲
     }
 
-    // 單次測試模式安全鎖死判定
-    if (currentCycleMode === 'single') {
-      // 如果是網頁手動點擊開始，直接不進行任何盲區屏蔽，完全以真實氣流為準
+    // 🔒 單次測試模式安全鎖死判定 (僅在雙向單次模式生效)
+    if (currentDetectionMode === 'bi' && currentCycleMode === 'single') {
       if (!isManualOverrideActive) {
         let msSinceBoot = Date.now() - bootGuardTimestamp;
-        if (msSinceBoot < BOOT_GUARD_MS) {
-          currentLiveFlowValue = 0; 
-          return; // 1.5 秒盲區，完全封鎖
-        }
+        if (msSinceBoot < BOOT_GUARD_MS) { currentLiveFlowValue = 0; return; }
       }
-
-      // 🔓 進入真實吹氣判定
       if (currentAbs > 8.0) {
-        hasTriggeredBreathInSingleMode = true; // 抓到病人正在吹氣！
-        zeroFlowCounter = 0; 
+        hasTriggeredBreathInSingleMode = true; zeroFlowCounter = 0; 
       } else {
-        // 必須確定病患曾有衝破 8 吹氣成功，且此時流量跌回 8 以下，才判定結束
         if (hasTriggeredBreathInSingleMode && isTimerRunning) {
           zeroFlowCounter++;
           if (zeroFlowCounter >= 4) { 
             rawFlow = 0; currentLiveFlowValue = 0;
             updateWebAndHwLights(0); updateLungAnimation(0);
-            document.getElementById('status').innerText = `狀態：🔒 [單次模式] 施測正常結束，數據已全面安全鎖死凍結。`;
-            finishTestSession(); 
-            return;
+            document.getElementById('status').innerText = `狀態：🔒 [單次模式] 施測正常結束，數據全面安全凍結。`;
+            finishTestSession(); return;
           }
         }
       }
@@ -561,11 +650,11 @@ async function listenSerialLoop() {
       }
 
       if (currentCycleMode === 'multi' && keepReading) {
-        document.getElementById('status').innerText = "狀態：⏳ [連續模式] 裝置熄燈。計時繼續，網頁正在清理舊緩衝並重新就緒...";
+        document.getElementById('status').innerText = "狀態：⏳ 裝置熄燈。網頁正在清理舊緩衝並重新就緒...";
         updateWebAndHwLights(0); updateLungAnimation(0);
         try { await serialPort.close().catch(()=>{}); } catch(e){}
         await new Promise(resolve => setTimeout(resolve, 800));
-        document.getElementById('status').innerText = "狀態：✅ [連續模式] 背景重連就緒！隨時可按第二次電源鍵量測。";
+        document.getElementById('status').innerText = "狀態：✅ 背景重連就緒！隨時可按第二次電源鍵量測。";
       } else { break; }
     } catch (globalError) { await new Promise(resolve => setTimeout(resolve, 1000)); }
   }
@@ -581,61 +670,28 @@ document.getElementById('connectBtn').onclick = async function () {
     serialPort = await navigator.serial.requestPort(); await serialPort.open({ baudRate: 9600 });
     keepReading = true; this.innerText = "中斷裝置連線"; this.classList.add('connected');
     document.getElementById('status').innerText = "狀態：連線成功！";
-    updateCycleModeConstraints(); listenSerialLoop(); 
+    updateDetectionModeLayout(currentDetectionMode); listenSerialLoop(); 
   } catch (e) { alert("連線失敗：" + e.message); }
 };
 
 /** ==========================================
- * ⏳⏱️ 6. 雙軌計時器主控面板核心邏輯
+ * ⏳⏱️ 6. 雙軌計時器面板區
  * ========================================== */
-const timerSelect = document.getElementById('timerModeSelect');
-const timerInput = document.getElementById('timerLengthInput');
-
-// 🟢 手動最高優先權：點擊「施測開始」，強行切斷自動盲區，進入即時畫線
 document.getElementById('webManualStartBtn').onclick = function() {
   if (isTimerRunning) return;
-  isManualOverrideActive = true;     // 點亮最高優先權旗標
+  isManualOverrideActive = true;     
   isSystemAwaitingFirstBreath = false; 
-  hasTriggeredBreathInSingleMode = true; // 強制開啟吸氣捕捉狀態
+  hasTriggeredBreathInSingleMode = true; 
   zeroFlowCounter = 0;
   executeActualTimerInterval();
   document.getElementById('status').innerText = "狀態：▶️ 網頁手動主控開啟！正在全速錄製中...";
 };
 
-// 🟢 手動暫停
 document.getElementById('webManualPauseBtn').onclick = function() {
   if (!isTimerRunning) return;
   isTimerRunning = false;
   if (testTimerId) { clearInterval(testTimerId); testTimerId = null; }
   document.getElementById('status').innerText = "狀態：⏸️ 網頁暫停監聽（秒數與圖表已全面凍結）";
-};
-
-function updateCycleModeConstraints() {
-  if (currentCycleMode === 'single') {
-    timerSelect.value = "countdown"; timerSelect.disabled = true; 
-    timerInput.classList.remove('hidden'); timerInput.disabled = false;
-    syncTimerFromInput();
-    document.getElementById('instruction').innerText = `⚖️【單次測試模式】：倒數計時。手自動獨立解耦架構，完美隔離按鍵音，精準捕捉單次吹氣。`;
-  } else {
-    timerSelect.value = "countup"; timerSelect.disabled = true;
-    timerInput.classList.add('hidden');
-    if (!isTimerRunning) updateLiveTimerDisplay("00:00 (就緒)");
-    document.getElementById('instruction').innerText = "⚖️【連續多次模式】：正向累積。實體裝置關機重開，數據可完美無縫接續。";
-  }
-  if (!isTimerRunning) {
-    isSystemAwaitingFirstBreath = true;
-    hasTriggeredBreathInSingleMode = false;
-    isManualOverrideActive = false; // 回歸初始狀態
-  }
-}
-
-document.getElementById('cycleSingle').onclick = function() {
-  document.querySelectorAll('#cycleSingle, #cycleMulti').forEach(b => b.classList.remove('active'));
-  this.classList.add('active'); currentCycleMode = 'single'; updateCycleModeConstraints();
-};
-document.getElementById('cycleMulti').onclick = function() {
-  document.querySelectorAll('#cycleSingle, #cycleMulti').forEach(b => b.classList.remove('active'));
-  this.classList.add('active'); currentCycleMode = 'multi'; updateCycleModeConstraints();
 };
 
 function syncTimerFromInput() {
@@ -680,9 +736,9 @@ function executeActualTimerInterval() {
 document.getElementById('timerStopBtn').onclick = function() { if(confirm("確定要手動提前終止並安全鎖死本輪測試嗎？")) { finishTestSession(); } };
 document.getElementById('timerResetBtn').onclick = function() {
   isTimerRunning = false; if (testTimerId) { clearInterval(testTimerId); testTimerId = null; }
-  startTime = null; isGameOver = false; 
-  isManualOverrideActive = false; // 重置優先權
-  updateCycleModeConstraints(); document.getElementById('status').innerText = "狀態：🔄 已重置就緒！請選擇手動按鈕或按裝置電源鍵開始下一輪。";
+  startTime = null; isGameOver = false; isManualOverrideActive = false; 
+  updateDetectionModeLayout(currentDetectionMode);
+  document.getElementById('status').innerText = "狀態：🔄 已重置就緒！請重新開啟下一輪量測。";
 };
 
 function finishTestSession() {
@@ -698,16 +754,19 @@ document.getElementById('resetAllBtn').onclick = function() { if(confirm("重置
  * 🎮 7. 互動遊戲引擎核心
  * ========================================== */
 document.getElementById('gameSelect').onchange = function() {
-  currentGameType = this.value;
-  const titles = { balloon: "🎮 遊戲：🎈 熱氣球環遊世界", rocket: "🎮 遊戲：🚀 太空火箭避障賽", boat: "🎮 遊戲：⛵ 瘋狂小帆船賽", volcano: "🎮 遊戲：🌋 憤怒小火山爆發" };
-  document.getElementById('gameTitleLabel').innerText = titles[currentGameType]; 
+  if (currentDetectionMode === 'bi') {
+    currentGameType = this.value;
+    const titles = { balloon: "🎮 遊戲：🎈 熱氣球環遊世界", rocket: "🎮 遊戲：🚀 太空火箭避障賽" };
+    document.getElementById('gameTitleLabel').innerText = titles[currentGameType]; 
+  }
   gameObstacles = []; volcanoEnergy = 0; boatX = 50; playerY = 130; 
 };
 
 function checkGameAccessibility() {
-  if (currentGameType === "balloon" && !isTimerRunning && !isSystemAwaitingFirstBreath) return { ok: false, msg: "❌ 警告：熱氣球遊戲必須在【生理量測起跑後】遊玩！" };
-  if (currentGameType === "rocket" && currentCycleMode !== "multi") return { ok: false, msg: "❌ 警告：太空火箭遊戲被鎖定在【連續多次模式】專用！" };
-  if ((currentGameType === "boat" || currentGameType === "volcano") && currentCycleMode !== "single") return { ok: false, msg: "❌ 警告：此遊戲被鎖定在【單次測試模式】專用！" };
+  if (currentDetectionMode === 'bi') {
+    if (currentGameType === "balloon" && !isTimerRunning && !isSystemAwaitingFirstBreath) return { ok: false, msg: "❌ 警告：熱氣球遊戲必須在【生理量測起跑後】遊玩！" };
+    if (currentGameType === "rocket" && currentCycleMode !== "multi") return { ok: false, msg: "❌ 警告：太空火箭遊戲被鎖定在【連續多次模式】專用！" };
+  }
   return { ok: true };
 }
 
@@ -769,14 +828,14 @@ function gameRenderLoop() {
         }
       }
     });
-  // C. 帆船
+  // C. 帆船 (純吐氣專用鎖定)
   } else if (currentGameType === "boat") {
     if(isTimerRunning) { boatX += currentLiveFlowValue > 5 ? (currentLiveFlowValue * 0.08) : 0; boatX -= 0.3; boatX = Math.max(20, boatX); }
     if (boatX > 750) { boatX = 20; gameScore += 100; playAlertTone(1000,'sine',0.2); }
     gCtx.fillStyle = "#29b6f6"; gCtx.fillRect(0, 200, canvas.width, 60); gCtx.fillStyle = "#8d6e63"; gCtx.fillRect(boatX - 15, 190, 30, 10);
-  // D. 火山
+  // M. 火山 (純吸氣專用鎖定)
   } else if (currentGameType === "volcano") {
-    if (isTimerRunning) { if (currentLiveFlowValue > 10) volcanoEnergy += 0.4; else volcanoEnergy -= 0.15; }
+    if (isTimerRunning) { if (currentLiveFlowValue > 5) volcanoEnergy += 0.5; else volcanoEnergy -= 0.2; }
     volcanoEnergy = Math.max(0, Math.min(100, volcanoEnergy)); if (volcanoEnergy >= 100) { volcanoEnergy = 0; gameScore += 500; playAlertTone(1200,'triangle',0.3); }
     gCtx.fillStyle = "#4e342e"; gCtx.beginPath(); gCtx.moveTo(360, 260); gCtx.lineTo(400, 140); gCtx.lineTo(440, 140); gCtx.lineTo(480, 260); gCtx.fill();
     gCtx.fillStyle = "#ff3d00"; gCtx.fillRect(395, 260 - (volcanoEnergy/100)*120, 50, (volcanoEnergy/100)*120);
@@ -784,6 +843,8 @@ function gameRenderLoop() {
   document.getElementById('gameScoreVal').innerText = gameScore;
 }
 
+// 啟動初始化為雙向複合模式
+updateDetectionModeLayout('bi');
 switchViewMode("dual"); 
 gameRenderLoop();
 
