@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI智慧型雙向呼吸流量生理監測系統 (全自動氣流觸發版)</title>
+  <title>AI智慧型雙向呼吸流量生理監測系統 (連續模式斷流重接版)</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -49,7 +49,7 @@
 
     /* 狀態提示 */
     .status-bar { display: flex; justify-content: space-between; background: #e8f5e9; padding: 10px 16px; border-radius: 8px; margin-bottom: 16px; font-weight: 500; }
-    .alert-banner { background: #ffebee; color: #c62828; padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 16px; animation: flash 1s infinite alternate; display: none; border: 1px solid #ef9a9a; }
+    .alert-banner { background: #ffebee; color: #c62828; padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 16px; display: none; border: 1px solid #ef9a9a; }
 
     /* 燈號呈現區 */
     .lights-container { display: flex; justify-content: space-around; background: #f9f9f9; padding: 16px; border-radius: 12px; margin: 20px 0; gap: 20px; flex-wrap: wrap; border: 1px solid #eaeaea; }
@@ -92,7 +92,7 @@
     .norm-card { background: #e3f2fd; border: 1px solid #90caf9; padding: 14px; border-radius: 8px; margin: 16px 0; font-size: 14px; color: #1565c0; line-height: 1.6; box-shadow: 0 2px 6px rgba(21,101,192,0.05); }
     #instruction { background: #fffde7; border-left: 4px solid #fff59d; padding: 16px; border-radius: 8px; margin: 16px 0; min-height: 24px; font-size: 15px; color: #555; }
 
-    /* 彈出式校正控制台 */
+    /* 校正面板 */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
     .modal-box { background: #fff; padding: 24px; border-radius: 16px; max-width: 440px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
     
@@ -156,7 +156,7 @@
       
       <div class="btn-group">
         <button class="btn btn-mode active" id="cycleSingle">⏱️ 單次測試模式 (鎖定倒數+熄燈硬凍結)</button>
-        <button class="btn btn-mode" id="cycleMulti">🔁 連續多次模式 (鎖定累計+無限次測)</button>
+        <button class="btn btn-mode" id="cycleMulti">🔁 連續多次模式 (鎖定累計+斷流韌性重連)</button>
       </div>
     </div>
 
@@ -231,12 +231,10 @@
     <div id="gameModuleBlock" class="game-panel-block hidden">
       <div class="game-score-board">
         <span id="gameTitleLabel">🎮 遊戲項目：熱氣球環遊世界</span>
-        
         <div class="game-ctrl-btns">
           <span style="background: #2b6cb0; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;">📢 請直接操作實體流量計吹氣起跑</span>
           <span style="color: #63b3ed; font-family: monospace; margin-left: 10px; font-size: 15px;" id="gameLiveTimerDisplay">時間: 60秒</span>
         </div>
-
         <div class="hp-setup-box">
           <span>❤️ 剩餘血量: <span id="gameHpDisplay" style="font-size:16px;">3</span></span>
           <span style="color:#a0aec0; margin:0 6px;">|</span>
@@ -262,7 +260,7 @@
 
       <div class="chart-panel-block" id="chartPanelBlock">
         <div class="timer-sidebar">
-          <div style="text-align: center; font-size: 11px; font-weight: bold; color: #4e7fff;">⏱️ 計計時器模式</div>
+          <div style="text-align: center; font-size: 11px; font-weight: bold; color: #4e7fff;">⏱️ 計時器模式</div>
           <select id="timerModeSelect" class="select-timer-mode">
             <option value="countdown">⏳ 倒數計時模式</option>
             <option value="countup">⏱️ 正向累計模式</option>
@@ -324,7 +322,6 @@
 /** ==========================================
  * 💾 1. 全域變數定義
  * ========================================== */
-let supabaseClient = null;
 let ACTIVE_LIMITS = { minInflow: 30.0, maxInflow: 90.0, minOutflow: 30.0, maxOutflow: 120.0 };
 let detectedGender = null; let detectedAge = 30;
 
@@ -332,21 +329,18 @@ let CALIBRATION_FACTORS = { inhalation: 1.00, exhalation: 1.00 };
 let HARDWARE_OFFSET = 0.00; 
 let isAutoCalibrating = false; let autoCalibBuffer = [];
 
-let serialPort, reader, keepReading = false;
+let serialPort = null; let keepReading = false;
 let startTime = null; let flowData = []; let serialBuffer = "";
-let currentDetectionMode = 'bi'; 
 
 // 核心生理模式旗標
 let currentCycleMode = 'single'; 
 let hasTriggeredBreathInSingleMode = false; 
-
-// 🟢 核心修正：系統只要成功連線，就在背景維持「準備就緒（Ready）」監聽狀態
 let isSystemAwaitingFirstBreath = true; 
 
 let testTimerId = null;
 let timeLeft = 60; let timeElapsed = 0;
 let isTimerRunning = false;
-let selectedTimerMode = "countdown"; let currentViewMode = "data";
+let currentViewMode = "data";
 
 // 遊戲物理引擎變數
 const canvas = document.getElementById('gameCanvas');
@@ -473,7 +467,7 @@ const flowChart = new Chart(ctx, {
 });
 
 /** ==========================================
- * 🎛️ 5. 序列埠與生理自動化起跑監聽核心 (★全自動重構)
+ * 🎛️ 5. 序列埠與生理自動化起跑監聽核心 (★斷流韌性重構版)
  * ========================================== */
 function handleSerialLine(line) {
   if (!line || isGameOver) return;
@@ -487,24 +481,22 @@ function handleSerialLine(line) {
 
     let currentAbs = Math.abs(rawFlow);
 
-    // 🟢 核心升級：只要連線成功，第一筆氣流灌進來 ($> 8.0$)，網頁秒數自動全速起跑！
+    // 全自動第一口氣觸發
     if (isSystemAwaitingFirstBreath) {
       if (currentAbs > 8.0) {
-        isSystemAwaitingFirstBreath = false; // 關閉等待旗標
-        executeActualTimerInterval();        // 🚀 全自動主動活化計時器線程！
+        isSystemAwaitingFirstBreath = false; 
+        executeActualTimerInterval();        
       } else {
-        // 還沒吹氣，不畫線、不錄製
         currentLiveFlowValue = 0;
         return;
       }
     }
 
-    // 🟢 模式分流一：單次測試模式（Single）➔ 一吹完、熄燈就鎖死
+    // 單次測試模式鎖死
     if (currentCycleMode === 'single') {
       if (currentAbs > 8) {
         hasTriggeredBreathInSingleMode = true; 
       } else {
-        // 先前吹過氣，但現在流量跌回 8 以下（代表裝置熄燈、任務結束）➔ 100% 鎖死！
         if (hasTriggeredBreathInSingleMode && isTimerRunning) {
           rawFlow = 0; currentLiveFlowValue = 0;
           updateWebAndHwLights(0); updateLungAnimation(0);
@@ -515,19 +507,16 @@ function handleSerialLine(line) {
       }
     }
 
-    // 🟢 模式分流二：連續多次模式（Multi）➔ 熄燈不打斷，按第二次電源鍵繼續灌數據
-    if (currentCycleMode === 'multi') {
-      // 在連續多次模式下，就算流量跌回 8 以下（熄燈），我們也不強制切斷
-      // 計時器在背景繼續數秒，當病患第二次按下電源鍵，流量大於 8 時，數據自然順暢接下去畫！
-    }
-
     currentLiveFlowValue = currentAbs;
     if (!isTimerRunning) return; 
 
     if (rawFlow > 0) rawFlow *= CALIBRATION_FACTORS.inhalation;
     else if (rawFlow < 0) rawFlow *= CALIBRATION_FACTORS.exhalation;
 
+    // 接續時間計算：防止重新連線後時間軸暴跳
+    if (!startTime) startTime = Date.now();
     const now = ((Date.now() - startTime) / 1000).toFixed(2);
+    
     if (rawFlow >= 0) { document.getElementById('flowInVal').innerText = rawFlow.toFixed(2); document.getElementById('flowOutVal').innerText = "0.00"; } 
     else { document.getElementById('flowInVal').innerText = "0.00"; document.getElementById('flowOutVal').innerText = Math.abs(rawFlow).toFixed(2); }
 
@@ -537,29 +526,81 @@ function handleSerialLine(line) {
   }
 }
 
-async function listenSerial() {
-  const decoder = new TextDecoderStream(); serialPort.readable.pipeTo(decoder.writable).catch(()=>{});
-  reader = decoder.readable.getReader();
-  try {
-    while (keepReading) {
-      const { value, done } = await reader.read(); if (done) break;
-      if (value) {
-        serialBuffer += value; let lines = serialBuffer.split("\n"); serialBuffer = lines.pop();
-        for (let line of lines) { handleSerialLine(line.trim()); }
+// 🚀 核心升級：具備自動重連韌性的極致監聽迴圈
+async function listenSerialLoop() {
+  while (keepReading) {
+    try {
+      if (!serialPort || !serialPort.readable) {
+        // 如果連線不存在，等待 500 毫秒後重新檢查
+        await new Promise(resolve => setTimeout(resolve, 500));
+        continue;
       }
+      
+      const decoder = new TextDecoderStream();
+      const readableStreamClosed = serialPort.readable.pipeTo(decoder.writable);
+      const reader = decoder.readable.getReader();
+      
+      try {
+        while (keepReading) {
+          const { value, done } = await reader.read();
+          if (done) { break; }
+          if (value) {
+            serialBuffer += value; 
+            let lines = serialBuffer.split("\n"); 
+            serialBuffer = lines.pop();
+            for (let line of lines) { handleSerialLine(line.trim()); }
+          }
+        }
+      } catch (error) {
+        console.warn("讀取串流被打斷（可能實體裝置熄燈斷電）:", error);
+      } finally {
+        reader.releaseLock();
+        await readableStreamClosed.catch(() => {});
+      }
+
+      // 🟢 如果是連續模式，硬體熄燈了我們不關閉系統，原地重新嘗試開啟串流，靜候下一次開機！
+      if (currentCycleMode === 'multi' && keepReading) {
+        document.getElementById('status').innerText = "狀態：⏳ [連續模式] 偵測到裝置熄燈。計時繼續，網頁已在背景就緒，隨時可按第二次電源鍵吹氣！";
+        updateWebAndHwLights(0); updateLungAnimation(0);
+        
+        // 嘗試重新向既有 Port 拿串流（因部分硬體關機再開只是斷開通道，不用重新 requestPort）
+        try {
+          // 先行關閉再重開，確保底層通道乾淨
+          await serialPort.close().catch(()=>{});
+          await serialPort.open({ baudRate: 9600 });
+        } catch(e) {
+          // 若硬體是徹底離線，此處會失敗，會進入下一輪 while 迴圈靜態等待
+        }
+      } else {
+        // 單次模式則直接中斷
+        break;
+      }
+      
+    } catch (globalError) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
-  } catch (error) {}
+  }
 }
 
 document.getElementById('connectBtn').onclick = async function () {
   try {
-    serialPort = await navigator.serial.requestPort(); await serialPort.open({ baudRate: 9600 });
-    keepReading = true; this.innerText = "中斷裝置連線"; this.classList.add('connected');
-    document.getElementById('status').innerText = "狀態：⚡ 連線成功！系統就緒，請讓受試者隨時按下電源鍵吹氣起跑。";
-    updateCycleModeConstraints(); listenSerial();
+    if (keepReading) {
+      keepReading = false;
+      if (serialPort) { await serialPort.close().catch(()=>{}); serialPort = null; }
+      this.innerText = "連接外接裝置"; this.classList.remove('connected');
+      document.getElementById('status').innerText = "狀態：等待硬體連線";
+      return;
+    }
+    
+    serialPort = await navigator.serial.requestPort(); 
+    await serialPort.open({ baudRate: 9600 });
+    keepReading = true; 
+    this.innerText = "中斷裝置連線"; this.classList.add('connected');
+    document.getElementById('status').innerText = "狀態：⚡ 連線成功！請直接讓受試者操作實體裝置吹氣。";
+    updateCycleModeConstraints(); 
+    listenSerialLoop(); // 啟動彈性重連監聽引擎
   } catch (e) { alert("連線失敗：" + e.message); }
 };
-function resetSerialConnectionUI() { keepReading = false; document.getElementById('connectBtn').innerText = "連接外接裝置"; document.getElementById('connectBtn').classList.remove('connected'); finishTestSession(); }
 
 /** ==========================================
  * ⏳⏱️ 6. 雙軌計時器與單次/連續「鎖定設定」
@@ -572,16 +613,15 @@ function updateCycleModeConstraints() {
     timerSelect.value = "countdown"; timerSelect.disabled = true; 
     timerInput.classList.remove('hidden'); timerInput.disabled = false;
     syncTimerFromInput();
-    document.getElementById('instruction').innerText = "⚖️【單次測試模式】：強迫綁定倒數計時。只要吹完氣、硬體熄燈，網頁會全自動強制鎖死凍結！";
+    document.getElementById('instruction').innerText = "⚖️【單次測試模式】：倒數計時。只要吹完氣硬體熄燈，網頁瞬間鎖死凍結！";
   } else {
     timerSelect.value = "countup"; timerSelect.disabled = true;
     timerInput.classList.add('hidden');
-    updateLiveTimerDisplay("00:00 (就緒)");
-    document.getElementById('instruction').innerText = "⚖️【連續多次模式】：強迫綁定正向累計。熄燈後計時不中斷，可隨時按第二次電源鍵繼續量測！";
+    if (!isTimerRunning) updateLiveTimerDisplay("00:00 (就緒)");
+    document.getElementById('instruction').innerText = "⚖️【連續多次模式】：正向累計。裝置熄燈斷流時秒數不中斷，直接再按一次電源鍵開機就能繼續測！";
   }
-  // 還原初始觸發狀態
   hasTriggeredBreathInSingleMode = false;
-  isSystemAwaitingFirstBreath = true; 
+  if (!isTimerRunning) isSystemAwaitingFirstBreath = true; 
 }
 
 document.getElementById('cycleSingle').onclick = function() {
@@ -606,12 +646,10 @@ function updateLiveTimerDisplay(txt) {
   document.getElementById('gameLiveTimerDisplay').innerText = "時間: " + txt;
 }
 
-// 🟢 氣流自動喚醒後，由此函式在背景自動把計時器執行緒跑起來
 function executeActualTimerInterval() {
-  isTimerRunning = true;
-  isGameOver = false;
-  startTime = Date.now();
-  timeElapsed = 0;
+  if (isTimerRunning) return; // 避免重複觸發
+  isTimerRunning = true; isGameOver = false;
+  startTime = Date.now(); timeElapsed = 0;
   
   currentHp = parseInt(document.getElementById('gameHpMaxInput').value) || 3;
   document.getElementById('gameHpDisplay').innerText = currentHp;
@@ -624,10 +662,8 @@ function executeActualTimerInterval() {
   testTimerId = setInterval(() => {
     if (timerSelect.value === "countdown") {
       timeLeft--;
-      if (timeLeft <= 0) {
-        updateLiveTimerDisplay("0 秒 (時間到)");
-        finishTestSession();
-      } else { updateLiveTimerDisplay(`${timeLeft} 秒`); }
+      if (timeLeft <= 0) { updateLiveTimerDisplay("0 秒 (時間到)"); finishTestSession(); } 
+      else { updateLiveTimerDisplay(`${timeLeft} 秒`); }
     } else {
       timeElapsed++;
       let m = Math.floor(timeElapsed / 60).toString().padStart(2, '0');
@@ -637,19 +673,16 @@ function executeActualTimerInterval() {
   }, 1000);
 }
 
-// 🟢 醫護手動強制安全終結按鈕
+// 醫護手動強制安全終結按鈕
 document.getElementById('timerStopBtn').onclick = function() {
-  if(confirm("確定要手動提前終止並安全鎖死本輪測試嗎？")) {
-    finishTestSession();
-  }
+  if(confirm("確定要手動提前終止並安全鎖死本輪測試嗎？")) { finishTestSession(); }
 };
 
-// 🟢 手動開啟下一輪測試按鈕
+// 手動開啟下一輪測試按鈕
 document.getElementById('timerResetBtn').onclick = function() {
-  isTimerRunning = false; isWaitingForHardwareWakeup = false;
+  isTimerRunning = false;
   if (testTimerId) { clearInterval(testTimerId); testTimerId = null; }
   startTime = null; isGameOver = false; 
-  document.getElementById('gameHpMaxInput').disabled = false;
   updateCycleModeConstraints();
   document.getElementById('status').innerText = "狀態：🔄 已重置就緒！請讓病患直接按電源鍵進行下一輪量測。";
 };
@@ -657,7 +690,7 @@ document.getElementById('timerResetBtn').onclick = function() {
 function finishTestSession() {
   isTimerRunning = false; isSystemAwaitingFirstBreath = false;
   if (testTimerId) { clearInterval(testTimerId); testTimerId = null; }
-  isGameOver = true; // 鎖死
+  isGameOver = true; 
   document.getElementById('status').innerText = "狀態：🔒 施測終止，本輪數據已全面安全凍結。";
   if (currentViewMode === "game") switchViewMode("dual");
 }
@@ -679,7 +712,6 @@ document.getElementById('gameSelect').onchange = function() {
 };
 
 function checkGameAccessibility() {
-  // 熱氣球遊戲在等待起跑或正在計時都能渲染
   if (currentGameType === "balloon" && !isTimerRunning && !isSystemAwaitingFirstBreath) {
     return { ok: false, msg: "❌ 警告：熱氣球遊戲必須在【生理量測起跑後】遊玩！" };
   }
@@ -711,7 +743,6 @@ function gameRenderLoop() {
     return;
   }
 
-  // 🟢 全自動化提示：等待第一口氣
   if (isSystemAwaitingFirstBreath) {
     gCtx.fillStyle = "rgba(0,0,0,0.4)"; gCtx.fillRect(0, 0, canvas.width, canvas.height);
     gCtx.fillStyle = "#63b3ed"; gCtx.font = "bold 16px Arial"; gCtx.textAlign = "center";
