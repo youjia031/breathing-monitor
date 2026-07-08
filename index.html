@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI智慧型雙向呼吸流量生理監測系統 (雙軌手自動+終極雜訊過濾版)</title>
+  <title>AI智慧型雙向呼吸流量生理監測系統 (雙軌手自動無衝突完全體)</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -135,7 +135,7 @@
       </div>
       
       <div class="btn-group">
-        <button class="btn btn-mode active" id="cycleSingle">⏱️ 單次測試模式 (鎖定倒數+雙階段開機防誤觸)</button>
+        <button class="btn btn-mode active" id="cycleSingle">⏱️ 單次測試模式 (鎖定倒數+雙軌狀態隔離)</button>
         <button class="btn btn-mode" id="cycleMulti">🔁 連續多次模式 (鎖定累計+斷流韌性重連)</button>
       </div>
     </div>
@@ -212,7 +212,7 @@
       <div class="game-score-board">
         <span id="gameTitleLabel">🎮 遊戲項目：熱氣球環遊世界</span>
         <div class="game-ctrl-btns">
-          <span style="background: #2b6cb0; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;">📢 請直接點擊開始或讓裝置吹氣起跑</span>
+          <span style="background: #2b6cb0; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;">📢 點擊「開始施測」手動強制起跑，或操作實體裝置吹氣喚醒</span>
           <span style="color: #63b3ed; font-family: monospace; margin-left: 10px; font-size: 15px;" id="gameLiveTimerDisplay">時間: 60秒</span>
         </div>
         <div class="hp-setup-box">
@@ -295,7 +295,7 @@
         <span><id id="flowOutVal">0.00</id> L/min</span>
       </div>
       <div class="data-card">
-        <h4>個人化動態分析指標</h4>
+        <h4>個人化動態 analysis 指標</h4>
         <span id="metricLabel" style="font-size:13px; color:#555; font-weight: 500;">等待氣流傳輸...</span>
       </div>
     </div>
@@ -325,11 +325,11 @@ let currentCycleMode = 'single';
 let hasTriggeredBreathInSingleMode = false; 
 let isSystemAwaitingFirstBreath = true; 
 
-// 防誤觸防抖動核心變數
+// 雙軌手自動邏輯核心變數
 const BOOT_GUARD_MS = 1500; 
 let bootGuardTimestamp = 0; 
 let zeroFlowCounter = 0;    
-let breathStabilityCounter = 0; // 🟢 穩定的吹氣訊號計數器
+let isManualOverrideActive = false; // 🟢 標記是否手動強制啟動
 
 let testTimerId = null;
 let timeLeft = 60; let timeElapsed = 0;
@@ -462,7 +462,7 @@ const flowChart = new Chart(ctx, {
 });
 
 /** ==========================================
- * 🎛️ 5. 序列埠與生理自動化狀態機 (★終極雙軌過濾修正)
+ * 🎛️ 5. 序列埠與生理自動化狀態機 (★獨立無衝突解耦架構)
  * ========================================== */
 function handleSerialLine(line) {
   if (!line || isGameOver) return;
@@ -476,46 +476,43 @@ function handleSerialLine(line) {
 
     let currentAbs = Math.abs(rawFlow);
 
-    // 氣流自動喚醒起跑機制
-    if (isSystemAwaitingFirstBreath) {
+    // 🟢 自動喚醒：只有在「沒有手動點按鈕」的前提下，才觸發自動計時
+    if (isSystemAwaitingFirstBreath && !isManualOverrideActive) {
       if (currentAbs > 8.0) {
         isSystemAwaitingFirstBreath = false; 
         bootGuardTimestamp = Date.now();   
         hasTriggeredBreathInSingleMode = false; 
-        zeroFlowCounter = 0; breathStabilityCounter = 0;
+        zeroFlowCounter = 0;               
         executeActualTimerInterval();      
       }
-      return; 
+      return; // 消耗掉開機音，此筆資料不畫線
     }
 
-    // 單次測試模式鎖死判斷 (完美切開盲區與真正的氣流建立)
+    // 單次測試模式安全鎖死判定
     if (currentCycleMode === 'single') {
-      let msSinceBoot = Date.now() - bootGuardTimestamp;
-      
-      if (msSinceBoot < BOOT_GUARD_MS) {
-        // 在開機 1.5 秒盲區內：100% 屏蔽鎖死機制，不畫線、不錄製雜訊波形
-        currentLiveFlowValue = 0; 
-        return; 
+      // 如果是網頁手動點擊開始，直接不進行任何盲區屏蔽，完全以真實氣流為準
+      if (!isManualOverrideActive) {
+        let msSinceBoot = Date.now() - bootGuardTimestamp;
+        if (msSinceBoot < BOOT_GUARD_MS) {
+          currentLiveFlowValue = 0; 
+          return; // 1.5 秒盲區，完全封鎖
+        }
+      }
+
+      // 🔓 進入真實吹氣判定
+      if (currentAbs > 8.0) {
+        hasTriggeredBreathInSingleMode = true; // 抓到病人正在吹氣！
+        zeroFlowCounter = 0; 
       } else {
-        // 盲區已過，進入真實監聽
-        if (currentAbs > 8.0) {
-          // 🟢 核心修正：必須流量持續高於 8 達到 3 筆數據以上，才認定病患「開始呼氣」
-          breathStabilityCounter++;
-          if (breathStabilityCounter >= 3) {
-            hasTriggeredBreathInSingleMode = true; 
-          }
-          zeroFlowCounter = 0; 
-        } else {
-          // 只有在【病患已經建立穩定呼氣】的前提下，跌落 8 以下才會開始計算結束鎖死！
-          if (hasTriggeredBreathInSingleMode && isTimerRunning) {
-            zeroFlowCounter++;
-            if (zeroFlowCounter >= 4) { 
-              rawFlow = 0; currentLiveFlowValue = 0;
-              updateWebAndHwLights(0); updateLungAnimation(0);
-              document.getElementById('status').innerText = `狀態：🔒 [單次模式] 施測正常結束，數據已全面安全鎖死凍結。`;
-              finishTestSession(); 
-              return;
-            }
+        // 必須確定病患曾有衝破 8 吹氣成功，且此時流量跌回 8 以下，才判定結束
+        if (hasTriggeredBreathInSingleMode && isTimerRunning) {
+          zeroFlowCounter++;
+          if (zeroFlowCounter >= 4) { 
+            rawFlow = 0; currentLiveFlowValue = 0;
+            updateWebAndHwLights(0); updateLungAnimation(0);
+            document.getElementById('status').innerText = `狀態：🔒 [單次模式] 施測正常結束，數據已全面安全鎖死凍結。`;
+            finishTestSession(); 
+            return;
           }
         }
       }
@@ -583,34 +580,34 @@ document.getElementById('connectBtn').onclick = async function () {
     }
     serialPort = await navigator.serial.requestPort(); await serialPort.open({ baudRate: 9600 });
     keepReading = true; this.innerText = "中斷裝置連線"; this.classList.add('connected');
-    document.getElementById('status').innerText = "狀態：連線成功！可由左側手動點擊開始，或直接在裝置吹氣。";
+    document.getElementById('status').innerText = "狀態：連線成功！";
     updateCycleModeConstraints(); listenSerialLoop(); 
   } catch (e) { alert("連線失敗：" + e.message); }
 };
 
 /** ==========================================
- * ⏳⏱️ 6. 雙軌主控計時器面板區 (🟢新增手動控制開關)
+ * ⏳⏱️ 6. 雙軌計時器主控面板核心邏輯
  * ========================================== */
 const timerSelect = document.getElementById('timerModeSelect');
 const timerInput = document.getElementById('timerLengthInput');
 
-// 🟢 手動開始按鈕：點擊立刻進入施測，主動跳過開機盲區，進入極速即時狀態
+// 🟢 手動最高優先權：點擊「施測開始」，強行切斷自動盲區，進入即時畫線
 document.getElementById('webManualStartBtn').onclick = function() {
   if (isTimerRunning) return;
+  isManualOverrideActive = true;     // 點亮最高優先權旗標
   isSystemAwaitingFirstBreath = false; 
-  bootGuardTimestamp = Date.now() - BOOT_GUARD_MS; // 直接把時間減去盲區，強迫跳過盲區！
-  hasTriggeredBreathInSingleMode = true;           // 強制視為有效吹氣狀態
-  zeroFlowCounter = 0; breathStabilityCounter = 5;
+  hasTriggeredBreathInSingleMode = true; // 強制開啟吸氣捕捉狀態
+  zeroFlowCounter = 0;
   executeActualTimerInterval();
-  document.getElementById('status').innerText = "狀態：▶️ 網頁手動啟動！目前正在全速監聽氣流中...";
+  document.getElementById('status').innerText = "狀態：▶️ 網頁手動主控開啟！正在全速錄製中...";
 };
 
-// 🟢 手動暫停監聽按鈕
+// 🟢 手動暫停
 document.getElementById('webManualPauseBtn').onclick = function() {
   if (!isTimerRunning) return;
   isTimerRunning = false;
   if (testTimerId) { clearInterval(testTimerId); testTimerId = null; }
-  document.getElementById('status').innerText = "狀態：⏸️ 網頁暫停監聽中（秒數凍結）";
+  document.getElementById('status').innerText = "狀態：⏸️ 網頁暫停監聽（秒數與圖表已全面凍結）";
 };
 
 function updateCycleModeConstraints() {
@@ -618,15 +615,18 @@ function updateCycleModeConstraints() {
     timerSelect.value = "countdown"; timerSelect.disabled = true; 
     timerInput.classList.remove('hidden'); timerInput.disabled = false;
     syncTimerFromInput();
-    document.getElementById('instruction').innerText = `⚖️【單次測試模式】：倒數計時。具備防按鍵音鎖死演算法，吹氣結束自動安全凍結。`;
+    document.getElementById('instruction').innerText = `⚖️【單次測試模式】：倒數計時。手自動獨立解耦架構，完美隔離按鍵音，精準捕捉單次吹氣。`;
   } else {
     timerSelect.value = "countup"; timerSelect.disabled = true;
     timerInput.classList.add('hidden');
     if (!isTimerRunning) updateLiveTimerDisplay("00:00 (就緒)");
-    document.getElementById('instruction').innerText = "⚖️【連續多次模式】：正向累積。實體裝置關機重開，數據可完美接續繪製。";
+    document.getElementById('instruction').innerText = "⚖️【連續多次模式】：正向累積。實體裝置關機重開，數據可完美無縫接續。";
   }
-  hasTriggeredBreathInSingleMode = false;
-  if (!isTimerRunning) isSystemAwaitingFirstBreath = true; 
+  if (!isTimerRunning) {
+    isSystemAwaitingFirstBreath = true;
+    hasTriggeredBreathInSingleMode = false;
+    isManualOverrideActive = false; // 回歸初始狀態
+  }
 }
 
 document.getElementById('cycleSingle').onclick = function() {
@@ -680,8 +680,9 @@ function executeActualTimerInterval() {
 document.getElementById('timerStopBtn').onclick = function() { if(confirm("確定要手動提前終止並安全鎖死本輪測試嗎？")) { finishTestSession(); } };
 document.getElementById('timerResetBtn').onclick = function() {
   isTimerRunning = false; if (testTimerId) { clearInterval(testTimerId); testTimerId = null; }
-  startTime = null; isGameOver = false; document.getElementById('gameHpMaxInput').disabled = false;
-  updateCycleModeConstraints(); document.getElementById('status').innerText = "狀態：🔄 已重置就緒！請重新開啟下一輪量測。";
+  startTime = null; isGameOver = false; 
+  isManualOverrideActive = false; // 重置優先權
+  updateCycleModeConstraints(); document.getElementById('status').innerText = "狀態：🔄 已重置就緒！請選擇手動按鈕或按裝置電源鍵開始下一輪。";
 };
 
 function finishTestSession() {
@@ -694,7 +695,7 @@ document.getElementById('clearChartBtn').onclick = function() { document.getElem
 document.getElementById('resetAllBtn').onclick = function() { if(confirm("重置全系統？")) location.reload(); };
 
 /** ==========================================
- * 🎮 7. 互動遊戲引擎核心 
+ * 🎮 7. 互動遊戲引擎核心
  * ========================================== */
 document.getElementById('gameSelect').onchange = function() {
   currentGameType = this.value;
@@ -725,7 +726,7 @@ function gameRenderLoop() {
   if (isSystemAwaitingFirstBreath) {
     gCtx.fillStyle = "rgba(0,150,136,0.15)"; gCtx.fillRect(0, 0, canvas.width, 30);
     gCtx.fillStyle = "#00e676"; gCtx.font = "bold 12px Arial"; gCtx.textAlign = "left";
-    gCtx.fillText("⚡ 施測就緒：點擊網頁「開始施測」，或讓受試者按實體按鈕吹氣皆可同步起跑...", 15, 20);
+    gCtx.fillText("⚡ 施測就緒：點擊左側「開始施測」，或讓受試者按實體按鈕吹氣皆可同步起跑...", 15, 20);
   }
 
   if (isGameOver) {
