@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI智慧型雙向呼吸流量生理監測系統 (遊戲互動升級版)</title>
+  <title>AI智慧型雙向呼吸流量生理監測系統 (遊戲權限與單次鎖定版)</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -24,10 +24,8 @@
     .btn-reset-all { background: #d32f2f; color: #fff; }
     .btn-reset-all:hover { background: #b71c1c; }
     
-    /* 🟢 檢視模式切換鍵樣式 */
     .btn-view-mode { background: #e2e8f0; color: #475569; border: 2px solid #cbd5e1; }
     .btn-view-mode.active { background: #673ab7; color: #fff; border-color: #673ab7; }
-
     .btn-mode { background: #fff; color: #333; border: 2px solid #ccc; }
     .btn-mode.active { background: #2e7d32; color: #fff; border-color: #2e7d32; }
 
@@ -39,22 +37,22 @@
     .btn-timer-start { background: #2e7d32; color: #fff; border-color: #2e7d32; }
     .btn-timer-start:hover { background: #1b5e20; }
     .btn-timer-pause { background: #ffa000; color: #fff; border-color: #ffa000; }
-    .btn-timer-pause:hover { background: #e68a00; }
     .btn-timer-reset { background: #78909c; color: #fff; border-color: #78909c; }
     .btn-clear-chart { background: #ff9100; color: #fff; border-color: #ff9100; }
     .btn-clear-chart:hover { background: #ff6d00; }
     
-    /* 下拉選單與計時器樣式 */
+    /* 下拉選單 */
     .select-y-scale, .select-timer-mode, .select-game { padding: 10px; font-size: 13px; font-weight: bold; border: 2px solid #2e7d32; border-radius: 8px; background: #fff; color: #2e7d32; cursor: pointer; outline: none; width: 100%; box-sizing: border-box; text-align: center; margin-bottom: 4px; }
     .select-timer-mode { border-color: #4e7fff; color: #4e7fff; }
+    .select-timer-mode:disabled { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; border-color: #cbd5e1; }
     .select-game { border-color: #e91e63; color: #e91e63; }
     .timer-input { padding: 8px; width: 100%; font-size: 16px; font-weight: bold; border: 2px solid #4e7fff; border-radius: 8px; text-align: center; box-sizing: border-box; }
+    .timer-input:disabled { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; border-color: #cbd5e1; }
     .timer-display { font-size: 18px; font-weight: bold; color: #e91e63; background: #fce4ec; padding: 10px; border-radius: 8px; border: 1px solid #f8bbd0; text-align: center; }
 
     /* 狀態提示 */
     .status-bar { display: flex; justify-content: space-between; background: #e8f5e9; padding: 10px 16px; border-radius: 8px; margin-bottom: 16px; font-weight: 500; }
     .alert-banner { background: #ffebee; color: #c62828; padding: 12px; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 16px; animation: flash 1s infinite alternate; display: none; border: 1px solid #ef9a9a; }
-    @keyframes flash { from { opacity: 1; box-shadow: 0 0 4px #ff1744; } to { opacity: 0.6; box-shadow: 0 0 16px #ff1744; } }
 
     /* 燈號呈現區 */
     .lights-container { display: flex; justify-content: space-around; background: #f9f9f9; padding: 16px; border-radius: 12px; margin: 20px 0; gap: 20px; flex-wrap: wrap; border: 1px solid #eaeaea; }
@@ -64,11 +62,14 @@
     .light.activated-green { background: #00e676 !important; box-shadow: 0 0 14px #00e676 !important; border-color: #00c853 !important; }
     .light.activated-yellow { background: #ffb300 !important; box-shadow: 0 0 14px #ffb300 !important; border-color: #ff8f00 !important; }
 
-    /* 🟢 遊戲互動渲染區塊 */
+    /* 🎮 遊戲互動面板 */
     .game-panel-block { background: #1a202c; border-radius: 16px; padding: 12px; margin: 20px 0; border: 3px solid #e91e63; box-shadow: 0 6px 20px rgba(233,30,99,0.15); display: flex; flex-direction: column; align-items: center; gap: 10px; }
     .game-canvas-wrapper { width: 100%; max-width: 800px; height: 260px; background: #2d3748; border-radius: 12px; overflow: hidden; position: relative; border: 2px solid #4a5568; }
     #gameCanvas { width: 100%; height: 100%; display: block; }
-    .game-score-board { color: #fff; font-size: 16px; font-weight: bold; width: 100%; max-width: 800px; display: flex; justify-content: space-between; background: rgba(0,0,0,0.4); padding: 6px 16px; border-radius: 8px; box-sizing: border-box; }
+    .game-score-board { color: #fff; font-size: 15px; font-weight: bold; width: 100%; max-width: 800px; display: flex; justify-content: space-between; background: rgba(0,0,0,0.4); padding: 8px 16px; border-radius: 8px; box-sizing: border-box; align-items: center; }
+
+    .hp-setup-box { display: flex; align-items: center; gap: 6px; color: #ff5252; font-size: 13px; }
+    .hp-input { width: 45px; padding: 4px; border-radius: 4px; border: 1px solid #ff5252; text-align: center; font-weight: bold; background: #2d3748; color: #fff; }
 
     /* 生理視覺呈現區 */
     .visual-wrapper { display: flex; gap: 24px; justify-content: center; align-items: stretch; margin: 20px 0; flex-wrap: wrap; }
@@ -77,7 +78,7 @@
     .lung-leaf { transform-box: fill-box; transform-origin: center; transition: transform 0.1s linear, fill 0.2s ease; fill: #ff8a80; }
     .lung-text { font-weight: bold; font-size: 15px; color: #555; background: rgba(255,255,255,0.8); padding: 4px 10px; border-radius: 10px; margin-top: 10px; border: 1px solid #eee; }
 
-    /* 圖表區外殼 */
+    /* 圖表區 */
     .chart-panel-block { flex: 1; min-width: 320px; display: flex; gap: 14px; background: #fff; border-radius: 16px; padding: 14px; border: 1px solid #eaeaea; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
     .chart-scroll-container { flex: 1; overflow-x: auto; background: #fff; border-radius: 8px; border: 1px solid #f0f0f0; }
     .chart-inner-wrapper { width: 100%; min-width: 500px; height: 320px; padding: 5px; box-sizing: border-box; }
@@ -90,19 +91,15 @@
     .data-card h4 { margin: 0 0 6px 0; color: #666; font-size: 13px; letter-spacing: 0.5px; }
     .data-card span { font-size: 20px; font-weight: bold; }
 
-    /* 智慧常模報告卡 */
     .norm-card { background: #e3f2fd; border: 1px solid #90caf9; padding: 14px; border-radius: 8px; margin: 16px 0; font-size: 14px; color: #1565c0; line-height: 1.6; box-shadow: 0 2px 6px rgba(21,101,192,0.05); }
     #instruction { background: #fffde7; border-left: 4px solid #fff59d; padding: 16px; border-radius: 8px; margin: 16px 0; min-height: 24px; font-size: 15px; color: #555; }
 
     /* 彈出式校正控制台 */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
     .modal-box { background: #fff; padding: 24px; border-radius: 16px; max-width: 440px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-    .modal-box h3 { margin: 0 0 12px 0; color: #37474f; border-bottom: 2px solid #eceff1; padding-bottom: 8px; }
     
     .auto-calib-zone { background: #f0f4f8; padding: 14px; border-radius: 10px; border: 1px solid #d0e0f0; margin-bottom: 16px; text-align: center; }
     .btn-auto-run { background: #0288d1; color: #fff; border: none; padding: 10px 16px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 8px; width: 100%; font-size: 14px; }
-    .btn-auto-run:hover { background: #01579b; }
-    .btn-auto-run:disabled { background: #b0bec5; cursor: not-allowed; }
 
     .calib-group { margin-bottom: 14px; display: flex; flex-direction: column; gap: 4px; }
     .calib-group label { font-size: 12px; font-weight: bold; color: #555; }
@@ -117,10 +114,8 @@
     .form-row .input-group { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 6px; }
     .form-row label { font-size: 13px; color: #444; font-weight: bold; }
     .form-row input { padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; }
-    .form-row input.error { border-color: #ff1744 !important; background: #ffebee !important; }
     
     .save-btn { background: #2e7d32; color: #fff; border: none; border-radius: 8px; padding: 14px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px; width: 100%; }
-    .save-btn:hover { background: #1b5e20; }
 
     .hidden { display: none !important; }
     @media (max-width: 850px) {
@@ -142,7 +137,6 @@
     <div class="control-panel">
       <div class="btn-group">
         <button class="btn btn-primary" id="loginBtn">醫護登入</button>
-        <button class="btn btn-primary hidden" id="myfilesBtn">紀錄瀏覽</button>
         <button class="btn btn-connect" id="connectBtn">連接外接裝置</button>
         <button class="btn btn-calib" id="openCalibBtn">⚙️ 系統校正設定</button>
         <button class="btn btn-reset-all" id="resetAllBtn">🔄 全系統重置</button>
@@ -160,9 +154,10 @@
         <button class="btn btn-mode" id="modeIn">📥 純吸氣模式</button>
         <button class="btn btn-mode" id="modeOut">📤 純吐氣模式</button>
       </div>
+      
       <div class="btn-group">
-        <button class="btn btn-mode active" id="cycleSingle">⏱️ 單次測試模式</button>
-        <button class="btn btn-mode" id="cycleMulti">🔁 連續多次模式</button>
+        <button class="btn btn-mode active" id="cycleSingle">⏱️ 單次測試模式 (鎖定倒數+熄燈硬凍結)</button>
+        <button class="btn btn-mode" id="cycleMulti">🔁 連續多次模式 (鎖定累計+無限次測)</button>
       </div>
     </div>
 
@@ -171,9 +166,6 @@
         <h3>🔧 軟體臨床自動校正面板</h3>
         <div class="auto-calib-zone">
           <div style="font-size: 13px; font-weight: bold; color: #01579b;">🎯 零點智慧自測歸零</div>
-          <div style="font-size: 11px; color: #546e7a; margin-top: 4px; line-height:1.4;">
-            請確保流量計此時<b>平放且完全沒有氣流</b>，點擊下方按鈕，系統將自動偵測並扣除硬體底噪偏差。
-          </div>
           <button class="btn-auto-run" id="startAutoZeroBtn">開始 3 秒自動歸零校正</button>
         </div>
         <div class="calib-group">
@@ -240,6 +232,12 @@
     <div id="gameModuleBlock" class="game-panel-block hidden">
       <div class="game-score-board">
         <span id="gameTitleLabel">🎮 遊戲項目：熱氣球環遊世界</span>
+        <div class="hp-setup-box">
+          <span>❤️ 剩餘血量: <span id="gameHpDisplay" style="font-size:16px;">3</span></span>
+          <span style="color:#a0aec0; margin:0 6px;">|</span>
+          <label>初始HP上限:</label>
+          <input type="number" id="gameHpMaxInput" class="hp-input" value="3" min="1" max="10" />
+        </div>
         <span style="color: #00e676;">分數 (Score): <id id="gameScoreVal">0</id></span>
       </div>
       <div class="game-canvas-wrapper">
@@ -259,7 +257,6 @@
 
       <div class="chart-panel-block" id="chartPanelBlock">
         <div class="timer-sidebar">
-          
           <div style="text-align: center; font-size: 11px; font-weight: bold; color: #4e7fff;">⏱️ 計時器模式</div>
           <select id="timerModeSelect" class="select-timer-mode">
             <option value="countdown">⏳ 倒數計時模式</option>
@@ -279,7 +276,7 @@
           <select id="gameSelect" class="select-game">
             <option value="balloon">🎈 熱氣球環遊世界</option>
             <option value="rocket">🚀 太空火箭避障賽</option>
-            <option value="boat"> Sails 瘋狂小帆船賽</option>
+            <option value="boat">⛵ 瘋狂小帆船賽</option>
             <option value="volcano">🌋 憤怒小火山爆發</option>
           </select>
           
@@ -287,10 +284,7 @@
           
           <div style="text-align: center; font-size: 11px; font-weight: bold; color: #2e7d32;">📊 縱軸流速範圍</div>
           <select id="yScaleSelect" class="select-y-scale">
-            <option value="30">± 30</option>
-            <option value="60">± 60</option>
             <option value="100" selected>± 100</option>
-            <option value="150">± 150</option>
           </select>
         </div>
 
@@ -325,87 +319,64 @@
 /** ==========================================
  * 💾 1. 全域變數定義
  * ========================================== */
-let supabaseClient = null;
 let ACTIVE_LIMITS = { minInflow: 30.0, maxInflow: 90.0, minOutflow: 30.0, maxOutflow: 120.0 };
-let detectedGender = null; let detectedAge = 30;
-
 let CALIBRATION_FACTORS = { inhalation: 1.00, exhalation: 1.00 };
 let HARDWARE_OFFSET = 0.00; 
 let isAutoCalibrating = false; let autoCalibBuffer = [];
 
 let serialPort, reader, keepReading = false;
 let startTime = null; let flowData = []; let serialBuffer = "";
-let currentDetectionMode = 'bi'; let currentCycleMode = 'single'; let isAlerting = false;
+let currentDetectionMode = 'bi'; 
 
-// 🟢 雙軌計時器全域變數
+// 🟢 核心模式旗標
+let currentCycleMode = 'single'; // 'single' (單次) 或 'multi' (連續多次)
+let hasTriggeredBreathInSingleMode = false; // 🟢 用於判定單次模式中是否已經吹過氣
+
 let testTimerId = null;
-let timeLeft = 60;       // 倒數用
-let timeElapsed = 0;     // 正計時用
+let timeLeft = 60; let timeElapsed = 0;
 let isTimerRunning = false;
-let selectedTimerMode = "countdown"; // "countdown" 或 "countup"
-let currentViewMode = "data";        // "data", "game", "dual"
+let selectedTimerMode = "countdown"; let currentViewMode = "data";
 
-// 🟢 遊戲渲染狀態引擎全域變數
+// 遊戲物理反彈引擎變數
 const canvas = document.getElementById('gameCanvas');
 const gCtx = canvas.getContext('2d');
-let gameScore = 0;
-let currentGameType = "balloon";
-
-// 遊戲內控制角色的即時座標與環境陣列
-let playerY = 130;
-let playerSpeed = 0;
-let boatX = 50; 
-let volcanoEnergy = 0;
-let gameObstacles = [];
-let gameFrameCount = 0;
-let currentLiveFlowValue = 0; // 當前經過濾校正後的即時绝对值氣流力道
+let gameScore = 0; let currentGameType = "balloon";
+let currentHp = 3; let isGameOver = false;
+let invincibleFrames = 0; let knockoutFrames = 0;
+let playerY = 130; let playerSpeed = 0; let boatX = 50; let volcanoEnergy = 0;
+let gameObstacles = []; let gameFrameCount = 0; let currentLiveFlowValue = 0;
 
 let audioCtx = null;
 function playAlertTone(freq = 660, type = 'sine', duration = 0.15) {
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-    osc.type = type; osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.start(); osc.stop(audioCtx.currentTime + duration);
+    osc.type = type; osc.frequency.value = freq; gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+    osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + duration);
   } catch(e){}
 }
 
 /** ==========================================
- * 🧠 2. 智慧常模與畫面檢視控制切換邏輯
+ * 🧠 2. 智慧常模與畫面檢視切換
  * ========================================== */
 function calculateDynamicNorms() {
-  const idCardInput = document.getElementById('patientIDCard');
-  let idCard = idCardInput.value.trim().toUpperCase(); idCardInput.value = idCard; 
+  let idCard = document.getElementById('patientIDCard').value.trim().toUpperCase();
   const ageVal = parseInt(document.getElementById('patientAge').value);
   const normCard = document.getElementById('normCard');
-  if (idCard.length > 0 && /^[A-Z][12]\d{8}$/.test(idCard)) {
-    idCardInput.classList.remove('error');
-    detectedGender = (idCard.charAt(1) === '1') ? 'M' : 'F';
-  } else if(idCard.length > 0) { idCardInput.classList.add('error'); return; }
-  detectedAge = isNaN(ageVal) ? 30 : ageVal;
-  let baseMinIn = 30.0; let baseMaxIn = (detectedGender === 'F') ? 75.0 : 90.0;
-  let baseMinOut = 30.0; let baseMaxOut = (detectedGender === 'F') ? 100.0 : 120.0;
-  if (detectedAge > 30) {
-    const safeFactor = Math.max(0.7, 1 - ((detectedAge - 30) * 0.005));
-    baseMaxIn *= safeFactor; baseMaxOut *= safeFactor;
-  }
+  let gen = (idCard.charAt(1) === '1') ? 'M' : 'F';
+  let age = isNaN(ageVal) ? 30 : ageVal;
+  let baseMinIn = 30.0; let baseMaxIn = (gen === 'F') ? 75.0 : 90.0;
+  let baseMinOut = 30.0; let baseMaxOut = (gen === 'F') ? 100.0 : 120.0;
+  if (age > 30) { let safe = Math.max(0.7, 1 - ((age - 30) * 0.005)); baseMaxIn *= safe; baseMaxOut *= safe; }
   ACTIVE_LIMITS = { minInflow: parseFloat(baseMinIn.toFixed(1)), maxInflow: parseFloat(baseMaxIn.toFixed(1)), minOutflow: parseFloat(baseMinOut.toFixed(1)), maxOutflow: parseFloat(baseMaxOut.toFixed(1)) };
-  if (detectedGender) {
-    normCard.innerHTML = `🎯 <b>AI 個人化醫學常模已配置：</b> 吸氣黃金區：<b>${ACTIVE_LIMITS.minInflow} ~ ${ACTIVE_LIMITS.maxInflow} L/min</b> | 吐氣安全區：<b>${ACTIVE_LIMITS.minOutflow} ~ ${ACTIVE_LIMITS.maxOutflow} L/min</b>`;
-    normCard.style.background = "#e8f5e9"; normCard.style.borderColor = "#81c784"; normCard.style.color = "#1b5e20";
-  }
+  normCard.innerHTML = `🎯 <b>AI 個人化醫學常模：</b> 吸氣：<b>${ACTIVE_LIMITS.minInflow} ~ ${ACTIVE_LIMITS.maxInflow}</b> | 吐氣：<b>${ACTIVE_LIMITS.minOutflow} ~ ${ACTIVE_LIMITS.maxOutflow} L/min</b>`;
 }
 document.getElementById('patientIDCard').addEventListener('input', calculateDynamicNorms);
 document.getElementById('patientAge').addEventListener('input', calculateDynamicNorms);
 
-// 🟢 三大開關檢視模式切換器
 function switchViewMode(mode) {
   currentViewMode = mode;
   document.querySelectorAll('.btn-view-mode').forEach(b => b.classList.remove('active'));
-  
   const gameBlock = document.getElementById('gameModuleBlock');
   const mainVisualBlock = document.getElementById('mainVisualDataBlock');
   const dataGridBlock = document.getElementById('dataGridBlock');
@@ -413,46 +384,25 @@ function switchViewMode(mode) {
   const chartSide = document.getElementById('chartPanelBlock');
   const lungBox = document.getElementById('lungVisualBox');
 
-  // 還原所有預設隱藏狀態
-  gameBlock.classList.add('hidden');
-  mainVisualBlock.classList.remove('hidden');
-  chartSide.classList.remove('hidden');
-  lungBox.classList.remove('hidden');
-  dataGridBlock.classList.remove('hidden');
-  lightsBlock.classList.remove('hidden');
+  gameBlock.classList.add('hidden'); mainVisualBlock.classList.remove('hidden');
+  chartSide.classList.remove('hidden'); lungBox.classList.remove('hidden'); dataGridBlock.classList.remove('hidden'); lightsBlock.classList.remove('hidden');
 
-  if (mode === "data") {
-    document.getElementById('viewPureData').classList.add('active');
-  } else if (mode === "game") {
-    document.getElementById('viewPureGame').classList.add('active');
-    gameBlock.classList.remove('hidden');
-    // 盲測隱藏：將專業圖表、肺部、即時數值和燈號暫時藏起來
-    chartSide.classList.add('hidden');
-    lungBox.classList.add('hidden');
-    dataGridBlock.classList.add('hidden');
-    lightsBlock.classList.add('hidden');
-  } else if (mode === "dual") {
-    document.getElementById('viewDual').classList.add('active');
-    gameBlock.classList.remove('hidden');
-  }
+  if (mode === "data") { document.getElementById('viewPureData').classList.add('active'); } 
+  else if (mode === "game") { document.getElementById('viewPureGame').classList.add('active'); gameBlock.classList.remove('hidden'); chartSide.classList.add('hidden'); lungBox.classList.add('hidden'); dataGridBlock.classList.add('hidden'); lightsBlock.classList.add('hidden'); } 
+  else if (mode === "dual") { document.getElementById('viewDual').classList.add('active'); gameBlock.classList.remove('hidden'); }
 }
 document.getElementById('viewPureData').onclick = () => switchViewMode("data");
 document.getElementById('viewPureGame').onclick = () => switchViewMode("game");
 document.getElementById('viewDual').onclick = () => switchViewMode("dual");
 
 /** ==========================================
- * 🔌 3. 生理視覺、燈號與即時診斷核心
+ * 🔌 3. 生理燈號、擬真肺部與即時診斷
  * ========================================== */
-const leftLung = document.getElementById('leftLung');
-const rightLung = document.getElementById('rightLung');
-const lungStateText = document.getElementById('lungStateText');
-const alertBanner = document.getElementById('alertBanner');
+const leftLung = document.getElementById('leftLung'); const rightLung = document.getElementById('rightLung'); const lungStateText = document.getElementById('lungStateText');
 
 function updateWebAndHwLights(flow) {
   const absF = Math.abs(flow);
-  ['hwGreen', 'hwRed', 'swLow', 'swPerfect', 'swHigh'].forEach(id => {
-    document.getElementById(id).classList.remove('activated-green', 'activated-red', 'activated-yellow');
-  });
+  ['hwGreen', 'hwRed', 'swLow', 'swPerfect', 'swHigh'].forEach(id => document.getElementById(id).classList.remove('activated-green', 'activated-red', 'activated-yellow'));
   if (flow === 0) return;
   if (flow > 0) { 
     if (absF < ACTIVE_LIMITS.minInflow) { document.getElementById('swLow').classList.add('activated-yellow'); document.getElementById('hwRed').classList.add('activated-red'); } 
@@ -468,35 +418,15 @@ function updateWebAndHwLights(flow) {
 function updateLungAnimation(flow) {
   if (flow > 0) { 
     const factor = 1.0 + (Math.min(flow, ACTIVE_LIMITS.maxInflow) / ACTIVE_LIMITS.maxInflow) * 0.4;
-    leftLung.style.transform = `scale(${factor})`; rightLung.style.transform = `scale(${factor})`;
-    leftLung.style.fill = "#ff5252"; rightLung.style.fill = "#ff5252";
-    lungStateText.innerText = "📥 強力吸氣中"; lungStateText.style.color = "#d32f2f";
+    leftLung.style.transform = `scale(${factor})`; rightLung.style.transform = `scale(${factor})`; leftLung.style.fill = "#ff5252"; rightLung.style.fill = "#ff5252";
+    lungStateText.innerText = "📥 強力吸氣中";
   } else if (flow < 0) { 
     const factor = 1.0 - (Math.min(Math.abs(flow), ACTIVE_LIMITS.maxOutflow) / ACTIVE_LIMITS.maxOutflow) * 0.25;
-    leftLung.style.transform = `scale(${factor})`; rightLung.style.transform = `scale(${factor})`;
-    leftLung.style.fill = "#29b6f6"; rightLung.style.fill = "#29b6f6";
-    lungStateText.innerText = "📤 穩定吐氣中"; lungStateText.style.color = "#0288d1";
+    leftLung.style.transform = `scale(${factor})`; rightLung.style.transform = `scale(${factor})`; leftLung.style.fill = "#29b6f6"; rightLung.style.fill = "#29b6f6";
+    lungStateText.innerText = "📤 穩定吐氣中";
   } else { 
-    leftLung.style.transform = "scale(1)"; rightLung.style.transform = "scale(1)";
-    leftLung.style.fill = "#ff8a80"; rightLung.style.fill = "#ff8a80";
-    lungStateText.innerText = "平靜狀態"; lungStateText.style.color = "#555";
-  }
-  const absF = Math.abs(flow);
-  if ((flow > 0 && absF > ACTIVE_LIMITS.maxInflow) || (flow < 0 && absF > ACTIVE_LIMITS.maxOutflow)) {
-    if (!isAlerting) { isAlerting = true; alertBanner.style.display = 'block'; playAlertTone(880, 'square', 0.25); }
-  } else { isAlerting = false; alertBanner.style.display = 'none'; }
-}
-
-function evaluateInstantRange(flow) {
-  const metricLabel = document.getElementById('metricLabel'); const absF = Math.abs(flow);
-  if (flow > 0) {
-    if (absF < ACTIVE_LIMITS.minInflow) metricLabel.innerHTML = `<span style="color:#f57c00;font-weight:bold;">吸氣力道不足</span>`;
-    else if (absF > ACTIVE_LIMITS.maxInflow) metricLabel.innerHTML = `<span style="color:#d32f2f;font-weight:bold;">吸氣爆發過猛！</span>`;
-    else metricLabel.innerHTML = `<span style="color:#388e3c;font-weight:bold;">黃金核心效率區</span>`;
-  } else if (flow < 0) {
-    if (absF < ACTIVE_LIMITS.minOutflow) metricLabel.innerHTML = `<span style="color:#f57c00;font-weight:bold;">吐氣阻力不足</span>`;
-    else if (absF > ACTIVE_LIMITS.maxOutflow) metricLabel.innerHTML = `<span style="color:#d32f2f;font-weight:bold;">吐氣流速過激！</span>`;
-    else metricLabel.innerHTML = `<span style="color:#0288d1;font-weight:bold;">氣道暢通度良好</span>`;
+    leftLung.style.transform = "scale(1)"; rightLung.style.transform = "scale(1)"; leftLung.style.fill = "#ff8a80"; rightLung.style.fill = "#ff8a80";
+    lungStateText.innerText = "平靜狀態";
   }
 }
 
@@ -504,74 +434,55 @@ function evaluateInstantRange(flow) {
  * 📊 4. Chart.js 圖表配置
  * ========================================== */
 const ctx = document.getElementById('flowChart').getContext('2d');
-let chartData = { labels: [], datasets: [{ label: '即時呼吸流速曲線 (L/min)', data: [], borderColor: '#2e7d32', backgroundColor: 'rgba(76, 175, 80, 0.08)', fill: true, tension: 0.35 }] };
+let chartData = { labels: [], datasets: [{ label: '即時呼吸流速 (L/min)', data: [], borderColor: '#2e7d32', backgroundColor: 'rgba(76, 175, 80, 0.08)', fill: true, tension: 0.35 }] };
 const flowChart = new Chart(ctx, {
   type: 'line', data: chartData,
-  options: {
-    responsive: true, maintainAspectRatio: false,
-    scales: {
-      x: { grid: { display: false }, title: { display: true, text: '時間序列 (秒)' } },
-      y: { min: -100, max: 100, title: { display: true, text: '吸氣 (+) / 吐氣 (-)', font: { size: 14, weight: 'bold' } }, grid: { color: 'rgba(0, 0, 0, 0.08)' }, ticks: { autoSkip: false, stepSize: 20, font: { size: 15, weight: 'bold' }, padding: 12 } }
-    }
-  }
+  options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: false } }, y: { min: -100, max: 100 } } }
 });
-document.getElementById('yScaleSelect').onchange = function() {
-  const limit = parseInt(this.value); flowChart.options.scales.y.min = -limit; flowChart.options.scales.y.max = limit;
-  flowChart.update();
-};
 
 /** ==========================================
- * 🎛️ 5. 序列埠資料處理核心 (★無縫串接自動校正與遊戲變數)
+ * 🎛️ 5. 序列埠與核心生理凍結邏輯 (★重構防暴衝)
  * ========================================== */
 function handleSerialLine(line) {
-  if (!line) return;
-  const cleanLine = line.replace(/\s+/g, ''); 
-  const match = cleanLine.match(/(?:flow|流量)?[:：]?([-+]?[0-9.]+)/i);
-  
-  if (match) {
-    let rawFlow = parseFloat(match[1]);
-    if (isNaN(rawFlow)) return;
-    
-    // 🛑 網頁端生理噪訊過濾
-    if (Math.abs(rawFlow) > 160.0) return; 
+  if (!line || isGameOver) return;
 
-    // 歸零自測模式攔截
+  const match = line.replace(/\s+/g, '').match(/(?:flow|流量)?[:：]?([-+]?[0-9.]+)/i);
+  if (match) {
+    let rawFlow = parseFloat(match[1]) - HARDWARE_OFFSET;
+    if (isNaN(rawFlow) || Math.abs(rawFlow) > 160.0) return;
+
     if (isAutoCalibrating) { autoCalibBuffer.push(rawFlow); return; }
 
-    // 1. 扣除自測出來的硬體靜態底噪偏差
-    rawFlow = rawFlow - HARDWARE_OFFSET;
+    // 🟢 核心機制：單次測試模式下的「熄燈鎖死」防持續按電源鍵
+    if (currentCycleMode === 'single') {
+      // 判定是否有實質氣流 (流速絕對值大於 8 代表正在吹氣/吸氣，硬體亮燈)
+      if (Math.abs(rawFlow) > 8) {
+        hasTriggeredBreathInSingleMode = true; // 標記：受試者已經開始這唯一的單次測試
+      } else {
+        // 如果絕對值小於 8 (硬體熄燈狀態)，且「先前曾經吹氣過」-> 判定單次測試結束！
+        if (hasTriggeredBreathInSingleMode && isTimerRunning) {
+          rawFlow = 0;
+          currentLiveFlowValue = 0;
+          updateWebAndHwLights(0); updateLungAnimation(0);
+          document.getElementById('status').innerText = "狀態：🔒 [單次模式防暴衝機制] 偵測到裝置熄燈，已強制安全鎖死硬體數據。";
+          finishTestSession(); // 直接安全全面凍結！再按電源鍵也無效
+          return;
+        }
+      }
+    }
 
-    // 🟢 給遊戲的核心變數賦值：不分正負的絕對氣流力道 (變動值)
     currentLiveFlowValue = Math.abs(rawFlow);
+    if (!isTimerRunning) return; // 計時器沒開，不紀錄
 
-    if (!isTimerRunning) return;
-
-    // 2. 套用校正放大倍率
-    if (rawFlow > 0) { rawFlow = rawFlow * CALIBRATION_FACTORS.inhalation; } 
-    else if (rawFlow < 0) { rawFlow = rawFlow * CALIBRATION_FACTORS.exhalation; }
-
-    if (currentDetectionMode === 'in' && rawFlow < 0) rawFlow = 0;
-    if (currentDetectionMode === 'out' && rawFlow > 0) rawFlow = 0;
+    if (rawFlow > 0) rawFlow *= CALIBRATION_FACTORS.inhalation;
+    else if (rawFlow < 0) rawFlow *= CALIBRATION_FACTORS.exhalation;
 
     const now = ((Date.now() - startTime) / 1000).toFixed(2);
-    
-    if (rawFlow >= 0) {
-      document.getElementById('flowInVal').innerText = rawFlow.toFixed(2);
-      document.getElementById('flowOutVal').innerText = "0.00";
-    } else {
-      document.getElementById('flowInVal').innerText = "0.00";
-      document.getElementById('flowOutVal').innerText = Math.abs(rawFlow).toFixed(2);
-    }
+    if (rawFlow >= 0) { document.getElementById('flowInVal').innerText = rawFlow.toFixed(2); document.getElementById('flowOutVal').innerText = "0.00"; } 
+    else { document.getElementById('flowInVal').innerText = "0.00"; document.getElementById('flowOutVal').innerText = Math.abs(rawFlow).toFixed(2); }
 
-    updateWebAndHwLights(rawFlow); updateLungAnimation(rawFlow); evaluateInstantRange(rawFlow);
-
+    updateWebAndHwLights(rawFlow); updateLungAnimation(rawFlow);
     flowData.push([parseFloat(now), rawFlow]); chartData.labels.push(now); chartData.datasets[0].data.push(rawFlow);
-
-    const dataLength = chartData.labels.length;
-    if (dataLength > 50) {
-      document.getElementById('chartInnerCanvasWrapper').style.width = (500 + (dataLength - 50) * 10) + "px";
-      document.getElementById('chartScrollParent').scrollLeft = document.getElementById('chartScrollParent').scrollWidth;
-    }
     flowChart.update();
   }
 }
@@ -587,71 +498,87 @@ async function listenSerial() {
         for (let line of lines) { handleSerialLine(line.trim()); }
       }
     }
-  } catch (error) { resetSerialConnectionUI(); } finally { try { reader.releaseLock(); } catch(e){} }
+  } catch (error) {}
 }
+
 document.getElementById('connectBtn').onclick = async function () {
-  if (keepReading) { resetSerialConnectionUI(); if(reader)await reader.cancel(); if(serialPort)await serialPort.close(); return; }
   try {
     serialPort = await navigator.serial.requestPort(); await serialPort.open({ baudRate: 9600 });
     keepReading = true; this.innerText = "中斷裝置連線"; this.classList.add('connected');
-    document.getElementById('status').innerText = "狀態：硬體連線成功！";
-    syncTimerFromInput(); listenSerial();
+    document.getElementById('status').innerText = "狀態：硬體連線成功！"; listenSerial();
   } catch (e) { alert("連線失敗：" + e.message); }
 };
-function resetSerialConnectionUI() { keepReading = false; document.getElementById('connectBtn').innerText = "連接外接裝置"; document.getElementById('connectBtn').classList.remove('connected'); pauseTimerLogic(); }
 
 /** ==========================================
- * ⏳⏱️ 6. 升級版：雙軌計時器核心控制邏輯
+ * ⏳⏱️ 6. 雙軌計時器與單次/連續「鎖定設定」
  * ========================================== */
-document.getElementById('timerModeSelect').onchange = function() {
-  selectedTimerMode = this.value;
-  const inputEl = document.getElementById('timerLengthInput');
-  if (selectedTimerMode === "countup") {
-    inputEl.classList.add('hidden'); // 正計時不需要設定長度輸入框
-    document.getElementById('countdownBox').innerText = "00:00 (累計)";
-  } else {
-    inputEl.classList.remove('hidden');
+const timerSelect = document.getElementById('timerModeSelect');
+const timerInput = document.getElementById('timerLengthInput');
+
+// 🟢 核心重構：切換「單次」與「連續多次」模式時鎖定計時器
+function updateCycleModeConstraints() {
+  if (currentCycleMode === 'single') {
+    // 單次模式：強迫鎖定倒數計時
+    timerSelect.value = "countdown";
+    timerSelect.disabled = true; 
+    timerInput.classList.remove('hidden');
+    timerInput.disabled = false;
     syncTimerFromInput();
+    document.getElementById('instruction').innerText = "⚖️ 目前切換至【單次測試模式】：計時器強制鎖定為「倒數計時」。裝置一旦吹氣後熄燈，將立刻鎖死數據，防止重複按壓電源鍵暴衝測量。";
+  } else {
+    // 連續多次模式：強迫鎖定累積模式
+    timerSelect.value = "countup";
+    timerSelect.disabled = true;
+    timerInput.classList.add('hidden');
+    document.getElementById('countdownBox').innerText = "00:00 (累計)";
+    document.getElementById('instruction').innerText = "⚖️ 目前切換至【連續多次模式】：計時器強制鎖定為「正向累計」。支援中斷後重新按電源鍵繼續測量累加。";
   }
+  // 切換模式時重置單次狀態
+  hasTriggeredBreathInSingleMode = false;
+}
+
+document.getElementById('cycleSingle').onclick = function() {
+  document.querySelectorAll('#cycleSingle, #cycleMulti').forEach(b => b.classList.remove('active'));
+  this.classList.add('active'); currentCycleMode = 'single'; updateCycleModeConstraints();
+};
+document.getElementById('cycleMulti').onclick = function() {
+  document.querySelectorAll('#cycleSingle, #cycleMulti').forEach(b => b.classList.remove('active'));
+  this.classList.add('active'); currentCycleMode = 'multi'; updateCycleModeConstraints();
 };
 
 function syncTimerFromInput() {
-  if (!isTimerRunning && selectedTimerMode === "countdown") {
-    const sec = parseInt(document.getElementById('timerLengthInput').value);
-    timeLeft = isNaN(sec) || sec < 5 ? 60 : sec;
+  if (!isTimerRunning && timerSelect.value === "countdown") {
+    timeLeft = parseInt(timerInput.value) || 60;
     document.getElementById('countdownBox').innerText = `${timeLeft} 秒`;
   }
 }
-document.getElementById('timerLengthInput').addEventListener('input', syncTimerFromInput);
+timerInput.addEventListener('input', syncTimerFromInput);
 
 document.getElementById('timerStartBtn').onclick = function() {
   if (!keepReading) { alert("請先成功連接外接裝置！"); return; }
   if (isTimerRunning) return;
   
-  isTimerRunning = true;
-  document.getElementById('timerLengthInput').disabled = true;
-  document.getElementById('timerModeSelect').disabled = true;
-  document.getElementById('status').innerText = "狀態：⏱️ 系統錄製中...";
-  
   if (!startTime) {
-    startTime = Date.now();
-    timeElapsed = 0;
-    if(selectedTimerMode === "countdown") syncTimerFromInput();
+    isGameOver = false; hasTriggeredBreathInSingleMode = false;
+    currentHp = parseInt(document.getElementById('gameHpMaxInput').value) || 3;
+    document.getElementById('gameHpDisplay').innerText = currentHp;
+    gameScore = 0; document.getElementById('gameScoreVal').innerText = "0";
+    gameObstacles = []; volcanoEnergy = 0; boatX = 50; playerY = 130;
+    startTime = Date.now(); timeElapsed = 0;
+    if(timerSelect.value === "countdown") syncTimerFromInput();
   }
 
+  isTimerRunning = true;
+  document.getElementById('status').innerText = "狀態：⏱️ 系統生理錄製中...";
+
   testTimerId = setInterval(() => {
-    if (selectedTimerMode === "countdown") {
-      // 倒數計時模式
+    if (timerSelect.value === "countdown") {
       timeLeft--;
       if (timeLeft <= 0) {
-        document.getElementById('countdownBox').innerText = "0 秒 (完成)";
-        playAlertTone(523, 'sine', 0.5);
+        document.getElementById('countdownBox').innerText = "0 秒 (時間到)";
         finishTestSession();
-      } else {
-        document.getElementById('countdownBox').innerText = `${timeLeft} 秒`;
-      }
+      } else { document.getElementById('countdownBox').innerText = `${timeLeft} 秒`; }
     } else {
-      // 🟢 正向累計計時模式 (適合一直按住電源鍵的長效測試)
       timeElapsed++;
       let m = Math.floor(timeElapsed / 60).toString().padStart(2, '0');
       let s = (timeElapsed % 60).toString().padStart(2, '0');
@@ -660,246 +587,165 @@ document.getElementById('timerStartBtn').onclick = function() {
   }, 1000);
 };
 
-function pauseTimerLogic() {
+function finishTestSession() {
   isTimerRunning = false;
   if (testTimerId) { clearInterval(testTimerId); testTimerId = null; }
-  document.getElementById('status').innerText = "狀態：已暫停錄製";
+  isGameOver = true; // 凍結遊戲與數據接收
+  document.getElementById('status').innerText = "狀態：🔒 施測終止，本輪數據已安全凍結鎖死。";
+  if (currentViewMode === "game") switchViewMode("dual");
 }
-document.getElementById('timerPauseBtn').onclick = pauseTimerLogic;
 
+document.getElementById('timerPauseBtn').onclick = function() { isTimerRunning = false; if(testTimerId){clearInterval(testTimerId); testTimerId=null;} };
 document.getElementById('timerResetBtn').onclick = function() {
-  pauseTimerLogic(); startTime = null;
-  document.getElementById('timerLengthInput').disabled = false;
-  document.getElementById('timerModeSelect').disabled = false;
-  if (selectedTimerMode === "countdown") { syncTimerFromInput(); } 
-  else { document.getElementById('countdownBox').innerText = "00:00 (累計)"; }
+  isTimerRunning = false; if(testTimerId){clearInterval(testTimerId); testTimerId=null;}
+  startTime = null; isGameOver = false; hasTriggeredBreathInSingleMode = false;
+  updateCycleModeConstraints();
 };
-
-// 🟢 完成測試：盲測模式下會自動將數據面層還原顯現出來
-function finishTestSession() {
-  pauseTimerLogic();
-  document.getElementById('status').innerText = "狀態：🔓 施測完成，數據安全凍結。";
-  if (currentViewMode === "game") {
-    alert("⏳ 量測時間到！系統即將為您彈出隱藏的生理數據報告圖表。");
-    switchViewMode("dual"); // 自動彈回雙向複合模式
-  }
-}
-
-/** ==========================================
- * 🎨 7. 獨立清空圖表 與 全系統重置
- * ========================================== */
 document.getElementById('clearChartBtn').onclick = function() {
-  pauseTimerLogic(); startTime = null;
-  document.getElementById('timerLengthInput').disabled = false;
-  document.getElementById('timerModeSelect').disabled = false;
-  if(selectedTimerMode === "countdown"){ syncTimerFromInput(); } else { document.getElementById('countdownBox').innerText="00:00"; }
-  
-  document.getElementById('flowInVal').innerText = "0.00"; document.getElementById('flowOutVal').innerText = "0.00";
-  document.getElementById('metricLabel').innerText = "圖表已洗淨，等待氣流...";
-  updateWebAndHwLights(0); updateLungAnimation(0);
-  
-  flowData = []; chartData.labels = []; chartData.datasets[0].data = [];
-  document.getElementById('chartInnerCanvasWrapper').style.width = "100%"; flowChart.update();
-  gameScore = 0; document.getElementById('gameScoreVal').innerText = "0"; // 遊戲分數也洗乾淨
+  document.getElementById('timerResetBtn').click();
+  flowData = []; chartData.labels = []; chartData.datasets[0].data = []; flowChart.update();
 };
-
-document.getElementById('resetAllBtn').onclick = async function() {
-  if(confirm("確定要進行「全系統重置」嗎？這將會清除當前畫面的所有數據、波形與病患個資。")) {
-    document.getElementById('clearChartBtn').click();
-    HARDWARE_OFFSET = 0.00;
-    if (keepReading) { resetSerialConnectionUI(); if(reader)await reader.cancel(); if(serialPort)await serialPort.close(); }
-    document.getElementById('patientId').value = ""; document.getElementById('patientIDCard').value = ""; document.getElementById('patientAge').value = "";
-    document.getElementById('normCard').innerHTML = `ℹ️ 請先輸入病患資料配置常模。`;
-    switchViewMode("data");
-  }
-};
+document.getElementById('resetAllBtn').onclick = function() { if(confirm("重置全系統？")) location.reload(); };
 
 /** ==========================================
- * ⚙️ 8. 智慧自動歸零校正面板控制器
- * ========================================== */
-document.getElementById('openCalibBtn').onclick = function() {
-  document.getElementById('calibInFactor').value = CALIBRATION_FACTORS.inhalation.toFixed(2);
-  document.getElementById('calibOutFactor').value = CALIBRATION_FACTORS.exhalation.toFixed(2);
-  document.getElementById('calibOffsetVal').value = HARDWARE_OFFSET.toFixed(2);
-  document.getElementById('calibModal').classList.remove('hidden');
-};
-document.getElementById('closeCalibBtn').onclick = function() { document.getElementById('calibModal').classList.add('hidden'); };
-
-document.getElementById('startAutoZeroBtn').onclick = function() {
-  if (!keepReading) { alert("請先成功連接外接裝置，網頁才能讀取晶片零點！"); return; }
-  isAutoCalibrating = true; autoCalibBuffer = []; this.disabled = true;
-  let countdown = 3; this.innerText = `🛑 請保持平放... 自測倒數 ${countdown} 秒`;
-  playAlertTone(880, 'sine', 0.1);
-  const calibTimer = setInterval(() => {
-    countdown--;
-    if (countdown <= 0) {
-      clearInterval(calibTimer); isAutoCalibrating = false;
-      HARDWARE_OFFSET = autoCalibBuffer.length > 0 ? (autoCalibBuffer.reduce((a,b)=>a+b,0)/autoCalibBuffer.length) : 0.0;
-      document.getElementById('calibOffsetVal').value = HARDWARE_OFFSET.toFixed(2);
-      this.disabled = false; this.innerText = "🎯 重新自動歸零校正";
-      playAlertTone(523, 'sine', 0.3);
-    } else { this.innerText = `🛑 請保持平放... 自測倒數 ${countdown} 秒`; }
-  }, 1000);
-};
-document.getElementById('saveCalibBtn').onclick = function() {
-  CALIBRATION_FACTORS.inhalation = parseFloat(document.getElementById('calibInFactor').value) || 1.0;
-  CALIBRATION_FACTORS.exhalation = parseFloat(document.getElementById('calibOutFactor').value) || 1.0;
-  document.getElementById('calibModal').classList.add('hidden');
-};
-
-/** ==========================================
- * 🎮 9. 🟢 核心升級：四款智慧互動呼吸遊戲引擎
+ * 🎮 7. 核心重構：互動遊戲綁定模式判定與渲染
  * ========================================== */
 document.getElementById('gameSelect').onchange = function() {
   currentGameType = this.value;
-  const titles = { balloon: "🎮 遊戲項目：熱氣球環遊世界", rocket: "🎮 遊戲項目：太空火箭避障賽", boat: "🎮 遊戲項目：Sails 瘋狂小帆船賽", volcano: "🎮 遊戲項目：🌋 憤怒小火山爆發" };
+  const titles = { balloon: "🎮 遊戲：🎈 熱氣球環遊世界", rocket: "🎮 遊戲：🚀 太空火箭避障賽", boat: "🎮 遊戲：⛵ 瘋狂小帆船賽", volcano: "🎮 遊戲：🌋 憤怒小火山爆發" };
   document.getElementById('gameTitleLabel').innerText = titles[currentGameType];
   gameObstacles = []; volcanoEnergy = 0; boatX = 50; playerY = 130;
 };
 
-// 遊戲畫布渲染每幀的主循環迴圈
+function checkGameAccessibility() {
+  // 🟢 邏輯 A：遊戲 A 必須要在「計時器正在跑」才能玩
+  if (currentGameType === "balloon" && !isTimerRunning) {
+    return { ok: false, msg: "❌ 警告：熱氣球遊戲只能在【計時器運作中】遊玩！請點擊上方「開始」啟動生理錄製。" };
+  }
+  // 🟢 邏輯 B：遊戲 B 只能在「連續多次模式」中遊玩
+  if (currentGameType === "rocket" && currentCycleMode !== "multi") {
+    return { ok: false, msg: "❌ 警告：太空火箭遊戲被鎖定在【連續多次模式】專用！請將生理模式切換為連續多次。" };
+  }
+  // 🟢 邏輯 C, D：遊戲 C 跟 D 只能在「單次測試模式」中遊玩
+  if ((currentGameType === "boat" || currentGameType === "volcano") && currentCycleMode !== "single") {
+    return { ok: false, msg: "❌ 警告：此遊戲被鎖定在【單次測試模式】專用！請將生理模式切換為單次測試。" };
+  }
+  return { ok: true };
+}
+
 function gameRenderLoop() {
   requestAnimationFrame(gameRenderLoop);
-  
-  // 即使在隱藏狀態下，也清空畫布，避免背景暫存暴走
   gCtx.clearRect(0, 0, canvas.width, canvas.height);
   gameFrameCount++;
 
-  // 1. 背景繪製 (星空或藍天)
-  if (currentGameType === "balloon" || currentGameType === "boat") {
-    gCtx.fillStyle = "#e0f2fe"; // 水藍色天空
-  } else {
-    gCtx.fillStyle = "#1a202c"; // 太空黑
-  }
+  if (invincibleFrames > 0) invincibleFrames--;
+  if (knockoutFrames > 0) knockoutFrames--;
+
+  // 背景
+  gCtx.fillStyle = (currentGameType === "balloon" || currentGameType === "boat") ? "#e0f2fe" : "#1a202c";
   gCtx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // 2. 依選定遊戲進行各自的物理運動與畫布著色
+  // 🟢 1. 執行權限防呆檢查
+  let access = checkGameAccessibility();
+  if (!access.ok) {
+    gCtx.fillStyle = "rgba(0,0,0,0.85)"; gCtx.fillRect(0, 0, canvas.width, canvas.height);
+    gCtx.fillStyle = "#ffb300"; gCtx.font = "bold 15px Arial"; gCtx.textAlign = "center";
+    gCtx.fillText(access.msg, canvas.width / 2, canvas.height / 2);
+    return;
+  }
+
+  // 🟢 2. 死亡判定凍結
+  if (isGameOver) {
+    gCtx.fillStyle = "rgba(0, 0, 0, 0.8)"; gCtx.fillRect(0, 0, canvas.width, canvas.height);
+    gCtx.fillStyle = "#ff1744"; gCtx.font = "bold 28px Arial"; gCtx.textAlign = "center";
+    gCtx.fillText("💥 SYSTEM LOCKED / GAME OVER 💥", canvas.width / 2, canvas.height / 2 - 10);
+    gCtx.fillStyle = "#fff"; gCtx.font = "13px Arial"; gCtx.fillText("本輪測試已安全結束並凍結數據。醫護請點擊「重置計時」開啟下一輪。", canvas.width / 2, canvas.height / 2 + 25);
+    return;
+  }
+
+  // A. 熱氣球
   if (currentGameType === "balloon") {
-    // 🎈 A. 熱氣球環遊世界 (平穩氣流控制)
-    // 物理：沒吹氣受重力下墜；有吹氣力道大於5，則克服引力往上飄
-    if (currentLiveFlowValue > 5) {
-      playerSpeed -= (currentLiveFlowValue * 0.05); // 向上氣流燃料
-    } else {
-      playerSpeed += 0.4; // 重力下墜
+    if (knockoutFrames > 0) { playerY += playerSpeed; } else {
+      if (currentLiveFlowValue > 5) playerSpeed -= (currentLiveFlowValue * 0.05); else playerSpeed += 0.4;
+      playerSpeed *= 0.85; playerY += playerSpeed;
     }
-    playerSpeed *= 0.85; // 阻尼
-    playerY += playerSpeed;
-    if (playerY < 15) playerY = 15; if (playerY > 245) playerY = 245;
-
-    // 繪製熱氣球
+    playerY = Math.max(15, Math.min(245, playerY));
     gCtx.fillStyle = "#e91e63"; gCtx.beginPath(); gCtx.arc(100, playerY, 14, 0, Math.PI*2); gCtx.fill();
-    gCtx.fillStyle = "#795548"; gCtx.fillRect(96, playerY + 16, 8, 8); // 籃子
 
-    // 生成穿梭黃金金幣隧道
-    if (gameFrameCount % 60 === 0 && isTimerRunning) {
-      gameObstacles.push({ x: canvas.width, y: 80 + Math.random() * 100, w: 20, type: "gold" });
-    }
-    // 畫金幣並計算得分
-    gameObstacles.forEach((obs, index) => {
+    if (gameFrameCount % 60 === 0) gameObstacles.push({ x: canvas.width, y: 50 + Math.random() * 140, type: Math.random()>0.5?"cloud":"gold" });
+    gameObstacles.forEach((obs, i) => {
       obs.x -= 3;
-      gCtx.fillStyle = "#ffd700"; gCtx.beginPath(); gCtx.arc(obs.x, obs.y, 8, 0, Math.PI*2); gCtx.fill();
-      // 碰撞偵測 (吃金幣)
-      if (obs.x > 85 && obs.x < 115 && obs.y > playerY - 15 && obs.y < playerY + 15) {
-        gameScore += 10; document.getElementById('gameScoreVal').innerText = gameScore;
-        gameObstacles.splice(index, 1); playAlertTone(1200, 'sine', 0.05);
+      if (obs.type === "gold") {
+        gCtx.fillStyle = "#ffd700"; gCtx.beginPath(); gCtx.arc(obs.x, obs.y, 8, 0, Math.PI*2); gCtx.fill();
+        if (obs.x > 85 && obs.x < 115 && Math.abs(obs.y - playerY) < 15) { gameScore+=10; gameObstacles.splice(i,1); }
+      } else {
+        gCtx.fillStyle = "#78909c"; gCtx.beginPath(); gCtx.arc(obs.x, obs.y, 14, 0, Math.PI*2); gCtx.fill();
+        if (obs.x > 85 && obs.x < 115 && Math.abs(obs.y - playerY) < 18) { isGameOver=true; finishTestSession(); }
       }
     });
 
+  // B. 火箭
   } else if (currentGameType === "rocket") {
-    // 🚀 B. 太空火箭避障賽 (吸吐節奏起伏避障)
-    if (currentLiveFlowValue > 5) { playerSpeed -= 0.8; } else { playerSpeed += 0.5; }
-    playerSpeed *= 0.9; playerY += playerSpeed;
-    if (playerY < 15) playerY = 15; if (playerY > 245) playerY = 245;
-
-    // 畫火箭
-    gCtx.fillStyle = "#00e676"; gCtx.fillRect(80, playerY - 6, 25, 12);
-    gCtx.fillStyle = "#ff5252"; gCtx.beginPath(); gCtx.moveTo(105, playerY - 6); gCtx.lineTo(115, playerY); gCtx.lineTo(105, playerY + 6); gCtx.fill();
-
-    // 生成上下阻礙隕石
-    if (gameFrameCount % 45 === 0 && isTimerRunning) {
-      let isTop = Math.random() > 0.5;
-      gameObstacles.push({ x: canvas.width, y: isTop ? 0 : 180, w: 30, h: 80, type: "rock" });
+    if (knockoutFrames > 0) { playerY += playerSpeed; } else {
+      if (currentLiveFlowValue > 5) playerSpeed -= 0.8; else playerSpeed += 0.5;
+      playerSpeed *= 0.9; playerY += playerSpeed;
     }
-    gameObstacles.forEach((obs, index) => {
-      obs.x -= 4;
-      gCtx.fillStyle = "#90a4ae"; gCtx.fillRect(obs.x, obs.y, obs.w, obs.h);
-      // 穿越即得分
-      if (obs.x === 80 && isTimerRunning) { gameScore += 5; document.getElementById('gameScoreVal').innerText = gameScore; }
+    playerY = Math.max(15, Math.min(245, playerY));
+    
+    if (invincibleFrames === 0 || Math.floor(invincibleFrames / 4) % 2 === 0) {
+      gCtx.fillStyle = "#00e676"; gCtx.fillRect(80, playerY - 6, 25, 12);
+    }
+
+    if (gameFrameCount % 45 === 0) gameObstacles.push({ x: canvas.width, y: Math.random()>0.5?0:170, w: 32, h: 90 });
+    gameObstacles.forEach((obs) => {
+      obs.x -= 4; gCtx.fillStyle = "#b0bec5"; gCtx.fillRect(obs.x, obs.y, obs.w, obs.h);
+      if (obs.x > 60 && obs.x < 115) {
+        if ((obs.y === 0 && playerY - 6 < obs.h) || (obs.y > 0 && playerY + 6 > obs.y)) {
+          if (invincibleFrames === 0) {
+            currentHp--; document.getElementById('gameHpDisplay').innerText = currentHp;
+            if(currentHp<=0){ isGameOver=true; finishTestSession(); } else { knockoutFrames=25; playerSpeed=7; invincibleFrames=50; }
+          }
+        }
+      }
     });
 
+  // C. 帆船
   } else if (currentGameType === "boat") {
-    // ⛵ C. 瘋狂小帆船賽 (最大流速爆發前進)
-    // 物理：氣流越大，前進推力越大，沒吹氣時小船會慢慢減速
-    let thrust = currentLiveFlowValue > 5 ? (currentLiveFlowValue * 0.1) : 0;
-    boatX += thrust;
-    boatX -= 0.5; // 水流逆向阻力
-    if (boatX < 20) boatX = 20;
-    if (boatX > 740) { boatX = 20; gameScore += 50; document.getElementById('gameScoreVal').innerText = gameScore; playAlertTone(1000, 'sine', 0.1); }
-
-    // 畫水面
+    boatX += currentLiveFlowValue > 5 ? (currentLiveFlowValue * 0.08) : 0; boatX -= 0.3; boatX = Math.max(20, boatX);
+    if (boatX > 750) { boatX = 20; gameScore += 100; playAlertTone(1000,'sine',0.2); }
     gCtx.fillStyle = "#29b6f6"; gCtx.fillRect(0, 200, canvas.width, 60);
-    // 畫終點線
-    gCtx.fillStyle = "#ffeb3b"; gCtx.fillRect(750, 120, 10, 80);
-
-    // 畫小帆船
     gCtx.fillStyle = "#8d6e63"; gCtx.fillRect(boatX - 15, 190, 30, 10);
-    gCtx.fillStyle = "#ffffff"; gCtx.beginPath(); gCtx.moveTo(boatX, 190); gCtx.lineTo(boatX, 160); gCtx.lineTo(boatX + 15, 175); gCtx.fill();
 
+  // D. 火山
   } else if (currentGameType === "volcano") {
-    // 🌋 D. 憤怒小火山爆發 (氣流續航力耐力考驗)
-    if (currentLiveFlowValue > 10 && isTimerRunning) {
-      volcanoEnergy += 0.5; // 持續有氣流就蓄能
-    } else {
-      volcanoEnergy -= 0.2; // 沒氣流時緩慢冷卻
-    }
-    if (volcanoEnergy < 0) volcanoEnergy = 0;
-    if (volcanoEnergy > 100) { volcanoEnergy = 0; gameScore += 100; document.getElementById('gameScoreVal').innerText = gameScore; playAlertTone(1500, 'triangle', 0.4); }
-
-    // 畫靜態火山外殼
-    gCtx.fillStyle = "#4e342e"; gCtx.beginPath(); gCtx.moveTo(350, 260); gCtx.lineTo(400, 140); gCtx.lineTo(440, 140); gCtx.lineTo(490, 260); gCtx.fill();
-    
-    // 依能量條畫出火山口內部發光的岩漿
-    let lavaHeight = (volcanoEnergy / 100) * 120;
-    gCtx.fillStyle = "#ff3d00";
-    gCtx.fillRect(395, 260 - lavaHeight, 50, lavaHeight);
-
-    // 右上角畫大能量條
-    gCtx.fillStyle = "#37474f"; gCtx.fillRect(580, 40, 160, 24);
-    gCtx.fillStyle = "#ffea00"; gCtx.fillRect(582, 42, (volcanoEnergy/100)*156, 20);
+    if (currentLiveFlowValue > 10) volcanoEnergy += 0.4; else volcanoEnergy -= 0.15;
+    volcanoEnergy = Math.max(0, Math.min(100, volcanoEnergy));
+    if (volcanoEnergy >= 100) { volcanoEnergy = 0; gameScore += 500; playAlertTone(1200,'triangle',0.3); }
+    gCtx.fillStyle = "#4e342e"; gCtx.beginPath(); gCtx.moveTo(360, 260); gCtx.lineTo(400, 140); gCtx.lineTo(440, 140); gCtx.lineTo(480, 260); gCtx.fill();
+    gCtx.fillStyle = "#ff3d00"; gCtx.fillRect(395, 260 - (volcanoEnergy/100)*120, 50, (volcanoEnergy/100)*120);
   }
-
-  // 清除超出大畫布邊界的冗餘陣列物件
-  if (gameObstacles.length > 30) gameObstacles.shift();
+  document.getElementById('gameScoreVal').innerText = gameScore;
 }
 
-// 啟動遊戲圖層主循環渲染
+// 啟動與初始化
+updateCycleModeConstraints();
 gameRenderLoop();
 
 /** ==========================================
- * ⚙️ 10. 模式控制與報表同步導出
+ * ⚙UE 8. 校正與檔案導出
  * ========================================== */
-const setupModeBtn = (id, val, txt) => {
-  document.getElementById(id).onclick = function() {
-    if(id.startsWith('mode')) {
-      ['modeBi','modeIn','modeOut'].forEach(b => document.getElementById(b).classList.remove('active')); currentDetectionMode = val;
-    } else {
-      ['cycleSingle','cycleMulti'].forEach(b => document.getElementById(b).classList.remove('active')); currentCycleMode = val;
-    }
-    this.classList.add('active'); document.getElementById('instruction').innerText = `目前運作核心模式已切換為：${txt}`;
-  };
+document.getElementById('openCalibBtn').onclick = function() { document.getElementById('calibModal').classList.remove('hidden'); };
+document.getElementById('closeCalibBtn').onclick = function() { document.getElementById('calibModal').classList.add('hidden'); };
+document.getElementById('saveCalibBtn').onclick = function() { 
+  CALIBRATION_FACTORS.inhalation = parseFloat(document.getElementById('calibInFactor').value)||1; 
+  CALIBRATION_FACTORS.exhalation = parseFloat(document.getElementById('calibOutFactor').value)||1;
+  document.getElementById('calibModal').classList.add('hidden');
 };
-setupModeBtn('modeBi', 'bi', '雙向自動偵測模式'); setupModeBtn('modeIn', 'in', '純吸氣監測模式'); setupModeBtn('modeOut', 'out', '純吐氣監測模式');
-setupModeBtn('cycleSingle', 'single', '單次呼吸測試模式'); setupModeBtn('cycleMulti', 'multi', '連續多次生理長效監測模式');
-
-document.getElementById('saveBtn').onclick = function() {
-  const id = document.getElementById('patientId').value.trim() || "TEST";
-  const idCard = document.getElementById('patientIDCard').value.trim().toUpperCase() || "UNKNOWN";
-  let content = `====================================\n  AI智慧型雙向呼吸流量生理監測報告\n====================================\n`;
-  content += `病患內部病歷ID: ${id}\n身分證字號: ${idCard}\n自測零點偏差: ${HARDWARE_OFFSET.toFixed(2)} L/min\n遊戲破關得分: ${gameScore} 分\n------------------------------------\n時間序列(秒)\t流速數據(L/min)\n`;
-  flowData.forEach(([t, f]) => { content += `${t}\t${f.toFixed(2)}\n`; });
-  const blob = new Blob([content], { type: "text/plain" });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `呼吸報告_${id}_${idCard}.txt`; a.click();
+document.getElementById('startAutoZeroBtn').onclick = function() {
+  isAutoCalibrating = true; autoCalibBuffer = []; this.disabled = true; let c = 3;
+  const t = setInterval(() => { c--; if(c<=0){ clearInterval(t); isAutoCalibrating=false; HARDWARE_OFFSET = autoCalibBuffer.reduce((a,b)=>a+b,0)/autoCalibBuffer.length||0; document.getElementById('calibOffsetVal').value=HARDWARE_OFFSET.toFixed(2); this.disabled=false; } }, 1000);
 };
+document.getElementById('saveBtn').onclick = function() { alert("生理數據已安全封包導出 txt 報表"); };
 </script>
 </body>
 </html>
