@@ -317,9 +317,9 @@ let isAutoCalibrating = false; let autoCalibBuffer = [];
 let serialPort = null; let keepReading = false;
 let startTime = null; let flowData = []; let serialBuffer = "";
 
-// 🟢 核心模式變數
-let currentDetectionMode = 'bi'; // 'bi' (雙向), 'in' (純吸氣), 'out' (純吐氣)
-let currentCycleMode = 'single'; // 'single' (單次), 'multi' (連續)
+// 核心模式變數
+let currentDetectionMode = 'bi'; 
+let currentCycleMode = 'single'; 
 let hasTriggeredBreathInSingleMode = false; 
 let isSystemAwaitingFirstBreath = true; 
 
@@ -347,19 +347,19 @@ let audioCtx = null;
 function playAlertTone(freq = 660, type = 'sine', duration = 0.15) {
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    const osc = audioCtx.createOscillator(); 
+    const gain = audioCtx.createGain(); // 🟢 修正：已補回 audioCtx. 呼叫
     osc.type = type; osc.frequency.value = freq; gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
     osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + duration);
   } catch(e){}
 }
 
 /** ==========================================
- * 🧠 2. 模式切換與遊戲自動鎖定連動 (★本次核心修改)
+ * 🧠 2. 模式切換與遊戲自動鎖定連動
  * ========================================== */
 function updateDetectionModeLayout(mode) {
   currentDetectionMode = mode;
   
-  // 取得 DOM 物件
   const cycleBlock = document.getElementById('cycleModeSelectorBlock');
   const gameSelectTitle = document.getElementById('gameSelectTitle');
   const gameSelectDropdown = document.getElementById('gameSelect');
@@ -368,36 +368,30 @@ function updateDetectionModeLayout(mode) {
   
   document.querySelectorAll('#modeBi, #modeIn, #modeOut').forEach(b => b.classList.remove('active'));
   
-  // 徹底重置計時與狀態旗標
   if (testTimerId) { clearInterval(testTimerId); testTimerId = null; }
   isTimerRunning = false; isGameOver = false;
   isSystemAwaitingFirstBreath = true;
   hasTriggeredBreathInSingleMode = false;
   isManualOverrideActive = false;
 
-  // 1️⃣ 【雙向自動模式】➔ 允許單次/連續，可挑選熱氣球或火箭
   if (mode === 'bi') {
     document.getElementById('modeBi').classList.add('active');
     document.body.style.background = "#f0f4f1";
     cycleBlock.classList.remove('hidden');
-    
     gameSelectTitle.classList.remove('hidden');
     gameSelectDropdown.classList.remove('hidden');
     gameSelectDivider.classList.remove('hidden');
     timerTitle.innerText = "⏱️ 計時器設定";
     
-    // 預設切回熱氣球
     gameSelectDropdown.value = "balloon";
-    gameSelectDropdown.dispatchEvent(new Event('change'));
+    currentGameType = "balloon";
+    document.getElementById('gameTitleLabel').innerText = "運輸 遊戲項目：🎈 熱氣球環遊世界";
     updateCycleModeConstraints();
   } 
-  
-  // 2️⃣ 【純吸氣模式】➔ 鎖死火山爆發，隱藏單次/連續，改為正向累計耐力訓練
   else if (mode === 'in') {
     document.getElementById('modeIn').classList.add('active');
-    document.body.style.background = "#fffdeb"; // 暖黃色區隔
-    cycleBlock.classList.add('hidden'); // 隱藏單次/連續切換
-    
+    document.body.style.background = "#fffdeb"; 
+    cycleBlock.classList.add('hidden'); 
     gameSelectTitle.classList.add('hidden');
     gameSelectDropdown.classList.add('hidden');
     gameSelectDivider.classList.add('hidden');
@@ -408,16 +402,13 @@ function updateDetectionModeLayout(mode) {
     updateLiveTimerDisplay("00:00 (等待吸氣)");
 
     currentGameType = "volcano";
-    document.getElementById('gameTitleLabel').innerText = " Ul 遊戲項目：🌋 憤怒小火山爆發 (吸氣特化)";
+    document.getElementById('gameTitleLabel').innerText = "🎮 遊戲項目：🌋 憤怒小火山爆發 (吸氣特化)";
     document.getElementById('instruction').innerText = "🏋️【純吸氣復健模式】：正向累積。自動跳過開機音，大口吸氣即可累積火山能量，不限次數。";
   } 
-  
-  // 3️⃣ 【純吐氣模式】➔ 鎖死瘋狂帆船，隱藏單次/連續，改為正向累計耐力訓練
   else if (mode === 'out') {
     document.getElementById('modeOut').classList.add('active');
-    document.body.style.background = "#edf2f7"; // 藍灰色區隔
+    document.body.style.background = "#edf2f7"; 
     cycleBlock.classList.add('hidden');
-    
     gameSelectTitle.classList.add('hidden');
     gameSelectDropdown.classList.add('hidden');
     gameSelectDivider.classList.add('hidden');
@@ -433,13 +424,12 @@ function updateDetectionModeLayout(mode) {
   }
 }
 
-// 綁定主模式按鈕
 document.getElementById('modeBi').onclick = () => updateDetectionModeLayout('bi');
 document.getElementById('modeIn').onclick = () => updateDetectionModeLayout('in');
 document.getElementById('modeOut').onclick = () => updateDetectionModeLayout('out');
 
 function updateCycleModeConstraints() {
-  if (currentDetectionMode !== 'bi') return; // 吸吐氣專用計時，不套用單次/連續邏輯
+  if (currentDetectionMode !== 'bi') return; 
 
   if (currentCycleMode === 'single') {
     timerSelect.value = "countdown"; timerSelect.disabled = true; 
@@ -468,7 +458,6 @@ document.getElementById('cycleMulti').onclick = function() {
   this.classList.add('active'); currentCycleMode = 'multi'; updateCycleModeConstraints();
 };
 
-
 function calculateDynamicNorms() {
   const idCardInput = document.getElementById('patientIDCard');
   let idCard = idCardInput.value.trim().toUpperCase(); idCardInput.value = idCard; 
@@ -479,7 +468,7 @@ function calculateDynamicNorms() {
   if (idCard.length > 0) {
     if (!twIdRegex.test(idCard)) {
       detectedGender = null; idCardInput.classList.add('error');
-      normCard.innerHTML = `⚠️ <b>身分證字號格式不正確：</b> 請輸入首字英文字母，且第二碼為 1(男) 或 2(女) 的 10 碼正確格式。`;
+      normCard.innerHTML = `⚠️ <b>身分證字號格式不正確：</b> 請輸入首字英文字母。`;
       return;
     } else { idCardInput.classList.remove('error'); detectedGender = (idCard.charAt(1) === '1') ? 'M' : 'F'; }
   } else { detectedGender = null; idCardInput.classList.remove('error'); }
@@ -551,7 +540,17 @@ function updateLungAnimation(flow) {
 }
 
 /** ==========================================
- * 🎛️ 5. 序列埠與生理自動化狀態機 (★本次智慧多模式過濾核心)
+ * 📊 4. Chart.js 圖表配置
+ * ========================================== */
+const ctx = document.getElementById('flowChart').getContext('2d');
+let chartData = { labels: [], datasets: [{ label: '即時呼吸流速 (L/min)', data: [], borderColor: '#2e7d32', backgroundColor: 'rgba(76, 175, 80, 0.08)', fill: true, tension: 0.35 }] };
+const flowChart = new Chart(ctx, {
+  type: 'line', data: chartData,
+  options: { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: false } }, y: { min: -100, max: 100 } } }
+});
+
+/** ==========================================
+ * 🎛️ 5. 序列埠與生理自動化狀態機
  * ========================================== */
 function handleSerialLine(line) {
   if (!line || isGameOver) return;
@@ -564,17 +563,13 @@ function handleSerialLine(line) {
 
     let currentAbs = Math.abs(rawFlow);
 
-    // 🟢 智慧模式過濾防呆：根據目前選定模式，強行修正物理流向
     if (currentDetectionMode === 'in') {
-      // 純吸氣模式：不管晶片送正送負，只要有大於3的訊號通通強迫修正為「正數（吸氣）」
       if (currentAbs > 3.0) rawFlow = currentAbs; else rawFlow = 0;
     } else if (currentDetectionMode === 'out') {
-      // 純吐氣模式：不管晶片送正送負，只要有大於3的訊號通通強迫修正為「負數（吐氣）」
       if (currentAbs > 3.0) rawFlow = -currentAbs; else rawFlow = 0;
     }
     currentAbs = Math.abs(rawFlow);
 
-    // 氣流自動喚醒起跑機制
     if (isSystemAwaitingFirstBreath && !isManualOverrideActive) {
       if (currentAbs > 8.0) {
         isSystemAwaitingFirstBreath = false; 
@@ -583,10 +578,9 @@ function handleSerialLine(line) {
         zeroFlowCounter = 0;               
         executeActualTimerInterval();      
       }
-      return; // 消耗掉開機聲
+      return; 
     }
 
-    // 🔒 單次測試模式安全鎖死判定 (僅在雙向單次模式生效)
     if (currentDetectionMode === 'bi' && currentCycleMode === 'single') {
       if (!isManualOverrideActive) {
         let msSinceBoot = Date.now() - bootGuardTimestamp;
@@ -625,7 +619,6 @@ function handleSerialLine(line) {
   }
 }
 
-// 自動重連監聽引擎
 async function listenSerialLoop() {
   while (keepReading) {
     let reader = null; let readableStreamClosed = null; let decoder = null;
@@ -828,12 +821,12 @@ function gameRenderLoop() {
         }
       }
     });
-  // C. 帆船 (純吐氣專用鎖定)
+  // C. 帆船
   } else if (currentGameType === "boat") {
     if(isTimerRunning) { boatX += currentLiveFlowValue > 5 ? (currentLiveFlowValue * 0.08) : 0; boatX -= 0.3; boatX = Math.max(20, boatX); }
     if (boatX > 750) { boatX = 20; gameScore += 100; playAlertTone(1000,'sine',0.2); }
     gCtx.fillStyle = "#29b6f6"; gCtx.fillRect(0, 200, canvas.width, 60); gCtx.fillStyle = "#8d6e63"; gCtx.fillRect(boatX - 15, 190, 30, 10);
-  // M. 火山 (純吸氣專用鎖定)
+  // D. 火山
   } else if (currentGameType === "volcano") {
     if (isTimerRunning) { if (currentLiveFlowValue > 5) volcanoEnergy += 0.5; else volcanoEnergy -= 0.2; }
     volcanoEnergy = Math.max(0, Math.min(100, volcanoEnergy)); if (volcanoEnergy >= 100) { volcanoEnergy = 0; gameScore += 500; playAlertTone(1200,'triangle',0.3); }
