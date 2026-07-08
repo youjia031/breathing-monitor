@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI智慧型雙向呼吸流量生理監測系統 (連線隔離抗干擾終極體)</title>
+  <title>AI智慧型雙向呼吸流量生理監測系統 (通訊死鎖全面修復版)</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -61,7 +61,7 @@
     .light { width: 32px; height: 32px; border-radius: 50%; background: #e0e0e0; border: 2px solid #bdbdbd; transition: all 0.2s ease; }
     .light.activated-red { background: #ff4b33 !important; box-shadow: 0 0 14px #ff4b33 !important; border-color: #ff1744 !important; }
     .light.activated-green { background: #00e676 !important; box-shadow: 0 0 14px #00e676 !important; border-color: #00c853 !important; }
-    .light.activated-yellow { background: #ffb300 !important; box-shadow: 0 0 14px #ffb300 !important; border-color: #ff8f00 !important; }
+    .light.activated-yellow { background: #ffb300 !important; box-shadow: 0 0 14px #ff8f00 !important; }
 
     /* 🎮 遊戲互動面板 */
     .game-panel-block { background: #1a202c; border-radius: 16px; padding: 14px; margin: 20px 0; border: 3px solid #e91e63; box-shadow: 0 6px 20px rgba(233,30,99,0.15); display: flex; flex-direction: column; align-items: center; gap: 10px; }
@@ -115,7 +115,6 @@
 
     <div class="control-panel">
       <div class="btn-group">
-        <button class="btn btn-primary" id="loginBtn">醫護登入</button>
         <button class="btn btn-connect" id="connectBtn">連接外接裝置</button>
         <button class="btn btn-calib" id="openCalibBtn">⚙️ 系統校正設定</button>
         <button class="btn btn-reset-all" id="resetAllBtn">🔄 全系統重置</button>
@@ -314,7 +313,10 @@ let CALIBRATION_FACTORS = { inhalation: 1.00, exhalation: 1.00 };
 let HARDWARE_OFFSET = 0.00; 
 let isAutoCalibrating = false; let autoCalibBuffer = [];
 
-let serialPort = null; let keepReading = false;
+// 🔴 核心通訊流控制全域宣告 (修復死鎖關鍵)
+let serialPort = null; 
+let keepReading = false;
+let globalReader = null; // 升級為全域，以便跨函數強制釋放鎖定
 let startTime = null; let flowData = []; let serialBuffer = "";
 
 // 核心模式變數
@@ -355,7 +357,7 @@ function playAlertTone(freq = 660, type = 'sine', duration = 0.15) {
 }
 
 /** ==========================================
- * 🧠 2. 模式切換與遊戲自動鎖定連動 (★徹底解耦重構)
+ * 🧠 2. 模式切換與遊戲自動鎖定連動
  * ========================================== */
 function updateDetectionModeLayout(mode) {
   currentDetectionMode = mode;
@@ -368,7 +370,6 @@ function updateDetectionModeLayout(mode) {
   
   document.querySelectorAll('#modeBi, #modeIn, #modeOut').forEach(b => b.classList.remove('active'));
 
-  // 🔒 修正看點：切換排版時「只改變 UI 排版與指定遊戲種類」，絕不干涉/不清洗硬體連線旗標
   if (mode === 'bi') {
     document.getElementById('modeBi').classList.add('active');
     document.body.style.background = "#f0f4f1";
@@ -427,7 +428,6 @@ document.getElementById('modeBi').onclick = () => { resetSystemSessionState(); u
 document.getElementById('modeIn').onclick = () => { resetSystemSessionState(); updateDetectionModeLayout('in'); };
 document.getElementById('modeOut').onclick = () => { resetSystemSessionState(); updateDetectionModeLayout('out'); };
 
-// 把「清洗狀態」獨立成一個函數，只有在使用者手動點擊模式切換時才觸發
 function resetSystemSessionState() {
   if (testTimerId) { clearInterval(testTimerId); testTimerId = null; }
   isTimerRunning = false; isGameOver = false;
@@ -466,7 +466,7 @@ function calculateDynamicNorms() {
   const twIdRegex = /^[A-Z][12]\d{8}$/;
 
   if (idCard.length > 0) {
-    if (!twIdRegex.test(idCard)) { detectedGender = null; idCardInput.classList.add('error'); return; } 
+    if (!twIdRegex.test(idCard)) { idCardInput.classList.add('error'); return; } 
     else { idCardInput.classList.remove('error'); detectedGender = (idCard.charAt(1) === '1') ? 'M' : 'F'; }
   } else { detectedGender = null; idCardInput.classList.remove('error'); }
 
@@ -545,7 +545,7 @@ const flowChart = new Chart(ctx, {
 });
 
 /** ==========================================
- * 🎛️ 5. 序列埠與生理自動化狀態機
+ * 🎛️ 5. 序列埠與生理自動化狀態機 (★通訊釋放鏈徹底修復)
  * ========================================== */
 function handleSerialLine(line) {
   if (!line || isGameOver) return;
@@ -616,16 +616,19 @@ function handleSerialLine(line) {
 
 async function listenSerialLoop() {
   while (keepReading) {
-    let reader = null; let readableStreamClosed = null; let decoder = null;
+    let readableStreamClosed = null; let decoder = null;
     try {
       if (!serialPort) { await new Promise(resolve => setTimeout(resolve, 500)); continue; }
       if (serialPort.readable === null) {
         try { await serialPort.open({ baudRate: 9600 }); } catch(e) { await new Promise(resolve => setTimeout(resolve, 400)); continue; }
       }
-      decoder = new TextDecoderStream(); readableStreamClosed = serialPort.readable.pipeTo(decoder.writable); reader = decoder.readable.getReader();
+      decoder = new TextDecoderStream(); 
+      readableStreamClosed = serialPort.readable.pipeTo(decoder.writable); 
+      globalReader = decoder.readable.getReader(); // 🟢 註冊至全域
+
       try {
         while (keepReading) {
-          const { value, done } = await reader.read(); if (done) break;
+          const { value, done } = await globalReader.read(); if (done) break;
           if (value) {
             serialBuffer += value; let lines = serialBuffer.split("\n"); serialBuffer = lines.pop();
             for (let line of lines) { handleSerialLine(line.trim()); }
@@ -633,56 +636,69 @@ async function listenSerialLoop() {
         }
       } catch (streamError) {} 
       finally {
-        if (reader) { try { reader.releaseLock(); } catch(e){} }
+        if (globalReader) {
+          try { globalReader.releaseLock(); } catch(e){}
+          globalReader = null;
+        }
         if (readableStreamClosed) { await readableStreamClosed.catch(() => {}); }
       }
 
+      // 🟢 核心修復：連續模式下，必須先手動斷開解鎖 globalReader，才允許重啟序列埠
       if (currentCycleMode === 'multi' && keepReading) {
-        document.getElementById('status').innerText = "狀態：⏳ 裝置熄燈。網頁正在清理舊緩衝並重新就緒...";
+        document.getElementById('status').innerText = "狀態：⏳ 裝置重新就緒中，正在釋放緩衝暫存...";
         updateWebAndHwLights(0); updateLungAnimation(0);
+        
+        keepReading = false; // 先跳出讀取迴圈
         try { await serialPort.close().catch(()=>{}); } catch(e){}
         await new Promise(resolve => setTimeout(resolve, 800));
-        document.getElementById('status').innerText = "狀態：✅ 背景重連就緒！隨時可按第二次電源鍵量測。";
+        
+        keepReading = true; // 重新啟動
+        document.getElementById('status').innerText = "狀態：✅ 背景重連成功！隨時可進行下一次量測。";
       } else { break; }
     } catch (globalError) { await new Promise(resolve => setTimeout(resolve, 1000)); }
   }
 }
 
-// 🟢 徹底隔離版：不破壞任何背景旗標狀態的純淨連接功能
+// 🟢 終極連線釋放鏈：遵循 1.取消流 -> 2.釋放鎖 -> 3.關閉埠 醫學儀器級規範
 document.getElementById('connectBtn').onclick = async function () {
   try {
     if (keepReading) {
-      document.getElementById('status').innerText = "狀態：正在安全中斷並釋放序列埠...";
+      document.getElementById('status').innerText = "狀態：正在強制安全釋放序列埠通道...";
       keepReading = false;
+      
+      // 1. 強制沒收解開全局讀取流
+      if (globalReader) {
+        try { await globalReader.cancel().catch(()=>{}); } catch(e){}
+        try { globalReader.releaseLock(); } catch(e){}
+        globalReader = null;
+      }
+      
+      // 2. 關閉序列埠
       if (serialPort) {
-        try {
-          if (serialPort.readable) {
-            const reader = serialPort.readable.getReader();
-            await reader.cancel().catch(()=>{});
-            reader.releaseLock();
-          }
-          await serialPort.close().catch(()=>{});
-        } catch(err){}
+        try { await serialPort.close().catch(()=>{}); } catch(e){}
         serialPort = null;
       }
+      
       this.innerText = "連接外接裝置"; this.classList.remove('connected');
-      document.getElementById('status').innerText = "狀態：等待硬體連線";
+      document.getElementById('status').innerText = "狀態：等待硬體連線 (通道已乾淨釋放)";
       return;
     }
 
-    document.getElementById('status').innerText = "狀態：正在等待使用者選擇 COM 連接埠...";
+    document.getElementById('status').innerText = "狀態：正在開啟系統選單...";
     serialPort = await navigator.serial.requestPort();
+    
+    // 開啟前雙重防禦性關閉
     try { await serialPort.close().catch(()=>{}); } catch(e){}
     await serialPort.open({ baudRate: 9600 });
     
     keepReading = true;
     this.innerText = "中斷裝置連線"; this.classList.add('connected');
-    document.getElementById('status').innerText = "狀態：連線成功！生理數據通道已就緒。";
+    document.getElementById('status').innerText = "狀態：連線成功！生理數據通道已開啟。";
     listenSerialLoop(); 
   } catch (e) {
     keepReading = false; this.innerText = "連接外接裝置"; this.classList.remove('connected');
     document.getElementById('status').innerText = `❌ 連線失敗：${e.message}`;
-    alert("❌ 連線失敗！原因：" + e.message);
+    alert("❌ 連線失敗！\n提示：請先將 USB 拔掉插回電腦，清除上一次的硬體佔用鎖定。");
   }
 };
 
@@ -855,7 +871,7 @@ function gameRenderLoop() {
   document.getElementById('gameScoreVal').innerText = gameScore;
 }
 
-// 🟢 初始化安全排程：確保元件全部生成完，再引導初始排版切換
+// 啟動初始化為雙向複合模式
 updateDetectionModeLayout('bi');
 switchViewMode("dual"); 
 gameRenderLoop();
