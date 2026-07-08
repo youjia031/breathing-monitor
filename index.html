@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI智慧型雙向呼吸流量生理監測系統 (全功能常模表格終極完全體)</title>
+  <title>AI智慧型雙向呼吸流量生理監測系統 (終極穩固修復版)</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -359,7 +359,7 @@
 
 <script>
 /** ==========================================
- * 💾 1. 全域變數、臨床常模與硬體控制隔離
+ * 💾 1. 全域變數、臨床常模與隔離牆設定
  * ========================================== */
 let supabaseClient = null; 
 let ACTIVE_LIMITS = { minInflow: 30.0, maxInflow: 90.0, minOutflow: 30.0, maxOutflow: 120.0 };
@@ -377,33 +377,36 @@ let testTimerId = null; let timeLeft = 60; let timeElapsed = 0; let isTimerRunni
 let currentLiveFlowValue = 0; let currentRawFlowDirection = 0;
 let isGameOver = false; let currentViewMode = "dual";
 
-// 狀態隔離防誤觸旗標與物件綁定定義
-const BOOT_GUARD_MS = 1500; let bootGuardTimestamp = 0;
-let zeroFlowCounter = 0; let hasTriggeredBreathInSingleMode = false;
-let isSystemAwaitingFirstBreath = true; let isManualOverrideActive = false;
+// 🌟 【防死鎖與隔離牆狀態旗標】 🌟
+const BOOT_GUARD_MS = 1500; 
+let bootGuardTimestamp = 0;
+let zeroFlowCounter = 0; 
+let hasTriggeredBreathInSingleMode = false;
+let isSystemAwaitingFirstBreath = true; 
+let isManualOverrideActive = false; // 關鍵：標記是否為點擊網頁按鈕手動開始
 
-// 遊戲物理暫存區
+// 遊戲物理
 const canvas = document.getElementById('gameCanvas'); const gCtx = canvas.getContext('2d');
 let gameScore = 0; let currentGameType = "balloon"; let currentHp = 3;
 let playerY = 130; let playerSpeed = 0; let boatX = 50; let volcanoEnergy = 0;
-let gameObstacles = []; let gameFrameCount = 0; let animationFrameId = null;
-let invincibleFrames = 0; let knockoutFrames = 0;
+let gameFrameCount = 0; let animationFrameId = null;
 
 const timerModeSelect = document.getElementById('timerModeSelect');
 const timerLengthInput = document.getElementById('timerLengthInput');
-
 let lastTriggeredGame = "balloon";
 
 /** ==========================================
- * ⚡ 2. 核心遊戲強制一秒自動切換引擎 (★最高隔離級別)
+ * ⚡ 2. 核心遊戲一秒自動高速切換引擎 (修正生命週期死鎖)
  * ========================================== */
 function forceAutoSwitchGame(targetGame) {
   if (lastTriggeredGame === targetGame || isGameOver) return;
   lastTriggeredGame = targetGame;
   
+  // 乾淨切斷之前的渲染，防止 requestAnimationFrame 疊加導致通訊執行讀取卡死
   if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
   
-  gameObstacles = []; volcanoEnergy = 0; boatX = 50; playerY = 130; playerSpeed = 0; knockoutFrames = 0;
+  // 重置遊戲內部物理變數
+  volcanoEnergy = 0; boatX = 50; playerY = 130; playerSpeed = 0;
   currentGameType = targetGame;
   document.getElementById('gameSelect').value = targetGame;
   
@@ -415,7 +418,10 @@ function forceAutoSwitchGame(targetGame) {
   };
   document.getElementById('gameTitleLabel').innerText = titles[targetGame];
   
-  setTimeout(() => { if (!animationFrameId && !isGameOver) gameRenderLoop(); }, 5);
+  // 只有在非純數據模式且未結束時才重新啟動
+  if (currentViewMode !== "data" && !isGameOver) {
+    setTimeout(() => { if (!animationFrameId && !isGameOver) gameRenderLoop(); }, 5);
+  }
 }
 
 /** ==========================================
@@ -428,7 +434,6 @@ function calculateDynamicNorms() {
   const normCard = document.getElementById('normCard');
   const twIdRegex = /^[A-Z][12]\d{8}$/;
 
-  // 移除所有表格高亮
   document.querySelectorAll('.norm-table tr').forEach(r => r.classList.remove('highlight-row'));
 
   if (idCard.length > 0) {
@@ -438,17 +443,19 @@ function calculateDynamicNorms() {
 
   detectedAge = isNaN(ageVal) ? 30 : ageVal;
   
-  // 聯動表格高亮提示
   if (detectedAge >= 20 && detectedAge <= 39) document.getElementById('row-young').classList.add('highlight-row');
   else if (detectedAge >= 40 && detectedAge <= 59) document.getElementById('row-mid').classList.add('highlight-row');
   else if (detectedAge >= 60) document.getElementById('row-old').classList.add('highlight-row');
 
-  let baseMinIn = 30.0; let baseMaxIn = (detectedGender === 'F') ? 75.0 : 90.0; let baseMinOut = 30.0; let baseMaxOut = (detectedGender === 'F') ? 100.0 : 120.0;
+  let baseMinIn = 30.0; let baseMaxIn = (detectedGender === 'F') ? 75.0 : 90.0; 
+  let baseMinOut = 30.0; let baseMaxOut = (detectedGender === 'F') ? 100.0 : 120.0;
+  
   if (detectedAge > 30) {
     const safeFactor = Math.max(0.7, 1 - ((detectedAge - 30) * 0.005));
     baseMaxIn *= safeFactor; baseMaxOut *= safeFactor;
   }
   ACTIVE_LIMITS = { minInflow: parseFloat(baseMinIn.toFixed(1)), maxInflow: parseFloat(baseMaxIn.toFixed(1)), minOutflow: parseFloat(baseMinOut.toFixed(1)), maxOutflow: parseFloat(baseMaxOut.toFixed(1)) };
+  
   if (detectedGender) {
     normCard.innerHTML = `🎯 <b>AI 個人化醫學常模已配置：</b><br>吸氣常模：<b>${ACTIVE_LIMITS.minInflow} ~ ${ACTIVE_LIMITS.maxInflow}</b> | 吐氣常模：<b>${ACTIVE_LIMITS.minOutflow} ~ ${ACTIVE_LIMITS.maxOutflow} L/min</b>`;
     document.getElementById('greeting').innerText = `病患資料已就位，性別：${detectedGender === 'M' ? '男' : '女'}，年齡：${detectedAge} 歲。`;
@@ -458,10 +465,11 @@ document.getElementById('patientIDCard').addEventListener('input', calculateDyna
 document.getElementById('patientAge').addEventListener('input', calculateDynamicNorms);
 
 /** ==========================================
- * 🎛️ 4. 數據流接收與實體狀態機控制
+ * 🎛️ 4. 數據流解譯牆與狀態防線 (核心 Bug 阻斷修復)
  * ========================================== */
 function handleSerialLine(line) {
-  if (!line || isGameOver) return;
+  if (!line || isGameOver) return; // 如果本輪施測已終結，徹底切斷不讀取
+
   const match = line.replace(/\s+/g, '').match(/(?:flow|流量)?[:：]?([-+]?[0-9.]+)/i);
   if (match) {
     let rawFlow = parseFloat(match[1]) - HARDWARE_OFFSET;
@@ -471,39 +479,51 @@ function handleSerialLine(line) {
     currentLiveFlowValue = Math.abs(rawFlow);
     currentRawFlowDirection = rawFlow;
 
-    // 🌟 自動切換引擎驅動
+    // 1. 自動模式下的遊戲切換
     if (currentDetectionMode === 'bi') {
       if (currentLiveFlowValue <= 5.0) forceAutoSwitchGame("balloon");
       else if (rawFlow > 5.0) forceAutoSwitchGame("volcano");
       else if (rawFlow < -5.0) forceAutoSwitchGame("boat");
     }
 
+    // 2. 處理「等待第一口氣」的觸發防線 (若非網頁手動主控按開)
     if (isSystemAwaitingFirstBreath && !isManualOverrideActive) {
       if (currentLiveFlowValue > 8.0) {
-        isSystemAwaitingFirstBreath = false; bootGuardTimestamp = Date.now();
-        hasTriggeredBreathInSingleMode = false; zeroFlowCounter = 0;
+        isSystemAwaitingFirstBreath = false; 
+        bootGuardTimestamp = Date.now();
+        hasTriggeredBreathInSingleMode = false; 
+        zeroFlowCounter = 0;
         executeActualTimerInterval();
       }
-      return;
+      return; 
     }
 
+    // 3. 單次施測模式：氣流歸零 4 秒斷流機制
     if (currentDetectionMode === 'bi' && currentCycleMode === 'single' && !isManualOverrideActive) {
-      if ((Date.now() - bootGuardTimestamp) < BOOT_GUARD_MS) return;
-      if (currentLiveFlowValue > 8.0) { hasTriggeredBreathInSingleMode = true; zeroFlowCounter = 0; }
-      else if (hasTriggeredBreathInSingleMode && isTimerRunning) {
+      if ((Date.now() - bootGuardTimestamp) < BOOT_GUARD_MS) return; 
+      if (currentLiveFlowValue > 8.0) { 
+        hasTriggeredBreathInSingleMode = true; 
+        zeroFlowCounter = 0; 
+      } else if (hasTriggeredBreathInSingleMode && isTimerRunning) {
         zeroFlowCounter++;
-        if (zeroFlowCounter >= 4) { finishTestSession(); return; }
+        if (zeroFlowCounter >= 4) { 
+          finishTestSession(); 
+          return; 
+        }
       }
     }
 
+    // 如果計時器因為各種原因尚未啟動，不錄製圖表數據
     if (!isTimerRunning) return;
 
+    // 套用校正倍率
     if (rawFlow > 0) rawFlow *= CALIBRATION_FACTORS.inhalation;
     else if (rawFlow < 0) rawFlow *= CALIBRATION_FACTORS.exhalation;
 
     if (!startTime) startTime = Date.now();
     const now = ((Date.now() - startTime) / 1000).toFixed(2);
 
+    // 更新即時數字看板
     if (rawFlow >= 0) {
       document.getElementById('flowInVal').innerText = rawFlow.toFixed(2);
       document.getElementById('flowOutVal').innerText = "0.00";
@@ -512,9 +532,14 @@ function handleSerialLine(line) {
       document.getElementById('flowOutVal').innerText = Math.abs(rawFlow).toFixed(2);
     }
 
-    updateWebAndHwLights(rawFlow); updateLungAnimation(rawFlow);
-    flowData.push([parseFloat(now), rawFlow]); chartData.labels.push(now); chartData.datasets[0].data.push(rawFlow);
-    if (chartData.labels.length > 50) { chartData.labels.shift(); chartData.datasets[0].data.shift(); }
+    updateWebAndHwLights(rawFlow); 
+    updateLungAnimation(rawFlow);
+
+    // 更新 Chart.js
+    flowData.push([parseFloat(now), rawFlow]); 
+    chartData.labels.push(now); 
+    chartData.datasets[0].data.push(rawFlow);
+    if (chartData.labels.length > 60) { chartData.labels.shift(); chartData.datasets[0].data.shift(); }
     flowChart.update('none');
   }
 }
@@ -522,23 +547,33 @@ function handleSerialLine(line) {
 async function listenSerialLoop() {
   while (keepReading) {
     try {
-      const decoder = new TextDecoderStream(); serialPort.readable.pipeTo(decoder.writable); globalReader = decoder.readable.getReader();
+      const decoder = new TextDecoderStream(); 
+      serialPort.readable.pipeTo(decoder.writable); 
+      globalReader = decoder.readable.getReader();
       while (keepReading) {
-        const { value, done } = await globalReader.read(); if (done) break;
+        const { value, done } = await globalReader.read(); 
+        if (done) break;
         if (value) {
-          serialBuffer += value; let lines = serialBuffer.split("\n"); serialBuffer = lines.pop();
+          serialBuffer += value; 
+          let lines = serialBuffer.split("\n"); 
+          serialBuffer = lines.pop();
           for (let line of lines) { handleSerialLine(line.trim()); }
         }
       }
-    } catch (e) { await new Promise(r => setTimeout(r, 400)); }
+    } catch (e) { 
+      await new Promise(r => setTimeout(r, 400)); 
+    }
   }
 }
 
 document.getElementById('connectBtn').onclick = async function () {
   if (keepReading) { location.reload(); return; }
   try {
-    serialPort = await navigator.serial.requestPort(); await serialPort.open({ baudRate: 9600 });
-    keepReading = true; this.innerText = "中斷裝置連線"; this.classList.add('connected');
+    serialPort = await navigator.serial.requestPort(); 
+    await serialPort.open({ baudRate: 9600 });
+    keepReading = true; 
+    this.innerText = "中斷裝置連線"; 
+    this.classList.add('connected');
     document.getElementById('status').innerText = "狀態：連線成功！自動切換與常模表格已同步就緒。";
     listenSerialLoop();
   } catch (e) { alert("連線失敗：" + e.message); }
@@ -547,52 +582,99 @@ document.getElementById('connectBtn').onclick = async function () {
 /** ==========================================
  * ⏱️ 5. 計時器與版面檢視切換控制
  * ========================================== */
+// 網頁強制主控按鍵：最高優先權，點擊直接解鎖強制錄製數據
 document.getElementById('webManualStartBtn').onclick = function() {
-  if (isTimerRunning) return; isManualOverrideActive = true; isSystemAwaitingFirstBreath = false;
-  executeActualTimerInterval(); document.getElementById('status').innerText = "狀態：▶️ 網頁強制施測開始錄製...";
+  if (isTimerRunning || isGameOver) return; 
+  isManualOverrideActive = true; 
+  isSystemAwaitingFirstBreath = false;
+  executeActualTimerInterval(); 
+  document.getElementById('status').innerText = "狀態：▶️ 網頁強制施測開始錄製...";
 };
 
 function executeActualTimerInterval() {
-  isTimerRunning = true; isGameOver = false; startTime = Date.now();
+  isTimerRunning = true; 
+  isGameOver = false; 
+  startTime = Date.now();
   currentHp = parseInt(document.getElementById('gameHpMaxInput').value) || 3;
   document.getElementById('gameHpDisplay').innerText = currentHp;
-  if(timerModeSelect.value === "countdown") timeLeft = parseInt(timerLengthInput.value) || 60;
   
+  if(timerModeSelect.value === "countdown") {
+    timeLeft = parseInt(timerLengthInput.value) || 60;
+  } else {
+    timeElapsed = 0;
+  }
+  
+  if (testTimerId) clearInterval(testTimerId);
   testTimerId = setInterval(() => {
     if (timerModeSelect.value === "countdown") {
-      timeLeft--; document.getElementById('countdownBox').innerText = timeLeft + " 秒";
+      timeLeft--; 
+      document.getElementById('countdownBox').innerText = timeLeft + " 秒";
       document.getElementById('gameLiveTimerDisplay').innerText = "時間: " + timeLeft + "秒";
       if (timeLeft <= 0) finishTestSession();
     } else {
-      timeElapsed++; document.getElementById('countdownBox').innerText = timeElapsed + " 秒";
+      timeElapsed++; 
+      document.getElementById('countdownBox').innerText = timeElapsed + " 秒";
       document.getElementById('gameLiveTimerDisplay').innerText = "時間: " + timeElapsed + "秒";
     }
   }, 1000);
 }
 
 function finishTestSession() {
-  isTimerRunning = false; isGameOver = true; clearInterval(testTimerId);
-  document.getElementById('status').innerText = "狀態：🔒 本輪測試已安全鎖定，數據全面凍結。";
+  isTimerRunning = false; 
+  isGameOver = true; 
+  clearInterval(testTimerId);
+  document.getElementById('status').innerText = "狀態：🔒 本輪測試已安全鎖定，數據與遊戲全面凍結。";
+  if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+  // 終結畫面繪製
+  gCtx.fillStyle = "rgba(0,0,0,0.85)"; gCtx.fillRect(0, 0, canvas.width, canvas.height);
+  gCtx.fillStyle = "#ff1744"; gCtx.font = "bold 24px Arial"; gCtx.textAlign = "center";
+  gCtx.fillText("🔒 本輪施測安全凍結結束", canvas.width / 2, canvas.height / 2);
 }
 
+document.getElementById('timerStopBtn').onclick = () => { finishTestSession(); };
 document.getElementById('timerResetBtn').onclick = () => { location.reload(); };
 document.getElementById('resetAllBtn').onclick = () => { location.reload(); };
 document.getElementById('gameSelect').onchange = function() { forceAutoSwitchGame(this.value); };
 
+// 單次與連續模式切換
+document.getElementById('cycleSingle').onclick = function() {
+  currentCycleMode = 'single';
+  this.classList.add('active');
+  document.getElementById('cycleMulti').classList.remove('active');
+};
+document.getElementById('cycleMulti').onclick = function() {
+  currentCycleMode = 'multi';
+  this.classList.add('active');
+  document.getElementById('cycleSingle').classList.remove('active');
+};
+
 function updateViewMode(mode) {
-  const gB = document.getElementById('gameModuleBlock'); const mV = document.getElementById('mainVisualDataBlock');
+  currentViewMode = mode;
+  const gB = document.getElementById('gameModuleBlock'); 
+  const mV = document.getElementById('mainVisualDataBlock');
   gB.classList.remove('hidden'); mV.classList.remove('hidden');
   document.querySelectorAll('.btn-view-mode').forEach(b => b.classList.remove('active'));
-  if(mode==='data') { gB.classList.add('hidden'); document.getElementById('viewPureData').classList.add('active'); }
-  else if(mode==='game') { mV.classList.add('hidden'); document.getElementById('viewPureGame').classList.add('active'); }
-  else { document.getElementById('viewDual').classList.add('active'); }
+  
+  if(mode==='data') { 
+    gB.classList.add('hidden'); 
+    document.getElementById('viewPureData').classList.add('active');
+    if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+  } else if(mode==='game') { 
+    mV.classList.add('hidden'); 
+    document.getElementById('viewPureGame').classList.add('active');
+    if (!animationFrameId && !isGameOver) gameRenderLoop();
+  } else { 
+    document.getElementById('viewDual').classList.add('active');
+    if (!animationFrameId && !isGameOver) gameRenderLoop();
+  }
 }
 document.getElementById('viewPureData').onclick = () => updateViewMode('data');
 document.getElementById('viewPureGame').onclick = () => updateViewMode('game');
 document.getElementById('viewDual').onclick = () => updateViewMode('dual');
 
 function updateModeLayout(mode) {
-  currentDetectionMode = mode; document.querySelectorAll('.btn-mode').forEach(b=>b.classList.remove('active'));
+  currentDetectionMode = mode; 
+  document.querySelectorAll('.btn-mode').forEach(b=>b.classList.remove('active'));
   if (mode==='bi') { document.getElementById('modeBi').classList.add('active'); }
   else if (mode==='in') { document.getElementById('modeIn').classList.add('active'); forceAutoSwitchGame("volcano"); }
   else if (mode==='out') { document.getElementById('modeOut').classList.add('active'); forceAutoSwitchGame("boat"); }
@@ -602,15 +684,20 @@ document.getElementById('modeIn').onclick = () => updateModeLayout('in');
 document.getElementById('modeOut').onclick = () => updateModeLayout('out');
 
 /** ==========================================
- * 🔌 6. 燈號同步、校正與遊戲物理渲染
+ * 🔌 6. 燈號同步、校正與遊戲畫布渲染
  * ========================================== */
 function updateWebAndHwLights(flow) {
   const absF = Math.abs(flow);
   ['hwGreen', 'hwRed', 'swLow', 'swPerfect', 'swHigh'].forEach(id => document.getElementById(id).classList.remove('activated-green', 'activated-red', 'activated-yellow'));
   if (absF === 0) return;
   if (absF < ACTIVE_LIMITS.minInflow) document.getElementById('swLow').classList.add('activated-yellow');
-  else if (absF <= ACTIVE_LIMITS.maxInflow) { document.getElementById('swPerfect').classList.add('activated-green'); document.getElementById('hwGreen').classList.add('activated-green'); }
-  else { document.getElementById('swHigh').classList.add('activated-red'); document.getElementById('hwRed').classList.add('activated-red'); }
+  else if (absF <= ACTIVE_LIMITS.maxInflow) { 
+    document.getElementById('swPerfect').classList.add('activated-green'); 
+    document.getElementById('hwGreen').classList.add('activated-green'); 
+  } else { 
+    document.getElementById('swHigh').classList.add('activated-red'); 
+    document.getElementById('hwRed').classList.add('activated-red'); 
+  }
 }
 
 function updateLungAnimation(flow) {
@@ -621,18 +708,16 @@ function updateLungAnimation(flow) {
 }
 
 function gameRenderLoop() {
+  if (isGameOver || currentViewMode === "data") return;
   animationFrameId = requestAnimationFrame(gameRenderLoop);
-  gCtx.clearRect(0, 0, canvas.width, canvas.height); gameFrameCount++;
-  gCtx.fillStyle = (currentGameType === "balloon" || currentGameType === "boat") ? "#e0f2fe" : "#1a202c"; gCtx.fillRect(0, 0, canvas.width, canvas.height);
-
-  if (isGameOver) {
-    gCtx.fillStyle = "rgba(0,0,0,0.85)"; gCtx.fillRect(0, 0, canvas.width, canvas.height);
-    gCtx.fillStyle = "#ff1744"; gCtx.font = "bold 24px Arial"; gCtx.textAlign = "center";
-    gCtx.fillText("🔒 本輪施測安全凍結結束", canvas.width / 2, canvas.height / 2); return;
-  }
+  gCtx.clearRect(0, 0, canvas.width, canvas.height); 
+  gameFrameCount++;
+  
+  gCtx.fillStyle = (currentGameType === "balloon" || currentGameType === "boat") ? "#e0f2fe" : "#1a202c"; 
+  gCtx.fillRect(0, 0, canvas.width, canvas.height);
 
   if (currentGameType === "balloon") {
-    playerSpeed += 0.35; playerY += playerSpeed; playerY = Math.max(15, Math.min(245, playerY));
+    playerSpeed += 0.25; playerY += playerSpeed; playerY = Math.max(15, Math.min(245, playerY));
     gCtx.fillStyle = "#e91e63"; gCtx.beginPath(); gCtx.arc(100, playerY, 14, 0, Math.PI*2); gCtx.fill();
   } else if (currentGameType === "volcano") {
     if (currentRawFlowDirection > 4.0 && isTimerRunning) volcanoEnergy += currentLiveFlowValue * 0.04;
@@ -645,13 +730,25 @@ function gameRenderLoop() {
     gCtx.fillStyle = "#29b6f6"; gCtx.fillRect(0, 200, canvas.width, 60);
     gCtx.fillStyle = "#8d6e63"; gCtx.fillRect(boatX - 15, 190, 30, 10);
   } else if (currentGameType === "rocket") {
-    playerSpeed += 0.4; playerY += playerSpeed; playerY = Math.max(15, Math.min(245, playerY));
+    playerSpeed += 0.3; playerY += playerSpeed; playerY = Math.max(15, Math.min(245, playerY));
     gCtx.fillStyle = "#00e676"; gCtx.fillRect(80, playerY - 6, 25, 12);
   }
   document.getElementById('gameScoreVal').innerText = gameScore;
 }
 
-// 校正控制
+/** ==========================================
+ * 📊 7. CHART.JS 初始化波形配置
+ * ========================================== */
+const ctx = document.getElementById('flowChart').getContext('2d');
+const chartData = { labels: [], datasets: [{ label: '即時呼吸氣流波形 (L/min)', data: [], borderColor: '#2e7d32', borderWidth: 2.5, pointRadius: 0, fill: false, tension: 0.2 }] };
+const flowChart = new Chart(ctx, {
+  type: 'line', data: chartData,
+  options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: true, title: { display: true, text: '時間 (秒)' } }, y: { min: -100, max: 100, title: { display: true, text: '流量 L/min' } } }, plugins: { legend: { display: false } } }
+});
+
+document.getElementById('clearChartBtn').onclick = () => { chartData.labels = []; chartData.datasets[0].data = []; flowChart.update(); };
+
+// 校正與彈出控制
 document.getElementById('openCalibBtn').onclick = () => document.getElementById('calibModal').classList.remove('hidden');
 document.getElementById('closeCalibBtn').onclick = () => document.getElementById('calibModal').classList.add('hidden');
 document.getElementById('saveCalibBtn').onclick = () => { CALIBRATION_FACTORS.inhalation = parseFloat(document.getElementById('calibInFactor').value)||1; CALIBRATION_FACTORS.exhalation = parseFloat(document.getElementById('calibOutFactor').value)||1; document.getElementById('calibModal').classList.add('hidden'); };
@@ -659,7 +756,9 @@ document.getElementById('startAutoZeroBtn').onclick = function() { isAutoCalibra
 document.getElementById('saveBtn').onclick = () => alert("數據同步成功，雲端生理佇列紀錄完成。");
 document.getElementById('loginBtn').onclick = () => alert("系統提示：醫護身分權限已驗證。");
 
-gameRenderLoop();
+// 預先執行一次常模表格初始化
+calculateDynamicNorms();
+if (currentViewMode !== "data") gameRenderLoop();
 </script>
 </body>
 </html>
