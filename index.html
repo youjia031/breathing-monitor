@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI智慧型雙向呼吸流量生理監測系統 (盲區參數化長效過濾版)</title>
+  <title>AI智慧型雙向呼吸流量生理監測系統 (智慧狀態機過濾完全體)</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -92,21 +92,6 @@
     .norm-card { background: #e3f2fd; border: 1px solid #90caf9; padding: 14px; border-radius: 8px; margin: 16px 0; font-size: 14px; color: #1565c0; line-height: 1.6; box-shadow: 0 2px 6px rgba(21,101,192,0.05); }
     #instruction { background: #fffde7; border-left: 4px solid #fff59d; padding: 16px; border-radius: 8px; margin: 16px 0; min-height: 24px; font-size: 15px; color: #555; }
 
-    /* 彈出式校正控制台 */
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-    .modal-box { background: #fff; padding: 24px; border-radius: 16px; max-width: 440px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-    
-    .auto-calib-zone { background: #f0f4f8; padding: 14px; border-radius: 10px; border: 1px solid #d0e0f0; margin-bottom: 16px; text-align: center; }
-    .btn-auto-run { background: #0288d1; color: #fff; border: none; padding: 10px 16px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 8px; width: 100%; font-size: 14px; }
-
-    .calib-group { margin-bottom: 14px; display: flex; flex-direction: column; gap: 4px; }
-    .calib-group label { font-size: 12px; font-weight: bold; color: #555; }
-    .calib-group input { padding: 8px; border: 2px solid #cfd8dc; border-radius: 6px; font-size: 14px; text-align: center; font-weight: bold; }
-    .modal-btn-group { display: flex; gap: 10px; margin-top: 16px; }
-    .modal-btn { flex: 1; padding: 12px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; }
-    .btn-confirm { background: #2e7d32; color: #fff; }
-    .btn-cancel { background: #cfd8dc; color: #37474f; }
-
     .hidden { display: none !important; }
     @media (max-width: 850px) {
       .container { padding: 16px; margin: 10px; }
@@ -124,6 +109,7 @@
 
     <div id="alertBanner" class="alert-banner">⚠️ 警告：呼吸流量異常超出個人安全範圍！請停止過度用力並引導放鬆。</div>
 
+    <!-- 頂部主控制面板 -->
     <div class="control-panel">
       <div class="btn-group">
         <button class="btn btn-primary" id="loginBtn">醫護登入</button>
@@ -132,6 +118,7 @@
         <button class="btn btn-reset-all" id="resetAllBtn">🔄 全系統重置</button>
       </div>
       
+      <!-- 畫面檢視開關切換鍵 -->
       <div class="btn-group" style="background: #edf2f7; padding: 6px; border-radius: 10px; margin-top: 6px;">
         <span style="font-size: 13px; font-weight: bold; color: #4a5568; margin: 0 10px;">🖥️ 畫面檢視開關：</span>
         <button class="btn btn-view-mode active" id="viewPureData">📊 純數據模式</button>
@@ -145,12 +132,14 @@
         <button class="btn btn-mode" id="modeOut">📤 純吐氣模式</button>
       </div>
       
+      <!-- 單次 vs 連續測試模式選擇鈕 -->
       <div class="btn-group">
-        <button class="btn btn-mode active" id="cycleSingle">⏱️ 單次測試模式 (鎖定倒數+防誤觸盲區過濾)</button>
+        <button class="btn btn-mode active" id="cycleSingle">⏱️ 單次測試模式 (鎖定倒數+雙階段開機防誤觸)</button>
         <button class="btn btn-mode" id="cycleMulti">🔁 連續多次模式 (鎖定累計+斷流韌性重連)</button>
       </div>
     </div>
 
+    <!-- 智慧自動歸零校正面板 -->
     <div id="calibModal" class="modal-overlay hidden">
       <div class="modal-box">
         <h3>🔧 軟體臨床自動校正面板</h3>
@@ -177,6 +166,7 @@
       </div>
     </div>
 
+    <!-- 病患基本個資 -->
     <div class="form-row" id="patientFormBlock" style="background: #fdfdfd; padding: 18px; border-radius: 12px; border: 1px solid #eaeaea; margin-bottom: 16px;">
       <div class="input-group">
         <label>1. 病患病歷號碼 (ID)</label>
@@ -201,6 +191,7 @@
       <span id="status">狀態：等待硬體連線</span>
     </div>
 
+    <!-- 燈號區 -->
     <div class="lights-container" id="lightsBlock">
       <div style="border-right: 2px solid #e0e0e0; padding-right: 24px; text-align: center; min-width: 180px;">
         <h4 style="margin: 0 0 12px 0; color: #666; font-size: 13px;">🔌 實體裝置燈號同步</h4>
@@ -219,6 +210,7 @@
       </div>
     </div>
 
+    <!-- 🎮 遊戲互動面板 -->
     <div id="gameModuleBlock" class="game-panel-block hidden">
       <div class="game-score-board">
         <span id="gameTitleLabel">🎮 遊戲項目：熱氣球環遊世界</span>
@@ -239,6 +231,7 @@
       </div>
     </div>
 
+    <!-- 生理視覺與數據波形主呈區 -->
     <div class="visual-wrapper" id="mainVisualDataBlock">
       <div class="lung-visual-box" id="lungVisualBox">
         <svg class="lung-svg" viewBox="0 0 100 100">
@@ -290,6 +283,7 @@
       </div>
     </div>
 
+    <!-- 即時數據看板 -->
     <div class="data-grid" id="dataGridBlock">
       <div class="data-card in">
         <h4>即時吸氣流量 (Inhalation)</h4>
@@ -300,7 +294,7 @@
         <span><id id="flowOutVal">0.00</id> L/min</span>
       </div>
       <div class="data-card">
-        <h4>個人化動態 analysis 指標</h4>
+        <h4>個人化動態分析指標</h4>
         <span id="metricLabel" style="font-size:13px; color:#555; font-weight: 500;">等待氣流傳輸...</span>
       </div>
     </div>
@@ -330,10 +324,8 @@ let currentCycleMode = 'single';
 let hasTriggeredBreathInSingleMode = false; 
 let isSystemAwaitingFirstBreath = true; 
 
-// 🟢 核心過濾參數：開機防誤觸盲區長度（毫秒）
-// 如果測試後發現 1.5 秒太長或太短，可以直接修改下面這個全域數字（例：改為 2000 或 1200）
-const BOOT_GUARD_MS = 1500; 
-
+// 🟢 雙階段防誤觸機制變數
+const BOOT_GUARD_MS = 1500; // 開機盲區長度（1.5秒）
 let bootGuardTimestamp = 0; 
 let zeroFlowCounter = 0;    
 
@@ -355,7 +347,7 @@ let audioCtx = null;
 function playAlertTone(freq = 660, type = 'sine', duration = 0.15) {
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    const osc = audioCtx.createOscillator(); const gain = createGain();
     osc.type = type; osc.frequency.value = freq; gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
     osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + duration);
   } catch(e){}
@@ -467,7 +459,7 @@ const flowChart = new Chart(ctx, {
 });
 
 /** ==========================================
- * 🎛️ 5. 序列埠與生理自動化核心 (★開機參數化長效盲區過濾)
+ * 🎛️ 5. 序列埠與生理自動化狀態機 (★終極雙階段修復版)
  * ========================================== */
 function handleSerialLine(line) {
   if (!line || isGameOver) return;
@@ -481,43 +473,40 @@ function handleSerialLine(line) {
 
     let currentAbs = Math.abs(rawFlow);
 
-    // 全自動第一口氣觸發開機
+    // 🟢 階段一：等待受試者按下實體電源鍵 (此時可能是按鍵音或吹氣突波)
     if (isSystemAwaitingFirstBreath) {
       if (currentAbs > 8.0) {
         isSystemAwaitingFirstBreath = false; 
-        bootGuardTimestamp = Date.now(); // 標記開機時間點，啟動長效盲區計時
-        zeroFlowCounter = 0;             
-        executeActualTimerInterval();        
-      } else {
-        currentLiveFlowValue = 0;
-        return;
+        bootGuardTimestamp = Date.now();   // 啟動 1.5 秒硬開機盲區計時
+        hasTriggeredBreathInSingleMode = false; // 重設真正吹氣判定的旗標
+        zeroFlowCounter = 0;               
+        executeActualTimerInterval();      // 網頁計時器起跑
       }
+      return; // 第一筆觸發訊號不計入波形畫圖
     }
 
-    // 單次測試模式鎖死判定
+    // 🟢 階段二：單次測試模式鎖死判定 (完美拆分「盲區」與「真正吹氣判斷」)
     if (currentCycleMode === 'single') {
       let msSinceBoot = Date.now() - bootGuardTimestamp;
       
-      // 🟢 核心升級：動態讀取 BOOT_GUARD_MS 變數（目前為 1500 毫秒）
       if (msSinceBoot < BOOT_GUARD_MS) {
-        // 在開機 1.5 秒的長效安全盲區內：100% 阻斷並忽略任何「熄燈鎖死」的判定！
-        // 這能徹底消耗、蒸發掉電源鍵實體震動或蜂鳴器高頻嗶聲的一切干擾
-        if (currentAbs > 8.0) {
-          hasTriggeredBreathInSingleMode = true; 
-        }
+        // 🔒 1.5 秒盲區內：100% 略過「吹完氣熄燈」判斷，不管此時流量多高多低，絕對不准鎖死！
+        currentLiveFlowValue = 0; 
+        return; 
       } else {
-        // 超過 1.5 秒盲區，病患此時才是真正穩定呼氣階段：
+        // 🔓 超過 1.5 秒：盲區安然度過，病患可能正在深呼吸，或者剛剛開始吹氣
         if (currentAbs > 8.0) {
+          // 🎯 抓到了！病患深呼吸後，真正「大口呼氣」的訊號產生
           hasTriggeredBreathInSingleMode = true; 
-          zeroFlowCounter = 0; 
+          zeroFlowCounter = 0; // 只要有吹氣，重設降零計數器
         } else {
-          // 氣流真正跌落，必須連續 3 筆數據皆低於 8 才予以凍結，杜絕氣流微弱波動造成誤殺
+          // 只有在【病患已經有真正吹過氣 (hasTriggeredBreathInSingleMode === true)】的前提下，降到 8 以下才會開始算熄燈！
           if (hasTriggeredBreathInSingleMode && isTimerRunning) {
             zeroFlowCounter++;
-            if (zeroFlowCounter >= 3) { 
+            if (zeroFlowCounter >= 4) { // 連續 4 筆皆低於 8，判定病人真的吹完了！
               rawFlow = 0; currentLiveFlowValue = 0;
               updateWebAndHwLights(0); updateLungAnimation(0);
-              document.getElementById('status').innerText = `狀態：🔒 [單次模式] 已跳過開機 ${BOOT_GUARD_MS/1000} 秒雜訊區。本輪量測結束，數據已全面鎖死。`;
+              document.getElementById('status').innerText = `狀態：🔒 [單次模式] 偵測到吹氣平穩結束，數據已全面安全凍結鎖死。`;
               finishTestSession(); 
               return;
             }
@@ -604,7 +593,7 @@ function updateCycleModeConstraints() {
     timerSelect.value = "countdown"; timerSelect.disabled = true; 
     timerInput.classList.remove('hidden'); timerInput.disabled = false;
     syncTimerFromInput();
-    document.getElementById('instruction').innerText = `⚖️【單次測試模式】：倒數計時。具備開機 ${BOOT_GUARD_MS/1000} 秒參數化盲區過濾，吹氣結束自動凍結。`;
+    document.getElementById('instruction').innerText = `⚖️【單次測試模式】：倒數計時。雙階段智慧狀態機判定：自動跳過按鍵嗶聲，真正吹氣結束才安全鎖死。`;
   } else {
     timerSelect.value = "countup"; timerSelect.disabled = true;
     timerInput.classList.add('hidden');
