@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI智慧型雙向呼吸流量生理監測系統 (通訊死鎖全面修復版)</title>
+  <title>AI智慧型雙向呼吸流量生理監測系統 (連線與數據完全同步體)</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -313,10 +313,9 @@ let CALIBRATION_FACTORS = { inhalation: 1.00, exhalation: 1.00 };
 let HARDWARE_OFFSET = 0.00; 
 let isAutoCalibrating = false; let autoCalibBuffer = [];
 
-// 🔴 核心通訊流控制全域宣告 (修復死鎖關鍵)
 let serialPort = null; 
 let keepReading = false;
-let globalReader = null; // 升級為全域，以便跨函數強制釋放鎖定
+let globalReader = null; 
 let startTime = null; let flowData = []; let serialBuffer = "";
 
 // 核心模式變數
@@ -344,6 +343,10 @@ let currentHp = 3; let isGameOver = false;
 let invincibleFrames = 0; let knockoutFrames = 0;
 let playerY = 130; let playerSpeed = 0; let boatX = 50; let volcanoEnergy = 0;
 let gameObstacles = []; let gameFrameCount = 0; let currentLiveFlowValue = 0;
+
+// 前端元素 DOM ID 正確綁定
+const timerModeSelect = document.getElementById('timerModeSelect');
+const timerLengthInput = document.getElementById('timerLengthInput');
 
 let audioCtx = null;
 function playAlertTone(freq = 660, type = 'sine', duration = 0.15) {
@@ -384,8 +387,8 @@ function updateDetectionModeLayout(mode) {
     document.getElementById('gameTitleLabel').innerText = "🎮 遊戲項目：🎈 熱氣球環遊世界";
     
     if (!isTimerRunning) {
-      timerSelect.value = (currentCycleMode === 'single') ? "countdown" : "countup";
-      if(currentCycleMode === 'single') timerInput.classList.remove('hidden');
+      timerModeSelect.value = (currentCycleMode === 'single') ? "countdown" : "countup";
+      if(currentCycleMode === 'single') timerLengthInput.classList.remove('hidden');
     }
   } 
   else if (mode === 'in') {
@@ -397,8 +400,8 @@ function updateDetectionModeLayout(mode) {
     gameSelectDivider.classList.add('hidden');
     timerTitle.innerText = "⏱️ 吸氣耐力練習計時";
     
-    timerSelect.value = "countup"; timerSelect.disabled = true;
-    timerInput.classList.add('hidden');
+    timerModeSelect.value = "countup"; timerModeSelect.disabled = true;
+    timerLengthInput.classList.add('hidden');
     if (!isTimerRunning) updateLiveTimerDisplay("00:00 (等待吸氣)");
 
     currentGameType = "volcano";
@@ -414,8 +417,8 @@ function updateDetectionModeLayout(mode) {
     gameSelectDivider.classList.add('hidden');
     timerTitle.innerText = "⏱️ 吐氣耐力練習計時";
     
-    timerSelect.value = "countup"; timerSelect.disabled = true;
-    timerInput.classList.add('hidden');
+    timerModeSelect.value = "countup"; timerModeSelect.disabled = true;
+    timerLengthInput.classList.add('hidden');
     if (!isTimerRunning) updateLiveTimerDisplay("00:00 (等待吐氣)");
 
     currentGameType = "boat";
@@ -439,12 +442,12 @@ function resetSystemSessionState() {
 function updateCycleModeConstraints() {
   if (currentDetectionMode !== 'bi') return; 
   if (currentCycleMode === 'single') {
-    timerSelect.value = "countdown"; timerSelect.disabled = true; 
-    timerInput.classList.remove('hidden'); timerInput.disabled = false;
+    timerModeSelect.value = "countdown"; timerModeSelect.disabled = true; 
+    timerLengthInput.classList.remove('hidden'); timerLengthInput.disabled = false;
     syncTimerFromInput();
   } else {
-    timerSelect.value = "countup"; timerSelect.disabled = true;
-    timerInput.classList.add('hidden');
+    timerModeSelect.value = "countup"; timerModeSelect.disabled = true;
+    timerLengthInput.classList.add('hidden');
     if (!isTimerRunning) updateLiveTimerDisplay("00:00 (就緒)");
   }
 }
@@ -545,7 +548,7 @@ const flowChart = new Chart(ctx, {
 });
 
 /** ==========================================
- * 🎛️ 5. 序列埠與生理自動化狀態機 (★通訊釋放鏈徹底修復)
+ * 🎛️ 5. 序列埠與生理自動化狀態機
  * ========================================== */
 function handleSerialLine(line) {
   if (!line || isGameOver) return;
@@ -624,7 +627,7 @@ async function listenSerialLoop() {
       }
       decoder = new TextDecoderStream(); 
       readableStreamClosed = serialPort.readable.pipeTo(decoder.writable); 
-      globalReader = decoder.readable.getReader(); // 🟢 註冊至全域
+      globalReader = decoder.readable.getReader();
 
       try {
         while (keepReading) {
@@ -643,42 +646,35 @@ async function listenSerialLoop() {
         if (readableStreamClosed) { await readableStreamClosed.catch(() => {}); }
       }
 
-      // 🟢 核心修復：連續模式下，必須先手動斷開解鎖 globalReader，才允許重啟序列埠
       if (currentCycleMode === 'multi' && keepReading) {
         document.getElementById('status').innerText = "狀態：⏳ 裝置重新就緒中，正在釋放緩衝暫存...";
         updateWebAndHwLights(0); updateLungAnimation(0);
         
-        keepReading = false; // 先跳出讀取迴圈
+        keepReading = false; 
         try { await serialPort.close().catch(()=>{}); } catch(e){}
         await new Promise(resolve => setTimeout(resolve, 800));
         
-        keepReading = true; // 重新啟動
+        keepReading = true; 
         document.getElementById('status').innerText = "狀態：✅ 背景重連成功！隨時可進行下一次量測。";
       } else { break; }
     } catch (globalError) { await new Promise(resolve => setTimeout(resolve, 1000)); }
   }
 }
 
-// 🟢 終極連線釋放鏈：遵循 1.取消流 -> 2.釋放鎖 -> 3.關閉埠 醫學儀器級規範
 document.getElementById('connectBtn').onclick = async function () {
   try {
     if (keepReading) {
       document.getElementById('status').innerText = "狀態：正在強制安全釋放序列埠通道...";
       keepReading = false;
-      
-      // 1. 強制沒收解開全局讀取流
       if (globalReader) {
         try { await globalReader.cancel().catch(()=>{}); } catch(e){}
         try { globalReader.releaseLock(); } catch(e){}
         globalReader = null;
       }
-      
-      // 2. 關閉序列埠
       if (serialPort) {
         try { await serialPort.close().catch(()=>{}); } catch(e){}
         serialPort = null;
       }
-      
       this.innerText = "連接外接裝置"; this.classList.remove('connected');
       document.getElementById('status').innerText = "狀態：等待硬體連線 (通道已乾淨釋放)";
       return;
@@ -686,8 +682,6 @@ document.getElementById('connectBtn').onclick = async function () {
 
     document.getElementById('status').innerText = "狀態：正在開啟系統選單...";
     serialPort = await navigator.serial.requestPort();
-    
-    // 開啟前雙重防禦性關閉
     try { await serialPort.close().catch(()=>{}); } catch(e){}
     await serialPort.open({ baudRate: 9600 });
     
@@ -723,12 +717,12 @@ document.getElementById('webManualPauseBtn').onclick = function() {
 };
 
 function syncTimerFromInput() {
-  if (!isTimerRunning && timerSelect.value === "countdown") {
-    timeLeft = parseInt(timerInput.value) || 60;
+  if (!isTimerRunning && timerModeSelect.value === "countdown") {
+    timeLeft = parseInt(timerLengthInput.value) || 60;
     updateLiveTimerDisplay(`${timeLeft} 秒 (就緒)`);
   }
 }
-timerInput.addEventListener('input', syncTimerFromInput);
+timerLengthInput.addEventListener('input', syncTimerFromInput);
 
 function updateLiveTimerDisplay(txt) {
   document.getElementById('countdownBox').innerText = txt;
@@ -745,10 +739,10 @@ function executeActualTimerInterval() {
   gameScore = 0; document.getElementById('gameScoreVal').innerText = "0";
   gameObstacles = []; volcanoEnergy = 0; boatX = 50; playerY = 130;
 
-  if(timerSelect.value === "countdown") timeLeft = parseInt(timerInput.value) || 60;
+  if(timerModeSelect.value === "countdown") timeLeft = parseInt(timerLengthInput.value) || 60;
 
   testTimerId = setInterval(() => {
-    if (timerSelect.value === "countdown") {
+    if (timerModeSelect.value === "countdown") {
       timeLeft--;
       if (timeLeft <= 0) { updateLiveTimerDisplay("0 秒 (時間到)"); finishTestSession(); } 
       else { updateLiveTimerDisplay(`${timeLeft} 秒`); }
@@ -792,7 +786,7 @@ document.getElementById('gameSelect').onchange = function() {
 
 function checkGameAccessibility() {
   if (currentDetectionMode === 'bi') {
-    if (currentGameType === "balloon" && !isTimerRunning && !isSystemAwaitingFirstBreath) return { ok: false, msg: "❌ 警告：熱氣球遊戲必須在【生理量測起跑後】遊玩！" };
+    if (currentGameType === "balloon" && !isTimerRunning && !isSystemAwaitingFirstBreath) return { ok: false, msg: "❌ 警告：熱氣球遊戲將在【開始吸/吐氣流動時】自動起跑！" };
     if (currentGameType === "rocket" && currentCycleMode !== "multi") return { ok: false, msg: "❌ 警告：太空火箭遊戲被鎖定在【連續多次模式】專用！" };
   }
   return { ok: true };
@@ -813,7 +807,7 @@ function gameRenderLoop() {
   if (isSystemAwaitingFirstBreath) {
     gCtx.fillStyle = "rgba(0,150,136,0.15)"; gCtx.fillRect(0, 0, canvas.width, 30);
     gCtx.fillStyle = "#00e676"; gCtx.font = "bold 12px Arial"; gCtx.textAlign = "left";
-    gCtx.fillText("⚡ 施測就緒：點擊左側「開始施測」，或讓受試者按實體按鈕吹氣皆可同步起跑...", 15, 20);
+    gCtx.fillText("⚡ 施測就緒：點擊左側「點擊開始施測」，或受試者直接向軟管呼氣吸氣即可自動起跑...", 15, 20);
   }
 
   if (isGameOver) {
@@ -871,7 +865,6 @@ function gameRenderLoop() {
   document.getElementById('gameScoreVal').innerText = gameScore;
 }
 
-// 啟動初始化為雙向複合模式
 updateDetectionModeLayout('bi');
 switchViewMode("dual"); 
 gameRenderLoop();
