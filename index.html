@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>呼吸流量監測系統 v2.3</title>
+  <title>呼吸流量監測系統 v2.4</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -73,6 +73,7 @@
     .chart-wrapper { position: relative; height: 150px; margin: 6px 0; }
     .badge { background: #1b7e4a12; padding: 3px 12px; border-radius: 20px; font-size: 12px; color: #1b7e4a; border: 1px solid #1b7e4a25; }
     .badge-gold { background: #f39c1220; color: #b9770e; border-color: #f39c1240; }
+    .badge-info { background: #3498db20; color: #2471a3; border-color: #3498db30; }
     
     .timer-display { font-size: 28px; font-weight: 700; color: #1f3a2f; letter-spacing: 2px; background: #f0f8f0; padding: 2px 20px; border-radius: 40px; font-variant-numeric: tabular-nums; min-width: 100px; text-align: center; }
     
@@ -93,6 +94,11 @@
     .w-full { width: 100%; }
     .border-top { border-top: 1px solid #e0ece0; padding-top: 10px; margin-top: 6px; }
     .section-spacer { margin-top: 16px; }
+    
+    /* 標準區間顯示 */
+    .std-range { background: #f0f8f0; border-radius: 16px; padding: 6px 14px; border-left: 3px solid #1b7e4a; }
+    .std-range .label { font-size: 11px; color: #4a6a4a; }
+    .std-range .value { font-weight: 600; color: #1b7e4a; font-size: 14px; }
     
     @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
     @keyframes slideUp { from { transform: translateY(30px); opacity:0; } to { transform: translateY(0); opacity:1; } }
@@ -126,16 +132,25 @@
     </div>
   </div>
 
-  <!-- ===== 區塊 2: 病患資訊 ===== -->
+  <!-- ===== 區塊 2: 病患資訊 (含性別連動) ===== -->
   <div class="section-title section-spacer">
     📋 病患資訊
-    <span class="badge-section">* 身分證正確後自動解鎖儲存</span>
+    <span class="badge-section">身分證第二碼自動偵測性別</span>
   </div>
   <div class="grid-2">
     <div class="input-group"><label>病患編號</label><input id="patientId" placeholder="可選填" /></div>
     <div class="input-group"><label>身分證 *</label><input id="patientIdNumber" placeholder="A123456789" maxlength="10" style="text-transform:uppercase;" /></div>
     <div class="input-group"><label>年齡</label><input id="patientAge" type="number" value="30" min="0" max="120" /></div>
-    <div class="input-group"><label>性別</label><span id="genderDisplay" class="badge">未偵測</span></div>
+    <div class="input-group"><label>性別</label>
+      <span id="genderDisplay" class="badge">未偵測</span>
+      <span id="genderFromId" class="badge badge-info hidden">(由身分證自動偵測)</span>
+    </div>
+  </div>
+  
+  <!-- 年齡+性別標準區間顯示 (連動) -->
+  <div class="std-range" id="stdRangeDisplay" style="margin-top:6px;">
+    <span class="label">📊 依年齡與性別之流量標準區間：</span>
+    <span class="value" id="stdRangeValue">請輸入身分證與年齡</span>
   </div>
 
   <!-- ===== 區塊 3: 模式設定 ===== -->
@@ -182,7 +197,6 @@
 
   <!-- 肺部 + 儀表板並排 -->
   <div class="flex-row" style="justify-content:center; gap:30px; margin:8px 0; align-items:center;">
-    <!-- 精緻肺部 SVG -->
     <div class="lungs-container">
       <svg id="lungsSvg" viewBox="0 0 300 340" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -223,9 +237,7 @@
             <feDropShadow dx="1" dy="2" stdDeviation="3" flood-opacity="0.10"/>
           </filter>
         </defs>
-
         <rect x="0" y="0" width="300" height="340" fill="#f0f8f0" rx="40"/>
-
         <!-- 左肺 -->
         <g clip-path="url(#leftLungClip)" filter="url(#lungShadow)">
           <rect x="0" y="60" width="140" height="240" fill="url(#lungGradLeftDim)" id="leftLungBase"/>
@@ -235,7 +247,6 @@
         <path d="M65,70 C45,70 20,100 18,145 C16,190 30,230 50,260 C65,280 80,290 95,290 C108,290 115,275 118,255 C121,235 120,210 118,190 C116,170 110,150 100,130 C92,115 82,95 75,80 C70,72 68,70 65,70 Z" 
               fill="none" stroke="#3a5a3a" stroke-width="2.5" opacity="0.6"/>
         <path d="M80,85 C75,120 72,160 78,200 C82,230 90,260 95,280" fill="none" stroke="#4a6a4a" stroke-width="1.2" opacity="0.25" stroke-dasharray="4,6"/>
-        
         <!-- 右肺 -->
         <g clip-path="url(#rightLungClip)" filter="url(#lungShadow)">
           <rect x="160" y="60" width="140" height="240" fill="url(#lungGradRightDim)" id="rightLungBase"/>
@@ -245,7 +256,6 @@
         <path d="M235,70 C255,70 280,100 282,145 C284,190 270,230 250,260 C235,280 220,290 205,290 C192,290 185,275 182,255 C179,235 180,210 182,190 C184,170 190,150 200,130 C208,115 218,95 225,80 C230,72 232,70 235,70 Z" 
               fill="none" stroke="#3a5a3a" stroke-width="2.5" opacity="0.6"/>
         <path d="M220,85 C225,120 228,160 222,200 C218,230 210,260 205,280" fill="none" stroke="#4a6a4a" stroke-width="1.2" opacity="0.25" stroke-dasharray="4,6"/>
-
         <!-- 氣管與支氣管 -->
         <g filter="url(#tracheaShadow)">
           <path d="M148,20 L148,75 C148,80 150,85 152,88 L152,88" fill="none" stroke="#8a7a5a" stroke-width="10" stroke-linecap="round"/>
@@ -258,7 +268,6 @@
           <path d="M100,138 C108,148 115,160 120,172" fill="none" stroke="#8a7a5a" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
           <path d="M200,138 C208,148 215,160 222,170" fill="none" stroke="#8a7a5a" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
           <path d="M200,138 C192,148 185,160 180,172" fill="none" stroke="#8a7a5a" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
-          <!-- 氣管環狀軟骨 -->
           <ellipse cx="148" cy="30" rx="8" ry="2.5" fill="none" stroke="#6a5a3a" stroke-width="0.8" opacity="0.3"/>
           <ellipse cx="148" cy="40" rx="8" ry="2.5" fill="none" stroke="#6a5a3a" stroke-width="0.8" opacity="0.3"/>
           <ellipse cx="148" cy="50" rx="8" ry="2.5" fill="none" stroke="#6a5a3a" stroke-width="0.8" opacity="0.3"/>
@@ -266,12 +275,9 @@
           <ellipse cx="148" cy="70" rx="8" ry="2.5" fill="none" stroke="#6a5a3a" stroke-width="0.8" opacity="0.3"/>
         </g>
         <circle cx="150" cy="88" r="4" fill="#7a6a4a" opacity="0.4"/>
-
         <text x="150" y="16" text-anchor="middle" font-size="12" fill="#3a5a3a" font-weight="700" letter-spacing="1">氣 管</text>
         <text x="68" y="315" text-anchor="middle" font-size="13" fill="#3a5a3a" font-weight="600">左肺</text>
         <text x="232" y="315" text-anchor="middle" font-size="13" fill="#3a5a3a" font-weight="600">右肺</text>
-        
-        <!-- 流量指示器 -->
         <g id="flowIndicator" opacity="0">
           <path d="M148,35 L148,15" stroke="#2ecc71" stroke-width="2" stroke-dasharray="4,4">
             <animate attributeName="stroke-dashoffset" from="0" to="-8" dur="0.5s" repeatCount="indefinite"/>
@@ -281,7 +287,6 @@
       </svg>
     </div>
 
-    <!-- 儀表板 -->
     <div style="flex:1; min-width:250px;">
       <div class="gauge-container">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
@@ -358,7 +363,7 @@ const supabase = createClient(
 // ====== DOM ======
 const $ = id => document.getElementById(id);
 const patientId = $('patientId'), patientIdNumber = $('patientIdNumber'), patientAge = $('patientAge');
-const genderDisplay = $('genderDisplay');
+const genderDisplay = $('genderDisplay'), genderFromId = $('genderFromId');
 const saveBtn = $('saveBtn'), connectBtn = $('connectBtn'), resetBtn = $('resetBtn');
 const statusChip = $('statusChip'), flowValue = $('flowValue'), peakHold = $('peakHold');
 const instruction = $('instruction'), stepImages = $('stepImages');
@@ -374,6 +379,7 @@ const gameStatus = $('gameStatus'), gameScoreBadge = $('gameScoreBadge');
 const gameScoreValue = $('gameScoreValue'), gameNameDisplay = $('gameNameDisplay');
 const gameTargetDisplay = $('gameTargetDisplay'), gameProgress = $('gameProgress'), gameProgressBar = $('gameProgressBar');
 const saveHint = $('saveHint');
+const stdRangeValue = $('stdRangeValue');
 
 // ====== 核心狀態 ======
 let serialPort = null, reader = null, isConnected = false;
@@ -385,20 +391,74 @@ let measureMode = 'inhale', triggerMode = 'single';
 let continuousActive = false, calibrating = false, calibrationOffset = 0;
 let chartInstance = null;
 let audioCtx = null;
+let currentGender = null; // 'M' or 'F'
+
+// ====== 年齡+性別標準區間 (需求10) ======
+function getStandardRange(age, gender) {
+  // 依據年齡與性別回建議標準區間 (單位: L/min)
+  // 參考ATS/ERS標準
+  const ranges = {
+    'M': {
+      'child': { min: 2.0, max: 4.0, label: '兒童 (6-12歲)' },
+      'teen': { min: 3.5, max: 6.0, label: '青少年 (13-17歲)' },
+      'adult': { min: 4.5, max: 8.0, label: '成人 (18-60歲)' },
+      'senior': { min: 3.5, max: 6.5, label: '銀髮 (61歲以上)' }
+    },
+    'F': {
+      'child': { min: 1.8, max: 3.5, label: '兒童 (6-12歲)' },
+      'teen': { min: 3.0, max: 5.0, label: '青少年 (13-17歲)' },
+      'adult': { min: 3.5, max: 6.5, label: '成人 (18-60歲)' },
+      'senior': { min: 3.0, max: 5.5, label: '銀髮 (61歲以上)' }
+    }
+  };
+  
+  if (!gender) return { min: null, max: null, label: '請輸入身分證' };
+  if (age === null || age === undefined) return { min: null, max: null, label: '請輸入年齡' };
+  
+  let group;
+  if (age < 13) group = 'child';
+  else if (age < 18) group = 'teen';
+  else if (age < 61) group = 'adult';
+  else group = 'senior';
+  
+  const data = ranges[gender]?.[group];
+  if (!data) return { min: null, max: null, label: '無資料' };
+  return data;
+}
+
+function updateStandardRange() {
+  const age = parseInt(patientAge.value);
+  const gender = currentGender;
+  const range = getStandardRange(age, gender);
+  if (range.min !== null && range.max !== null) {
+    stdRangeValue.textContent = `${range.label}: ${range.min} ~ ${range.max} L/min`;
+    stdRangeValue.style.color = '#1b7e4a';
+  } else {
+    stdRangeValue.textContent = range.label || '請輸入完整資訊';
+    stdRangeValue.style.color = '#b7950b';
+  }
+}
 
 // ====== 更新儲存按鈕狀態 ======
 function updateSaveButton() {
   const idValid = validateTaiwanId(patientIdNumber.value);
-  saveBtn.disabled = !(idValid && isConnected);
-  if (saveBtn.disabled) {
-    if (!isConnected) saveHint.innerText = '⚠️ 請先連接裝置';
-    else if (!idValid) saveHint.innerText = '⚠️ 請輸入正確身分證 (10碼，首碼大寫英文，第二碼1/2)';
+  const canSave = idValid && isConnected;
+  saveBtn.disabled = !canSave;
+  if (!canSave) {
+    if (!isConnected) {
+      saveHint.innerText = '⚠️ 請先連接裝置';
+      saveHint.style.color = '#b7950b';
+    } else if (!idValid) {
+      saveHint.innerText = '⚠️ 請輸入正確身分證 (10碼，首碼大寫英文，第二碼1/2)';
+      saveHint.style.color = '#c0392b';
+    }
   } else {
     saveHint.innerText = '✅ 可儲存';
+    saveHint.style.color = '#1a7a42';
   }
 }
 
-// ====== 身分證驗證 ======
+// ====== 身分證驗證 (需求1) ======
 function validateTaiwanId(id) {
   if (!id || id.length !== 10) return false;
   if (!/^[A-Z]$/.test(id.charAt(0))) return false;
@@ -408,25 +468,44 @@ function validateTaiwanId(id) {
   return true;
 }
 
-patientIdNumber.addEventListener('input', () => {
-  const val = patientIdNumber.value.toUpperCase();
-  patientIdNumber.value = val;
+patientIdNumber.addEventListener('input', function() {
+  const val = this.value.toUpperCase();
+  this.value = val;
   const valid = validateTaiwanId(val);
-  updateSaveButton();
+  
   if (valid && val.length === 10) {
-    const gender = val.charAt(1) === '1' ? '👨 男性' : '👩 女性';
-    genderDisplay.innerText = gender;
+    const genderCode = parseInt(val.charAt(1));
+    currentGender = genderCode === 1 ? 'M' : 'F';
+    const genderText = genderCode === 1 ? '👨 男性' : '👩 女性';
+    genderDisplay.textContent = genderText;
+    genderDisplay.className = 'badge badge-info';
+    genderFromId.classList.remove('hidden');
     statusChip.className = 'status-chip success';
-    statusChip.innerText = '✅ 身分證正確';
+    statusChip.textContent = '✅ 身分證正確';
   } else if (val.length > 0) {
-    genderDisplay.innerText = '❌ 格式錯誤';
+    currentGender = null;
+    genderDisplay.textContent = '❌ 格式錯誤';
+    genderDisplay.className = 'badge';
+    genderFromId.classList.add('hidden');
     statusChip.className = 'status-chip error';
-    statusChip.innerText = '⚠️ 需10碼, 首碼大寫英文, 第二碼1/2';
+    statusChip.textContent = '⚠️ 需10碼, 首碼大寫英文, 第二碼1/2';
   } else {
-    genderDisplay.innerText = '未偵測';
+    currentGender = null;
+    genderDisplay.textContent = '未偵測';
+    genderDisplay.className = 'badge';
+    genderFromId.classList.add('hidden');
     statusChip.className = 'status-chip';
+    statusChip.textContent = isConnected ? '✅ 已連線' : '⚪ 未連接';
   }
+  
+  // 更新標準區間
+  updateStandardRange();
+  updateSaveButton();
 });
+
+// 年齡變更時更新標準區間
+patientAge.addEventListener('input', updateStandardRange);
+patientAge.addEventListener('change', updateStandardRange);
 
 // ====== 步驟管理 ======
 function setStep(step) {
@@ -465,7 +544,7 @@ function setStep(step) {
     stepImages.appendChild(div);
   });
   const texts = ['① 放置吸入器，順時針旋轉', '② 逆時針釋放藥劑', '③ 深吸後屏息10秒', '✅ 測量完成！'];
-  instruction.innerText = texts[step] || '';
+  instruction.textContent = texts[step] || '';
 }
 
 // ====== 肺部動畫 ======
@@ -589,14 +668,14 @@ function playSound(type) {
 }
 
 // ====== 連線管理 ======
-connectBtn.onclick = async () => {
+connectBtn.onclick = async function() {
   if (isConnected) {
     try { if (reader) await reader.cancel(); } catch(e){}
     try { if (serialPort) await serialPort.close(); } catch(e){}
     serialPort = null; isConnected = false; reader = null;
     statusChip.className = 'status-chip';
-    statusChip.innerText = '🔌 已斷開';
-    connectBtn.innerText = '🔗 連接';
+    statusChip.textContent = '🔌 已斷開';
+    this.textContent = '🔗 連接';
     updateSaveButton();
     showModal('🔌 已斷開連接', '裝置已成功中斷連線', '確認');
     return;
@@ -606,16 +685,16 @@ connectBtn.onclick = async () => {
     serialPort = await navigator.serial.requestPort();
     await serialPort.open({ baudRate: 9600 });
     isConnected = true;
-    connectBtn.innerText = '🔌 斷開';
+    this.textContent = '🔌 斷開';
     statusChip.className = 'status-chip success';
-    statusChip.innerText = '✅ 已連線';
+    statusChip.textContent = '✅ 已連線';
     startTime = Date.now(); flowData=[]; flowRecords=[]; budldValue=null; peakFlowValue=0;
     setStep(0);
     listenSerial();
     updateSaveButton();
     playSound('beep');
-  } catch(e) { statusChip.innerText = '❌ '+e.message; }
-}
+  } catch(e) { statusChip.textContent = '❌ '+e.message; }
+};
 
 async function listenSerial() {
   const decoder = new TextDecoderStream();
@@ -644,9 +723,9 @@ function handleSerialData(line) {
     lastFlowTime = Date.now();
     flowData.push([parseFloat(now), flow]);
     flowRecords.push({ time: parseFloat(now), flow: flow });
-    flowValue.innerText = flow.toFixed(2);
+    flowValue.textContent = flow.toFixed(2);
     const absFlow = Math.abs(flow);
-    if (absFlow > peakFlowValue) { peakFlowValue = absFlow; peakHold.innerText = peakFlowValue.toFixed(2); }
+    if (absFlow > peakFlowValue) { peakFlowValue = absFlow; peakHold.textContent = peakFlowValue.toFixed(2); }
     updateLungs(flow);
     drawGauge(absFlow, peakFlowValue);
     chartInstance.data.labels.push(now);
@@ -674,25 +753,25 @@ function startTimer() {
   if (timerInterval) return;
   timerRunning = true;
   const limit = parseInt(timerLimit.value) || 60;
-  if (timerMode === 'countdown') { timerSeconds = limit; timerDisplay.innerText = formatTime(timerSeconds); }
-  timerStatus.innerText = '▶️ 計時中';
+  if (timerMode === 'countdown') { timerSeconds = limit; timerDisplay.textContent = formatTime(timerSeconds); }
+  timerStatus.textContent = '▶️ 計時中';
   timerInterval = setInterval(() => {
     if (timerMode === 'stopwatch') { timerSeconds++; }
-    else { timerSeconds--; if (timerSeconds <= 0) { stopTimer(); timerDisplay.innerText = '00:00'; timerStatus.innerText = '⏹️ 結束'; showModal('⏰ 時間到', '計時器已結束', '確認'); playSound('beep'); return; } }
-    timerDisplay.innerText = formatTime(timerSeconds);
+    else { timerSeconds--; if (timerSeconds <= 0) { stopTimer(); timerDisplay.textContent = '00:00'; timerStatus.textContent = '⏹️ 結束'; showModal('⏰ 時間到', '計時器已結束', '確認'); playSound('beep'); return; } }
+    timerDisplay.textContent = formatTime(timerSeconds);
   }, 1000);
 }
-function stopTimer() { if (timerInterval) { clearInterval(timerInterval); timerInterval=null; timerRunning=false; timerStatus.innerText = '⏸️ 暫停'; } }
-function resetTimer() { stopTimer(); timerSeconds=0; timerDisplay.innerText='00:00'; timerStatus.innerText='⏸️ 待命'; }
+function stopTimer() { if (timerInterval) { clearInterval(timerInterval); timerInterval=null; timerRunning=false; timerStatus.textContent = '⏸️ 暫停'; } }
+function resetTimer() { stopTimer(); timerSeconds=0; timerDisplay.textContent='00:00'; timerStatus.textContent='⏸️ 待命'; }
 function formatTime(s) { const m=String(Math.floor(Math.abs(s)/60)).padStart(2,'0'); const sec=String(Math.abs(s)%60).padStart(2,'0'); return `${s<0?'-':''}${m}:${sec}`; }
 
 document.getElementById('timerResetBtn').onclick = resetTimer;
-document.getElementById('timerCountdown').onclick = () => { if(timerRunning) stopTimer(); timerMode='countdown'; resetTimer(); statusChip.innerText='⏳ 倒數計時'; };
-document.getElementById('timerStopwatch').onclick = () => { if(timerRunning) stopTimer(); timerMode='stopwatch'; resetTimer(); statusChip.innerText='⏱️ 累計計時'; };
-document.getElementById('timerToggle').onclick = () => { timerAuto=!timerAuto; document.getElementById('timerToggle').innerText = timerAuto?'▶️ 自動':'⏹️ 手動'; if(timerAuto && isConnected) startTimer(); else stopTimer(); };
+document.getElementById('timerCountdown').onclick = function() { if(timerRunning) stopTimer(); timerMode='countdown'; resetTimer(); statusChip.textContent='⏳ 倒數計時'; };
+document.getElementById('timerStopwatch').onclick = function() { if(timerRunning) stopTimer(); timerMode='stopwatch'; resetTimer(); statusChip.textContent='⏱️ 累計計時'; };
+document.getElementById('timerToggle').onclick = function() { timerAuto=!timerAuto; this.textContent = timerAuto?'▶️ 自動':'⏹️ 手動'; if(timerAuto && isConnected) startTimer(); else stopTimer(); };
 
 // ====== 儲存 ======
-saveBtn.onclick = async () => {
+saveBtn.onclick = async function() {
   const id = patientId.value.trim() || '未填';
   const idNumber = patientIdNumber.value.trim();
   if (!validateTaiwanId(idNumber)) { showModal('❌ 錯誤', '身分證格式錯誤，請修正', '確認'); return; }
@@ -729,23 +808,23 @@ saveBtn.onclick = async () => {
 };
 
 // ====== 重置 ======
-resetBtn.onclick = () => {
+resetBtn.onclick = function() {
   if (flowData.length > 0 && !confirm('確定要清除所有數據嗎？')) return;
   flowData=[]; flowRecords=[]; budldValue=null; peakFlowValue=0; currentFlow=0;
   chartInstance.data.labels=[]; chartInstance.data.datasets[0].data=[]; chartInstance.update();
-  flowValue.innerText='0.00'; peakHold.innerText='0.00';
+  flowValue.textContent='0.00'; peakHold.textContent='0.00';
   setStep(0); resetTimer(); updateLungs(0); drawGauge(0,0);
   statusChip.className = 'status-chip';
-  statusChip.innerText = isConnected ? '🔄 已重置 (裝置仍連線)' : '🔄 已重置';
+  statusChip.textContent = isConnected ? '🔄 已重置 (裝置仍連線)' : '🔄 已重置';
   gameActive = false; gameScore = 0; gameProgressVal = 0;
-  gameStatus.innerText = '關閉'; gameScoreBadge.classList.add('hidden');
-  gameNameDisplay.classList.add('hidden'); gameTargetDisplay.innerText = '';
+  gameStatus.textContent = '關閉'; gameScoreBadge.classList.add('hidden');
+  gameNameDisplay.classList.add('hidden'); gameTargetDisplay.textContent = '';
   gameProgress.classList.add('hidden');
   showModal('🔄 重置完成', '所有數據已清除，裝置仍保持連線', '確認');
 };
 
 // ====== 校準 ======
-document.getElementById('calibrateBtn').onclick = () => {
+document.getElementById('calibrateBtn').onclick = function() {
   if (!isConnected) { showModal('⚠️ 提示', '請先連接裝置', '確認'); return; }
   showModal('⚙️ 校準系統', '請確保裝置無流量，按下確認開始校準', '開始校準');
   calibrating = true;
@@ -759,7 +838,7 @@ document.getElementById('calibrateBtn').onclick = () => {
 };
 
 // ====== 匯出 ======
-document.getElementById('exportBtn').onclick = () => {
+document.getElementById('exportBtn').onclick = function() {
   if (flowData.length === 0) { showModal('⚠️ 提示', '無數據可匯出', '確認'); return; }
   let csv = '時間(秒),流量(L/min)\n';
   flowData.forEach(([t,f]) => csv += `${t.toFixed(2)},${f.toFixed(2)}\n`);
@@ -777,34 +856,34 @@ function showModal(title, msg, btnText = '確認') {
 // ====== 模式切換 ======
 document.getElementById('modeInhale').onclick = function() {
   document.querySelectorAll('#modeInhale,#modeExhale,#modeBoth').forEach(b => b.className='btn btn-sm btn-outline');
-  this.className='btn btn-sm btn-active'; measureMode='inhale'; statusChip.innerText='😤 吸氣模式';
+  this.className='btn btn-sm btn-active'; measureMode='inhale'; statusChip.textContent='😤 吸氣模式';
 };
 document.getElementById('modeExhale').onclick = function() {
   document.querySelectorAll('#modeInhale,#modeExhale,#modeBoth').forEach(b => b.className='btn btn-sm btn-outline');
-  this.className='btn btn-sm btn-active'; measureMode='exhale'; statusChip.innerText='😮‍💨 吐氣模式';
+  this.className='btn btn-sm btn-active'; measureMode='exhale'; statusChip.textContent='😮‍💨 吐氣模式';
 };
 document.getElementById('modeBoth').onclick = function() {
   document.querySelectorAll('#modeInhale,#modeExhale,#modeBoth').forEach(b => b.className='btn btn-sm btn-outline');
-  this.className='btn btn-sm btn-active'; measureMode='both'; statusChip.innerText='🔄 雙向模式';
+  this.className='btn btn-sm btn-active'; measureMode='both'; statusChip.textContent='🔄 雙向模式';
 };
 document.getElementById('modeSingle').onclick = function() {
   document.querySelectorAll('#modeSingle,#modeContinuous').forEach(b => b.className='btn btn-sm btn-outline');
-  this.className='btn btn-sm btn-active'; triggerMode='single'; continuousActive=false; statusChip.innerText='⏹️ 單次模式';
+  this.className='btn btn-sm btn-active'; triggerMode='single'; continuousActive=false; statusChip.textContent='⏹️ 單次模式';
 };
 document.getElementById('modeContinuous').onclick = function() {
   document.querySelectorAll('#modeSingle,#modeContinuous').forEach(b => b.className='btn btn-sm btn-outline');
-  this.className='btn btn-sm btn-active'; triggerMode='continuous'; statusChip.innerText='▶️ 連續模式';
+  this.className='btn btn-sm btn-active'; triggerMode='continuous'; statusChip.textContent='▶️ 連續模式';
   if (isConnected && !continuousActive) { continuousActive = true; }
 };
 
 // ====== 圖表控制 ======
-document.getElementById('clearChartBtn').onclick = () => {
+document.getElementById('clearChartBtn').onclick = function() {
   chartInstance.data.labels=[]; chartInstance.data.datasets[0].data=[]; chartInstance.update();
 };
-document.getElementById('resetChartZoom').onclick = () => {
+document.getElementById('resetChartZoom').onclick = function() {
   chartInstance.options.scales.x.min = undefined; chartInstance.options.scales.x.max = undefined; chartInstance.update();
 };
-document.getElementById('applyYRange').onclick = () => {
+document.getElementById('applyYRange').onclick = function() {
   const min = parseFloat(document.getElementById('yMinInput').value) || 0;
   const max = parseFloat(document.getElementById('yMaxInput').value) || 10;
   if (min >= max) { showModal('⚠️ 錯誤', '最小值需小於最大值', '確認'); return; }
@@ -825,9 +904,9 @@ document.getElementById('gameModeBtn').onclick = function() {
   gameMode = !gameMode;
   if (gameMode) {
     gameActive = true; gameScore = 0; gameProgressVal = 0; window._gameCompleted = false;
-    gameStatus.innerText = '🎮 進行中';
+    gameStatus.textContent = '🎮 進行中';
     gameScoreBadge.classList.remove('hidden');
-    gameScoreValue.innerText = '0';
+    gameScoreValue.textContent = '0';
     currentGame = Math.floor(Math.random() * 6);
     gameTarget = (1.5 + Math.random() * 5.5).toFixed(1);
     gameNameDisplay.textContent = `${games[currentGame].emoji} ${games[currentGame].name}`;
@@ -840,10 +919,10 @@ document.getElementById('gameModeBtn').onclick = function() {
     showModal('🎮 遊戲開始', `${games[currentGame].emoji} ${games[currentGame].name}\n${games[currentGame].desc}\n目標流量: ${gameTarget} L/min`, '開始！');
   } else {
     gameActive = false;
-    gameStatus.innerText = '關閉';
+    gameStatus.textContent = '關閉';
     gameScoreBadge.classList.add('hidden');
     gameNameDisplay.classList.add('hidden');
-    gameTargetDisplay.innerText = '';
+    gameTargetDisplay.textContent = '';
     gameProgress.classList.add('hidden');
     this.textContent = '🎮 遊戲模式';
     if (gameScore > 0) showModal('🏁 遊戲結束', `最終分數: ${gameScore} 分\n${gameScore > 50 ? '🌟 優異表現！' : gameScore > 20 ? '👍 不錯喔！' : '💪 繼續加油！'}`, '確認');
@@ -863,7 +942,7 @@ function processGame(flow) {
     case 4: points = Math.floor(absFlow * 1.5); progress = Math.min(100, (gameScore / 100) * 100); break;
     case 5: if (Math.random() > 0.65) { points = 20; playSound('game'); } progress = Math.min(100, (flowData.length / 30) * 100); break;
   }
-  if (points > 0) { gameScore += points; gameScoreValue.innerText = gameScore; if (points >= 10) playSound('success'); }
+  if (points > 0) { gameScore += points; gameScoreValue.textContent = gameScore; if (points >= 10) playSound('success'); }
   gameProgressVal = Math.min(100, progress);
   gameProgressBar.style.width = gameProgressVal + '%';
   if (gameProgressVal >= 95 && !window._gameCompleted) {
@@ -875,7 +954,7 @@ function processGame(flow) {
 }
 
 // ====== 登入 ======
-document.getElementById('loginBtn').onclick = async () => {
+document.getElementById('loginBtn').onclick = async function() {
   const action = confirm('點擊「確定」登入，取消則註冊新帳號');
   if (action) {
     const email = prompt('請輸入帳號 (Email)');
@@ -885,7 +964,7 @@ document.getElementById('loginBtn').onclick = async () => {
       if (error) { showModal('❌ 登入失敗', error.message, '確認'); return; }
       showModal('✅ 登入成功', `歡迎 ${data.user.email}`, '確認');
       document.getElementById('greeting').classList.remove('hidden');
-      document.getElementById('greeting').innerText = `👋 您好，${data.user.email}`;
+      document.getElementById('greeting').textContent = `👋 您好，${data.user.email}`;
       document.getElementById('myfilesBtn').classList.remove('hidden');
       document.getElementById('loginBtn').classList.add('hidden');
     }
@@ -901,7 +980,7 @@ document.getElementById('loginBtn').onclick = async () => {
   }
 };
 
-document.getElementById('myfilesBtn').onclick = () => {
+document.getElementById('myfilesBtn').onclick = function() {
   showModal('📁 歷史紀錄', '此功能需實作 userTable.html 頁面', '確認');
 };
 
@@ -915,11 +994,12 @@ setInterval(autoFocus, 3000);
 setStep(0);
 drawGauge(0,0);
 updateLungs(0);
-statusChip.innerText = '⚪ 就緒 - 請連接裝置';
+statusChip.textContent = '⚪ 就緒 - 請連接裝置';
+updateStandardRange();
 updateSaveButton();
 
 // ====== 鍵盤快捷鍵 ======
-document.addEventListener('keydown', (e) => {
+document.addEventListener('keydown', function(e) {
   if (e.key === 'Enter' && e.target.id === 'patientIdNumber' && validateTaiwanId(e.target.value)) {
     if (isConnected) saveBtn.click();
   }
@@ -929,8 +1009,9 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-console.log('🌬️ 呼吸流量監測系統 v2.3');
-console.log('✅ 所有按鈕在未連線時皆可操作，只有儲存按鈕需連線+身分證正確');
+console.log('🌬️ 呼吸流量監測系統 v2.4');
+console.log('✅ 身分證第二碼自動偵測性別並連動年齡標準區間');
+console.log('✅ 所有按鈕在未連線時皆可操作');
 </script>
 </body>
 </html>
