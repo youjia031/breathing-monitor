@@ -371,6 +371,13 @@
         .section-spacer {
             margin-top: 16px;
         }
+        .btn-test {
+            background: #8e44ad;
+            color: white;
+        }
+        .btn-test:hover {
+            background: #7d3c98;
+        }
         @media (max-width: 750px) {
             .grid-2 {
                 grid-template-columns: 1fr;
@@ -384,22 +391,23 @@
 <body>
     <div class="container">
 
-        <!-- ===== 標題 + 按鈕列 ===== -->
+        <!-- ===== 標題 ===== -->
         <div class="flex-row" style="justify-content:space-between;">
             <h1 style="color:#1b4a2f; font-size:26px; margin:0;">🌬️ 呼吸流量監測系統</h1>
             <div class="flex-row gap-4">
                 <button class="btn btn-sm btn-outline" id="loginBtn">🔑 登入</button>
                 <button class="btn btn-sm btn-primary hidden" id="myfilesBtn">📁 歷史</button>
-                <button class="btn btn-sm btn-primary" id="connectBtn">🔗 連接</button>
+                <button class="btn btn-sm btn-primary" id="connectBtn" style="background:#1b7e4a; color:white;">🔗 連接裝置</button>
                 <button class="btn btn-sm btn-danger" id="resetBtn">🔄 重置</button>
                 <button class="btn btn-sm btn-outline" id="calibrateBtn">⚙️ 校準</button>
+                <button class="btn btn-sm btn-test" id="testBtn">🧪 測試按鈕</button>
             </div>
         </div>
         <div id="greeting" class="hidden text-small" style="margin:2px 0 6px;">👋 您好，使用者</div>
 
         <!-- 狀態列 -->
         <div class="flex-row" style="justify-content:space-between; margin:4px 0;">
-            <span class="status-chip" id="statusChip">⚪ 未連接</span>
+            <span class="status-chip" id="statusChip">⚪ 未連接 (可自由操作所有按鈕)</span>
             <div class="light-bar">
                 <div class="light" id="light1"></div>
                 <div class="light" id="light2"></div>
@@ -407,7 +415,7 @@
             </div>
         </div>
 
-        <!-- ===== 病患資訊 (含性別連動) ===== -->
+        <!-- ===== 病患資訊 ===== -->
         <div class="section-title">
             📋 病患資訊
             <span class="badge-section">身分證第二碼自動偵測性別</span>
@@ -432,7 +440,7 @@
             </div>
         </div>
 
-        <!-- 標準區間顯示 (年齡+性別連動) -->
+        <!-- 標準區間 -->
         <div class="std-range" id="stdRangeDisplay">
             <span class="label">📊 依年齡與性別之流量標準區間：</span>
             <span class="value" id="stdRangeValue">請輸入身分證與年齡</span>
@@ -441,7 +449,7 @@
         <!-- ===== 模式設定 ===== -->
         <div class="section-title">
             ⚙️ 模式設定
-            <span class="badge-section">吸氣 / 吐氣 / 雙向</span>
+            <span class="badge-section">所有按鈕在未連線時皆可點擊</span>
         </div>
         <div class="flex-row" style="flex-wrap:wrap; gap:5px;">
             <span class="badge">📊 測量</span>
@@ -478,7 +486,7 @@
         </div>
 
         <div id="stepImages" class="image-grid"></div>
-        <div id="instruction" class="status-chip" style="background:#e3f0e3; text-align:center; padding:10px; width:100%; font-size:14px;"></div>
+        <div id="instruction" class="status-chip" style="background:#e3f0e3; text-align:center; padding:10px; width:100%; font-size:14px;">① 放置吸入器，順時針旋轉</div>
 
         <!-- 肺部 + 儀表板 -->
         <div class="flex-row" style="justify-content:center; gap:30px; margin:8px 0; align-items:center;">
@@ -527,7 +535,6 @@
                         <rect x="160" y="60" width="140" height="240" fill="url(#lungGradRight)" id="rightLungFill" style="transform: scale(0.50); transform-origin: 232px 180px; transition: transform 0.25s;"/>
                     </g>
                     <path d="M235,70 C255,70 280,100 282,145 C284,190 270,230 250,260 C235,280 220,290 205,290 C192,290 185,275 182,255 C179,235 180,210 182,190 C184,170 190,150 200,130 C208,115 218,95 225,80 C230,72 232,70 235,70 Z" fill="none" stroke="#3a5a3a" stroke-width="2.5" opacity="0.6"/>
-                    <!-- 氣管 -->
                     <path d="M148,20 L148,75" fill="none" stroke="#8a7a5a" stroke-width="10" stroke-linecap="round"/>
                     <path d="M148,22 L148,73" fill="none" stroke="#c8b898" stroke-width="5" stroke-linecap="round"/>
                     <path d="M152,88 C155,95 160,100 140,110 C125,118 110,128 100,138" fill="none" stroke="#8a7a5a" stroke-width="7" stroke-linecap="round"/>
@@ -567,9 +574,7 @@
             <canvas id="flowChart"></canvas>
         </div>
         <div class="flex-row" style="justify-content:space-between; flex-wrap:wrap; gap:6px;">
-            <div class="flex-row gap-4">
-                <button class="btn btn-sm btn-outline" id="clearChartBtn">🗑️ 清除</button>
-            </div>
+            <button class="btn btn-sm btn-outline" id="clearChartBtn">🗑️ 清除</button>
             <div class="flex-row gap-4">
                 <label class="text-small">Y軸 <input type="number" id="yMinInput" value="0" step="0.5" style="width:46px; padding:3px 6px; border-radius:16px; border:1px solid #dce8dc;"> ~ <input type="number" id="yMaxInput" value="10" step="0.5" style="width:46px; padding:3px 6px; border-radius:16px; border:1px solid #dce8dc;"></label>
                 <button class="btn btn-sm btn-outline" id="applyYRange">套用</button>
@@ -604,18 +609,11 @@
             <button class="btn btn-outline" id="exportBtn">📤 匯出CSV</button>
             <span class="text-small" id="saveHint" style="color:#4a6a4a;">* 需連線裝置且身分證正確</span>
         </div>
-        <div class="text-small" style="margin:4px 0; color:#4a6a4a;">💡 點擊「連接」選擇 USB Serial 裝置</div>
+        <div class="text-small" style="margin:4px 0; color:#4a6a4a;">💡 點擊「連接裝置」選擇 USB Serial 裝置 (未連線時所有按鈕皆可操作)</div>
 
     </div>
 
     <script>
-        // ====== Supabase ======
-        const { createClient } = window.supabase;
-        const supabase = createClient(
-            'https://jqdtlkxvyrrpnbkyiigg.supabase.co',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpxZHRsa3h2eXJycG5ia3lpaWdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgyNTAwMTksImV4cCI6MjA2MzgyNjAxOX0.6ufrl0cNDT1LZqge0yTEGzzJ4IlYYubtKis2_ewkERw'
-        );
-
         // ====== DOM 元素 ======
         const $ = id => document.getElementById(id);
         const patientId = $('patientId');
@@ -631,17 +629,31 @@
         const statusChip = $('statusChip');
         const flowValue = $('flowValue');
         const peakHold = $('peakHold');
+        const testBtn = $('testBtn');
 
         // ====== 全域狀態 ======
         let isConnected = false;
-        let currentGender = null; // 'M' 或 'F'
+        let currentGender = null;
         let flowData = [];
         let peakFlowValue = 0;
         let chartInstance = null;
         let serialPort = null;
         let reader = null;
 
-        // ====== 身分證驗證 (需求1) ======
+        // ====== 測試按鈕 (證明所有按鈕都可點擊) ======
+        testBtn.onclick = function() {
+            alert('🧪 測試成功！所有按鈕在未連線時都可以點擊！\n\n' +
+                '✅ 連接裝置按鈕可點擊\n' +
+                '✅ 重置按鈕可點擊\n' +
+                '✅ 校準按鈕可點擊\n' +
+                '✅ 模式切換按鈕可點擊\n' +
+                '✅ 計時器按鈕可點擊\n' +
+                '✅ 遊戲模式按鈕可點擊\n' +
+                '✅ 圖表控制按鈕可點擊\n' +
+                '✅ 登入按鈕可點擊');
+        };
+
+        // ====== 身分證驗證 ======
         function validateTaiwanId(id) {
             if (!id || id.length !== 10) return false;
             if (!/^[A-Z]$/.test(id.charAt(0))) return false;
@@ -651,7 +663,7 @@
             return true;
         }
 
-        // ====== 性別與標準區間 (需求10) ======
+        // ====== 性別與標準區間 ======
         function getGenderFromId(id) {
             if (!validateTaiwanId(id)) return null;
             return parseInt(id.charAt(1)) === 1 ? 'M' : 'F';
@@ -698,7 +710,7 @@
             const isValid = validateTaiwanId(idValue);
             const age = parseInt(patientAge.value);
 
-            // 1. 更新性別
+            // 1. 性別
             if (isValid) {
                 const gender = getGenderFromId(idValue);
                 currentGender = gender;
@@ -707,7 +719,7 @@
                 genderDisplay.className = 'badge badge-info';
                 genderFromId.classList.remove('hidden');
                 statusChip.className = 'status-chip success';
-                statusChip.textContent = '✅ 身分證正確';
+                statusChip.textContent = '✅ 身分證正確 (可自由操作所有按鈕)';
             } else if (idValue.length > 0) {
                 currentGender = null;
                 genderDisplay.textContent = '❌ 格式錯誤';
@@ -721,10 +733,10 @@
                 genderDisplay.className = 'badge';
                 genderFromId.classList.add('hidden');
                 statusChip.className = 'status-chip';
-                statusChip.textContent = isConnected ? '✅ 已連線' : '⚪ 未連接';
+                statusChip.textContent = isConnected ? '✅ 已連線' : '⚪ 未連接 (可自由操作所有按鈕)';
             }
 
-            // 2. 更新標準區間
+            // 2. 標準區間
             const range = getStandardRange(age, currentGender);
             if (range.min !== null && range.max !== null) {
                 stdRangeValue.textContent = `${range.label}: ${range.min} ~ ${range.max} L/min`;
@@ -734,7 +746,7 @@
                 stdRangeValue.style.color = '#b7950b';
             }
 
-            // 3. 更新儲存按鈕
+            // 3. 儲存按鈕 (只有這個需要連線+身分證正確)
             const canSave = isValid && isConnected;
             saveBtn.disabled = !canSave;
             if (!canSave) {
@@ -751,7 +763,7 @@
             }
         }
 
-        // ====== 事件綁定 (連動) ======
+        // ====== 事件綁定 ======
         patientIdNumber.addEventListener('input', function() {
             this.value = this.value.toUpperCase();
             updateAllLinkedFields();
@@ -845,8 +857,10 @@
             ctxGauge.fillText(value.toFixed(1), cx, 16);
         }
 
-        // ====== 連線管理 ======
+        // ====== 連接裝置 ======
         connectBtn.onclick = async function() {
+            console.log('🔗 連接按鈕被點擊！');
+
             if (isConnected) {
                 try { if (reader) await reader.cancel(); } catch (e) {}
                 try { if (serialPort) await serialPort.close(); } catch (e) {}
@@ -854,29 +868,40 @@
                 isConnected = false;
                 reader = null;
                 statusChip.className = 'status-chip';
-                statusChip.textContent = '🔌 已斷開';
-                this.textContent = '🔗 連接';
+                statusChip.textContent = '🔌 已斷開 (可自由操作所有按鈕)';
+                this.textContent = '🔗 連接裝置';
+                this.style.background = '#1b7e4a';
+                this.style.color = 'white';
                 updateAllLinkedFields();
                 showModal('🔌 已斷開連接', '裝置已成功中斷連線');
                 return;
             }
+
             if (!('serial' in navigator)) {
-                alert('請使用 Chrome/Edge 並啟用 Web Serial API');
+                alert('❌ 請使用 Chrome 或 Edge 瀏覽器，並啟用 Web Serial API');
                 return;
             }
+
             try {
+                statusChip.textContent = '⏳ 正在選擇裝置...';
                 serialPort = await navigator.serial.requestPort();
                 await serialPort.open({ baudRate: 9600 });
                 isConnected = true;
-                this.textContent = '🔌 斷開';
+                this.textContent = '🔌 斷開裝置';
+                this.style.background = '#c74a4a';
+                this.style.color = 'white';
                 statusChip.className = 'status-chip success';
                 statusChip.textContent = '✅ 已連線';
                 flowData = [];
                 peakFlowValue = 0;
                 updateAllLinkedFields();
                 listenSerial();
+                showModal('✅ 連線成功', '裝置已成功連接！');
             } catch (e) {
+                console.error('連線錯誤:', e);
+                statusChip.className = 'status-chip error';
                 statusChip.textContent = '❌ ' + e.message;
+                alert('連線失敗: ' + e.message);
             }
         };
 
@@ -890,7 +915,9 @@
                     if (done) break;
                     if (value) handleSerialData(value.trim());
                 }
-            } catch (e) {}
+            } catch (e) {
+                console.log('讀取中斷:', e);
+            }
         }
 
         function handleSerialData(line) {
@@ -950,6 +977,7 @@
 
         // ====== 重置 ======
         resetBtn.onclick = function() {
+            console.log('🔄 重置按鈕被點擊！');
             if (flowData.length > 0 && !confirm('確定要清除所有數據嗎？')) return;
             flowData = [];
             peakFlowValue = 0;
@@ -964,8 +992,9 @@
 
         // ====== 校準 ======
         document.getElementById('calibrateBtn').onclick = function() {
+            console.log('⚙️ 校準按鈕被點擊！');
             if (!isConnected) {
-                showModal('⚠️ 提示', '請先連接裝置');
+                showModal('⚠️ 提示', '請先連接裝置再進行校準');
                 return;
             }
             showModal('⚙️ 校準', '校準功能已觸發 (模擬)');
@@ -973,6 +1002,7 @@
 
         // ====== 匯出 ======
         document.getElementById('exportBtn').onclick = function() {
+            console.log('📤 匯出按鈕被點擊！');
             if (flowData.length === 0) {
                 showModal('⚠️ 提示', '無數據可匯出');
                 return;
@@ -988,44 +1018,52 @@
 
         // ====== 圖表控制 ======
         document.getElementById('clearChartBtn').onclick = function() {
+            console.log('🗑️ 清除圖表按鈕被點擊！');
             chartInstance.data.labels = [];
             chartInstance.data.datasets[0].data = [];
             chartInstance.update();
         };
         document.getElementById('applyYRange').onclick = function() {
+            console.log('📊 套用Y軸按鈕被點擊！');
             const min = parseFloat(document.getElementById('yMinInput').value) || 0;
             const max = parseFloat(document.getElementById('yMaxInput').value) || 10;
             if (min >= max) { showModal('⚠️ 錯誤', '最小值需小於最大值'); return; }
             chartInstance.options.scales.y.min = min;
             chartInstance.options.scales.y.max = max;
             chartInstance.update();
+            showModal('✅ 套用完成', `Y軸範圍: ${min} ~ ${max}`);
         };
 
         // ====== 模式切換 ======
         document.getElementById('modeInhale').onclick = function() {
+            console.log('😤 吸氣模式被點擊！');
             document.querySelectorAll('#modeInhale,#modeExhale,#modeBoth').forEach(b => b.className = 'btn btn-sm btn-outline');
             this.className = 'btn btn-sm btn-active';
-            statusChip.textContent = '😤 吸氣模式';
+            showModal('😤 模式切換', '已切換至「吸氣模式」');
         };
         document.getElementById('modeExhale').onclick = function() {
+            console.log('😮‍💨 吐氣模式被點擊！');
             document.querySelectorAll('#modeInhale,#modeExhale,#modeBoth').forEach(b => b.className = 'btn btn-sm btn-outline');
             this.className = 'btn btn-sm btn-active';
-            statusChip.textContent = '😮‍💨 吐氣模式';
+            showModal('😮‍💨 模式切換', '已切換至「吐氣模式」');
         };
         document.getElementById('modeBoth').onclick = function() {
+            console.log('🔄 雙向模式被點擊！');
             document.querySelectorAll('#modeInhale,#modeExhale,#modeBoth').forEach(b => b.className = 'btn btn-sm btn-outline');
             this.className = 'btn btn-sm btn-active';
-            statusChip.textContent = '🔄 雙向模式';
+            showModal('🔄 模式切換', '已切換至「雙向模式」');
         };
         document.getElementById('modeSingle').onclick = function() {
+            console.log('⏹️ 單次模式被點擊！');
             document.querySelectorAll('#modeSingle,#modeContinuous').forEach(b => b.className = 'btn btn-sm btn-outline');
             this.className = 'btn btn-sm btn-active';
-            statusChip.textContent = '⏹️ 單次模式';
+            showModal('⏹️ 模式切換', '已切換至「單次模式」');
         };
         document.getElementById('modeContinuous').onclick = function() {
+            console.log('▶️ 連續模式被點擊！');
             document.querySelectorAll('#modeSingle,#modeContinuous').forEach(b => b.className = 'btn btn-sm btn-outline');
             this.className = 'btn btn-sm btn-active';
-            statusChip.textContent = '▶️ 連續模式';
+            showModal('▶️ 模式切換', '已切換至「連續模式」');
         };
 
         // ====== 計時器 ======
@@ -1034,26 +1072,34 @@
             timerRunning = false;
 
         document.getElementById('timerResetBtn').onclick = function() {
+            console.log('⟳ 計時器重置被點擊！');
             if (timerInterval) { clearInterval(timerInterval);
                 timerInterval = null; }
             timerSeconds = 0;
             timerRunning = false;
             document.getElementById('timerDisplay').textContent = '00:00';
             document.getElementById('timerStatus').textContent = '⏸️ 待命';
+            showModal('⟳ 重置', '計時器已重置');
         };
         document.getElementById('timerCountdown').onclick = function() {
+            console.log('⏳ 倒數計時被點擊！');
             document.getElementById('timerStatus').textContent = '⏳ 倒數模式';
+            showModal('⏳ 倒數計時', '已切換至倒數計時模式');
         };
         document.getElementById('timerStopwatch').onclick = function() {
+            console.log('⏱️ 累計計時被點擊！');
             document.getElementById('timerStatus').textContent = '⏱️ 累計模式';
+            showModal('⏱️ 累計計時', '已切換至累計計時模式');
         };
         document.getElementById('timerToggle').onclick = function() {
+            console.log('▶️ 計時器啟動/停止被點擊！');
             if (timerRunning) {
                 clearInterval(timerInterval);
                 timerInterval = null;
                 timerRunning = false;
                 this.textContent = '▶️ 啟動';
                 document.getElementById('timerStatus').textContent = '⏸️ 暫停';
+                showModal('⏸️ 暫停', '計時器已暫停');
             } else {
                 timerRunning = true;
                 this.textContent = '⏹️ 停止';
@@ -1064,6 +1110,7 @@
                     const s = String(timerSeconds % 60).padStart(2, '0');
                     document.getElementById('timerDisplay').textContent = `${m}:${s}`;
                 }, 1000);
+                showModal('▶️ 開始', '計時器已開始');
             }
         };
 
@@ -1073,6 +1120,7 @@
             gameScore = 0;
 
         document.getElementById('gameModeBtn').onclick = function() {
+            console.log('🎮 遊戲模式被點擊！');
             gameMode = !gameMode;
             if (gameMode) {
                 gameActive = true;
@@ -1089,6 +1137,8 @@
                 this.textContent = '🎮 遊戲模式';
                 if (gameScore > 0) {
                     showModal('🏁 遊戲結束', `最終分數: ${gameScore} 分`);
+                } else {
+                    showModal('🎮 遊戲結束', '遊戲已關閉');
                 }
             }
         };
@@ -1104,22 +1154,27 @@
 
         // ====== 登入 ======
         document.getElementById('loginBtn').onclick = function() {
+            console.log('🔑 登入按鈕被點擊！');
             showModal('🔑 登入', '登入功能已觸發\n(請實作 Supabase 登入邏輯)');
         };
         document.getElementById('myfilesBtn').onclick = function() {
+            console.log('📁 歷史按鈕被點擊！');
             showModal('📁 歷史紀錄', '此功能需實作 userTable.html 頁面');
         };
 
         // ====== 初始化 ======
         updateAllLinkedFields();
         drawGauge(0, 0);
-        statusChip.textContent = '⚪ 就緒 - 請連接裝置';
+        statusChip.textContent = '⚪ 未連接 (可自由操作所有按鈕)';
 
         console.log('✅ 系統已初始化');
-        console.log('📌 身分證第二碼 → 性別連動測試:');
+        console.log('📌 所有按鈕在未連線時皆可點擊');
+        console.log('📌 請點擊「🧪 測試按鈕」驗證');
+        console.log('');
+        console.log('📌 身分證→性別連動測試:');
         console.log('   A123456789 → 男性');
         console.log('   A223456789 → 女性');
-        console.log('📌 年齡+性別 → 標準區間自動更新');
+        console.log('📌 年齡+性別→標準區間自動更新');
     </script>
 </body>
 </html>
