@@ -33,11 +33,6 @@
             gap: 10px;
             align-items: center;
         }
-        .flex-col {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
         .grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -53,7 +48,6 @@
             color: #1f3a2f;
             cursor: pointer;
             transition: all 0.25s;
-            pointer-events: auto !important;
         }
         .btn:hover:not(:disabled) {
             transform: translateY(-2px);
@@ -68,10 +62,6 @@
         .btn-primary {
             background: #1b7e4a;
             color: white;
-        }
-        .btn-primary:disabled {
-            opacity: 0.4;
-            pointer-events: none !important;
         }
         .btn-danger {
             background: #c74a4a;
@@ -168,21 +158,6 @@
             color: #b9770e;
             border-color: #f39c1240;
         }
-        .badge-red {
-            background: #e74c3c20;
-            color: #c0392b;
-            border-color: #e74c3c30;
-        }
-        .badge-yellow {
-            background: #f1c40f20;
-            color: #b7950b;
-            border-color: #f1c40f30;
-        }
-        .badge-green {
-            background: #2ecc7120;
-            color: #1a7a42;
-            border-color: #2ecc7130;
-        }
         .section-title {
             font-size: 16px;
             font-weight: 700;
@@ -247,12 +222,6 @@
             background: #f1c40f;
             border-color: #d4ac0d;
             box-shadow: 0 0 24px #f1c40f80;
-            transform: scale(1.10);
-        }
-        .light.on-blue {
-            background: #3498db;
-            border-color: #2980b9;
-            box-shadow: 0 0 24px #3498db80;
             transform: scale(1.10);
         }
         .step-progress {
@@ -436,9 +405,6 @@
             font-size: 12px;
             color: #4a6a4a;
         }
-        .section-spacer {
-            margin-top: 16px;
-        }
         .status-indicator {
             display: flex;
             align-items: center;
@@ -463,10 +429,6 @@
         .status-indicator.grey {
             background: #e7f3ec;
             color: #4a6a4a;
-        }
-        .click-test {
-            background: #8e44ad !important;
-            color: white !important;
         }
         @media (max-width: 750px) {
             .grid-2 {
@@ -494,7 +456,7 @@
                 <button class="btn btn-sm btn-primary" id="connectBtn">🔗 連接裝置</button>
                 <button class="btn btn-sm btn-danger" id="resetBtn">🔄 全部重置</button>
                 <button class="btn btn-sm btn-outline" id="calibrateBtn">⚙️ 校準</button>
-                <button class="btn btn-sm click-test" id="testBtn">🧪 測試按鈕</button>
+                <button class="btn btn-sm btn-test" id="testBtn">🧪 測試按鈕</button>
             </div>
         </div>
         <div id="greeting" class="hidden text-small" style="margin:2px 0 6px;">👋 您好，使用者</div>
@@ -717,7 +679,7 @@
         <!-- ===== 儲存 ===== -->
         <div class="section-title">
             💾 資料儲存
-            <span class="badge-section">需連線 + 身分證正確 (僅此按鈕需連線)</span>
+            <span class="badge-section">需連線 + 身分證正確</span>
         </div>
         <div class="flex-row" style="gap:10px; flex-wrap:wrap;">
             <button class="btn btn-primary" id="saveBtn" disabled>💾 儲存資料</button>
@@ -729,48 +691,11 @@
     </div>
 
     <script>
-        // ====== Supabase ======
-        const { createClient } = window.supabase;
-        const supabase = createClient(
-            'https://jqdtlkxvyrrpnbkyiigg.supabase.co',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpxZHRsa3h2eXJycG5ia3lpaWdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgyNTAwMTksImV4cCI6MjA2MzgyNjAxOX0.6ufrl0cNDT1LZqge0yTEGzzJ4IlYYubtKis2_ewkERw'
-        );
-
         // ====== DOM 元素 ======
         const $ = id => document.getElementById(id);
-        const patientId = $('patientId');
-        const patientIdNumber = $('patientIdNumber');
-        const patientAge = $('patientAge');
-        const genderDisplay = $('genderDisplay');
-        const genderFromId = $('genderFromId');
-        const stdRangeValue = $('stdRangeValue');
-        const saveBtn = $('saveBtn');
-        const saveHint = $('saveHint');
-        const connectBtn = $('connectBtn');
-        const resetBtn = $('resetBtn');
-        const statusChip = $('statusChip');
-        const flowValue = $('flowValue');
-        const peakHold = $('peakHold');
-        const flowStatusIndicator = $('flowStatusIndicator');
-        const flowStatusDetail = $('flowStatusDetail');
-        const testBtn = $('testBtn');
 
-        // ====== 全域狀態 ======
-        let isConnected = false;
-        let currentGender = null;
-        let flowData = [];
-        let peakFlowValue = 0;
-        let currentFlow = 0;
-        let chartInstance = null;
-        let serialPort = null;
-        let reader = null;
-
-        // ====== 標準區間設定 ======
-        let stdMin = null;
-        let stdMax = null;
-
-        // ====== 測試按鈕 (證明所有按鈕都可點擊) ======
-        testBtn.onclick = function() {
+        // ====== 測試按鈕 ======
+        document.getElementById('testBtn').onclick = function() {
             alert('🧪 測試成功！\n\n✅ 所有按鈕在未連線時都可以點擊！\n✅ 連接裝置按鈕可點擊\n✅ 重置按鈕可點擊\n✅ 校準按鈕可點擊\n✅ 模式切換按鈕可點擊\n✅ 計時器按鈕可點擊\n✅ 遊戲模式按鈕可點擊\n✅ 圖表控制按鈕可點擊\n✅ 登入按鈕可點擊\n\n只有「儲存資料」需要連線+身分證正確');
         };
 
@@ -783,6 +708,18 @@
             if (second !== 1 && second !== 2) return false;
             return true;
         }
+
+        // ====== 全域狀態 ======
+        let isConnected = false;
+        let currentGender = null;
+        let flowData = [];
+        let peakFlowValue = 0;
+        let currentFlow = 0;
+        let chartInstance = null;
+        let serialPort = null;
+        let reader = null;
+        let stdMin = null;
+        let stdMax = null;
 
         // ====== 性別與標準區間 ======
         function getGenderFromId(id) {
@@ -825,24 +762,22 @@
             return data;
         }
 
-        // ====== 更新流量狀態指示燈 ======
+        // ====== 更新流量狀態 ======
         function updateFlowStatus(flow) {
             const absFlow = Math.abs(flow);
-            const indicator = flowStatusIndicator;
-            const detail = flowStatusDetail;
+            const indicator = document.getElementById('flowStatusIndicator');
+            const detail = document.getElementById('flowStatusDetail');
 
             if (absFlow < 0.1) {
                 indicator.className = 'status-indicator grey';
                 indicator.textContent = '⚪ 等待測量';
                 detail.textContent = '-';
-                // 燈號復位
                 document.getElementById('light1').className = 'light';
                 document.getElementById('light2').className = 'light';
                 document.getElementById('light3').className = 'light';
                 return;
             }
 
-            // 檢查是否在標準區間內
             if (stdMin !== null && stdMax !== null) {
                 if (absFlow >= stdMin && absFlow <= stdMax) {
                     indicator.className = 'status-indicator green';
@@ -876,58 +811,60 @@
             }
         }
 
-        // ====== 更新所有連動項目 ======
+        // ====== 更新所有連動 ======
         function updateAllLinkedFields() {
-            const idValue = patientIdNumber.value.toUpperCase();
+            const idValue = document.getElementById('patientIdNumber').value.toUpperCase();
+            document.getElementById('patientIdNumber').value = idValue;
             const isValid = validateTaiwanId(idValue);
-            const age = parseInt(patientAge.value);
+            const age = parseInt(document.getElementById('patientAge').value);
 
-            // 1. 性別
+            // 性別
             if (isValid) {
                 const gender = getGenderFromId(idValue);
                 currentGender = gender;
                 const genderText = getGenderText(gender);
-                genderDisplay.textContent = '👨 ' + genderText;
-                genderDisplay.className = 'badge badge-info';
-                genderFromId.classList.remove('hidden');
-                statusChip.className = 'status-chip success';
-                statusChip.textContent = '✅ 身分證正確 (所有按鈕皆可操作)';
+                document.getElementById('genderDisplay').textContent = '👨 ' + genderText;
+                document.getElementById('genderDisplay').className = 'badge badge-info';
+                document.getElementById('genderFromId').classList.remove('hidden');
+                document.getElementById('statusChip').className = 'status-chip success';
+                document.getElementById('statusChip').textContent = '✅ 身分證正確 (所有按鈕皆可操作)';
             } else if (idValue.length > 0) {
                 currentGender = null;
-                genderDisplay.textContent = '❌ 格式錯誤';
-                genderDisplay.className = 'badge';
-                genderFromId.classList.add('hidden');
-                statusChip.className = 'status-chip error';
-                statusChip.textContent = '⚠️ 需10碼, 首碼大寫英文, 第二碼1/2';
+                document.getElementById('genderDisplay').textContent = '❌ 格式錯誤';
+                document.getElementById('genderDisplay').className = 'badge';
+                document.getElementById('genderFromId').classList.add('hidden');
+                document.getElementById('statusChip').className = 'status-chip error';
+                document.getElementById('statusChip').textContent = '⚠️ 需10碼, 首碼大寫英文, 第二碼1/2';
             } else {
                 currentGender = null;
-                genderDisplay.textContent = '未偵測';
-                genderDisplay.className = 'badge';
-                genderFromId.classList.add('hidden');
-                statusChip.className = 'status-chip';
-                statusChip.textContent = isConnected ? '✅ 已連線' : '⚪ 未連接 (所有按鈕皆可操作)';
+                document.getElementById('genderDisplay').textContent = '未偵測';
+                document.getElementById('genderDisplay').className = 'badge';
+                document.getElementById('genderFromId').classList.add('hidden');
+                document.getElementById('statusChip').className = 'status-chip';
+                document.getElementById('statusChip').textContent = isConnected ? '✅ 已連線' : '⚪ 未連接 (所有按鈕皆可操作)';
             }
 
-            // 2. 標準區間
+            // 標準區間
             const range = getStandardRange(age, currentGender);
             if (range.min !== null && range.max !== null) {
                 stdMin = range.min;
                 stdMax = range.max;
-                stdRangeValue.textContent = `${range.label}: ${range.min} ~ ${range.max} L/min`;
-                stdRangeValue.style.color = '#1b7e4a';
+                document.getElementById('stdRangeValue').textContent = `${range.label}: ${range.min} ~ ${range.max} L/min`;
+                document.getElementById('stdRangeValue').style.color = '#1b7e4a';
             } else {
                 stdMin = null;
                 stdMax = null;
-                stdRangeValue.textContent = range.label;
-                stdRangeValue.style.color = '#b7950b';
+                document.getElementById('stdRangeValue').textContent = range.label;
+                document.getElementById('stdRangeValue').style.color = '#b7950b';
             }
 
-            // 3. 更新流量狀態
+            // 流量狀態
             updateFlowStatus(currentFlow);
 
-            // 4. 儲存按鈕 - 只有這個按鈕需要連線+身分證正確
+            // 儲存按鈕
             const canSave = isValid && isConnected;
-            saveBtn.disabled = !canSave;
+            document.getElementById('saveBtn').disabled = !canSave;
+            const saveHint = document.getElementById('saveHint');
             if (!canSave) {
                 if (!isConnected) {
                     saveHint.textContent = '⚠️ 請先連接裝置';
@@ -943,13 +880,12 @@
         }
 
         // ====== 事件綁定 ======
-        patientIdNumber.addEventListener('input', function() {
+        document.getElementById('patientIdNumber').addEventListener('input', function() {
             this.value = this.value.toUpperCase();
             updateAllLinkedFields();
         });
-
-        patientAge.addEventListener('input', updateAllLinkedFields);
-        patientAge.addEventListener('change', updateAllLinkedFields);
+        document.getElementById('patientAge').addEventListener('input', updateAllLinkedFields);
+        document.getElementById('patientAge').addEventListener('change', updateAllLinkedFields);
 
         // ====== 圖表初始化 ======
         const ctxChart = document.getElementById('flowChart').getContext('2d');
@@ -1036,145 +972,6 @@
             ctxGauge.fillText(value.toFixed(1), cx, 16);
         }
 
-        // ====== 連接裝置 ======
-        connectBtn.onclick = async function() {
-            console.log('🔗 連接按鈕被點擊！');
-
-            if (isConnected) {
-                try { if (reader) await reader.cancel(); } catch (e) {}
-                try { if (serialPort) await serialPort.close(); } catch (e) {}
-                serialPort = null;
-                isConnected = false;
-                reader = null;
-                statusChip.className = 'status-chip';
-                statusChip.textContent = '🔌 已斷開 (所有按鈕皆可操作)';
-                this.textContent = '🔗 連接裝置';
-                updateAllLinkedFields();
-                showModal('🔌 已斷開連接', '裝置已成功中斷連線');
-                return;
-            }
-
-            if (!('serial' in navigator)) {
-                alert('❌ 請使用 Chrome 或 Edge 瀏覽器，並啟用 Web Serial API');
-                return;
-            }
-
-            try {
-                statusChip.textContent = '⏳ 正在選擇裝置...';
-                serialPort = await navigator.serial.requestPort();
-                await serialPort.open({ baudRate: 9600 });
-                isConnected = true;
-                this.textContent = '🔌 斷開裝置';
-                statusChip.className = 'status-chip success';
-                statusChip.textContent = '✅ 已連線';
-                flowData = [];
-                peakFlowValue = 0;
-                currentFlow = 0;
-                updateAllLinkedFields();
-                listenSerial();
-                showModal('✅ 連線成功', '裝置已成功連接！');
-            } catch (e) {
-                console.error('連線錯誤:', e);
-                statusChip.className = 'status-chip error';
-                statusChip.textContent = '❌ ' + e.message;
-                alert('連線失敗: ' + e.message);
-            }
-        };
-
-        async function listenSerial() {
-            const decoder = new TextDecoderStream();
-            serialPort.readable.pipeTo(decoder.writable);
-            reader = decoder.readable.getReader();
-            try {
-                while (true) {
-                    const { value, done } = await reader.read();
-                    if (done) break;
-                    if (value) handleSerialData(value.trim());
-                }
-            } catch (e) {
-                console.log('讀取中斷:', e);
-            }
-        }
-
-        function handleSerialData(line) {
-            const match = line.match(/Flow[:：]\s*([0-9.]+)/i);
-            if (match) {
-                const flow = parseFloat(match[1]);
-                currentFlow = flow;
-                const now = ((Date.now() - Date.now()) / 1000).toFixed(2);
-                flowData.push([parseFloat(now), flow]);
-                flowValue.textContent = flow.toFixed(2);
-                if (Math.abs(flow) > peakFlowValue) {
-                    peakFlowValue = Math.abs(flow);
-                    peakHold.textContent = peakFlowValue.toFixed(2);
-                }
-                drawGauge(Math.abs(flow), peakFlowValue);
-                updateFlowStatus(flow);
-                chartInstance.data.labels.push(now);
-                chartInstance.data.datasets[0].data.push(flow);
-                if (chartInstance.data.labels.length > 100) {
-                    chartInstance.data.labels.shift();
-                    chartInstance.data.datasets[0].data.shift();
-                }
-                chartInstance.update();
-            }
-        }
-
-        // ====== 全部重置 ======
-        resetBtn.onclick = function() {
-            console.log('🔄 全部重置被點擊！');
-
-            // 清除數據
-            flowData = [];
-            peakFlowValue = 0;
-            currentFlow = 0;
-
-            // 清除圖表
-            chartInstance.data.labels = [];
-            chartInstance.data.datasets[0].data = [];
-            chartInstance.update();
-
-            // 重置顯示
-            flowValue.textContent = '0.00';
-            peakHold.textContent = '0.00';
-            drawGauge(0, 0);
-
-            // 重置肺部
-            document.getElementById('leftLungFill').setAttribute('transform', 'scale(0.50)');
-            document.getElementById('rightLungFill').setAttribute('transform', 'scale(0.50)');
-
-            // 重置燈號
-            document.getElementById('light1').className = 'light';
-            document.getElementById('light2').className = 'light';
-            document.getElementById('light3').className = 'light';
-
-            // 重置流量狀態
-            flowStatusIndicator.className = 'status-indicator grey';
-            flowStatusIndicator.textContent = '⚪ 等待測量';
-            flowStatusDetail.textContent = '-';
-
-            // 重置步驟
-            setStep(0);
-
-            // 重置計時器
-            resetTimer();
-
-            // 重置遊戲
-            if (gameMode) {
-                gameMode = false;
-                gameActive = false;
-                gameScore = 0;
-                document.getElementById('gameStatus').textContent = '關閉';
-                document.getElementById('gameScoreBadge').classList.add('hidden');
-                document.getElementById('gameModeBtn').textContent = '🎮 遊戲模式';
-                document.getElementById('gameNameDisplay').classList.add('hidden');
-                document.getElementById('gameTargetDisplay').textContent = '';
-                document.getElementById('gameProgress').classList.add('hidden');
-            }
-
-            showModal('🔄 全部重置完成', '所有數據已清除，燈號已復位，裝置仍保持連線');
-        };
-
         // ====== 步驟管理 ======
         function setStep(step) {
             const stepDot1 = document.getElementById('stepDot1');
@@ -1217,10 +1014,148 @@
             document.getElementById('instruction').textContent = texts[step] || '';
         }
 
+        // ====== 連接裝置 ======
+        document.getElementById('connectBtn').onclick = async function() {
+            if (isConnected) {
+                try { if (reader) await reader.cancel(); } catch (e) {}
+                try { if (serialPort) await serialPort.close(); } catch (e) {}
+                serialPort = null;
+                isConnected = false;
+                reader = null;
+                document.getElementById('statusChip').className = 'status-chip';
+                document.getElementById('statusChip').textContent = '🔌 已斷開 (所有按鈕皆可操作)';
+                this.textContent = '🔗 連接裝置';
+                updateAllLinkedFields();
+                showModal('🔌 已斷開連接', '裝置已成功中斷連線');
+                return;
+            }
+
+            if (!('serial' in navigator)) {
+                alert('❌ 請使用 Chrome 或 Edge 瀏覽器，並啟用 Web Serial API');
+                return;
+            }
+
+            try {
+                document.getElementById('statusChip').textContent = '⏳ 正在選擇裝置...';
+                serialPort = await navigator.serial.requestPort();
+                await serialPort.open({ baudRate: 9600 });
+                isConnected = true;
+                this.textContent = '🔌 斷開裝置';
+                document.getElementById('statusChip').className = 'status-chip success';
+                document.getElementById('statusChip').textContent = '✅ 已連線';
+                flowData = [];
+                peakFlowValue = 0;
+                currentFlow = 0;
+                updateAllLinkedFields();
+                listenSerial();
+                showModal('✅ 連線成功', '裝置已成功連接！');
+            } catch (e) {
+                console.error('連線錯誤:', e);
+                document.getElementById('statusChip').className = 'status-chip error';
+                document.getElementById('statusChip').textContent = '❌ ' + e.message;
+                alert('連線失敗: ' + e.message);
+            }
+        };
+
+        async function listenSerial() {
+            const decoder = new TextDecoderStream();
+            serialPort.readable.pipeTo(decoder.writable);
+            reader = decoder.readable.getReader();
+            try {
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    if (value) handleSerialData(value.trim());
+                }
+            } catch (e) {
+                console.log('讀取中斷:', e);
+            }
+        }
+
+        function handleSerialData(line) {
+            const match = line.match(/Flow[:：]\s*([0-9.]+)/i);
+            if (match) {
+                const flow = parseFloat(match[1]);
+                currentFlow = flow;
+                const now = ((Date.now() - Date.now()) / 1000).toFixed(2);
+                flowData.push([parseFloat(now), flow]);
+                document.getElementById('flowValue').textContent = flow.toFixed(2);
+                if (Math.abs(flow) > peakFlowValue) {
+                    peakFlowValue = Math.abs(flow);
+                    document.getElementById('peakHold').textContent = peakFlowValue.toFixed(2);
+                }
+                drawGauge(Math.abs(flow), peakFlowValue);
+                updateFlowStatus(flow);
+                chartInstance.data.labels.push(now);
+                chartInstance.data.datasets[0].data.push(flow);
+                if (chartInstance.data.labels.length > 100) {
+                    chartInstance.data.labels.shift();
+                    chartInstance.data.datasets[0].data.shift();
+                }
+                chartInstance.update();
+            }
+        }
+
+        // ====== 全部重置 ======
+        document.getElementById('resetBtn').onclick = function() {
+            console.log('🔄 全部重置被點擊！');
+
+            // 清除數據
+            flowData = [];
+            peakFlowValue = 0;
+            currentFlow = 0;
+
+            // 清除圖表
+            chartInstance.data.labels = [];
+            chartInstance.data.datasets[0].data = [];
+            chartInstance.update();
+
+            // 重置顯示
+            document.getElementById('flowValue').textContent = '0.00';
+            document.getElementById('peakHold').textContent = '0.00';
+            drawGauge(0, 0);
+
+            // 重置肺部
+            document.getElementById('leftLungFill').setAttribute('transform', 'scale(0.50)');
+            document.getElementById('rightLungFill').setAttribute('transform', 'scale(0.50)');
+
+            // 重置燈號
+            document.getElementById('light1').className = 'light';
+            document.getElementById('light2').className = 'light';
+            document.getElementById('light3').className = 'light';
+
+            // 重置流量狀態
+            const indicator = document.getElementById('flowStatusIndicator');
+            indicator.className = 'status-indicator grey';
+            indicator.textContent = '⚪ 等待測量';
+            document.getElementById('flowStatusDetail').textContent = '-';
+
+            // 重置步驟
+            setStep(0);
+
+            // 重置計時器
+            resetTimer();
+
+            // 重置遊戲
+            if (gameMode) {
+                gameMode = false;
+                gameActive = false;
+                gameScore = 0;
+                document.getElementById('gameStatus').textContent = '關閉';
+                document.getElementById('gameScoreBadge').classList.add('hidden');
+                document.getElementById('gameModeBtn').textContent = '🎮 遊戲模式';
+                document.getElementById('gameNameDisplay').classList.add('hidden');
+                document.getElementById('gameTargetDisplay').textContent = '';
+                document.getElementById('gameProgress').classList.add('hidden');
+            }
+
+            showModal('🔄 全部重置完成', '所有數據已清除，燈號已復位');
+        };
+
         // ====== 儲存 ======
-        saveBtn.onclick = function() {
-            const id = patientId.value.trim() || '未填';
-            const idNumber = patientIdNumber.value.trim();
+        document.getElementById('saveBtn').onclick = function() {
+            const id = document.getElementById('patientId').value.trim() || '未填';
+            const idNumber = document.getElementById('patientIdNumber').value.trim();
             if (!validateTaiwanId(idNumber)) {
                 showModal('❌ 錯誤', '身分證格式錯誤');
                 return;
@@ -1229,7 +1164,7 @@
                 showModal('❌ 錯誤', '請先連接裝置');
                 return;
             }
-            const age = parseInt(patientAge.value) || 30;
+            const age = parseInt(document.getElementById('patientAge').value) || 30;
             const gender = idNumber.charAt(1) === '1' ? '男' : '女';
             let content = `=== 呼吸流量監測報告 ===\n`;
             content += `病患編號: ${id}\n身分證: ${idNumber}\n年齡: ${age}\n性別: ${gender}\n`;
@@ -1252,7 +1187,6 @@
 
         // ====== 校準 ======
         document.getElementById('calibrateBtn').onclick = function() {
-            console.log('⚙️ 校準按鈕被點擊！');
             if (!isConnected) {
                 showModal('⚠️ 提示', '請先連接裝置再進行校準');
                 return;
@@ -1262,7 +1196,6 @@
 
         // ====== 匯出 ======
         document.getElementById('exportBtn').onclick = function() {
-            console.log('📤 匯出按鈕被點擊！');
             if (flowData.length === 0) {
                 showModal('⚠️ 提示', '無數據可匯出');
                 return;
@@ -1278,14 +1211,12 @@
 
         // ====== 圖表控制 ======
         document.getElementById('clearChartBtn').onclick = function() {
-            console.log('🗑️ 清除圖表按鈕被點擊！');
             chartInstance.data.labels = [];
             chartInstance.data.datasets[0].data = [];
             chartInstance.update();
             showModal('🗑️ 清除完成', '圖表數據已清除');
         };
         document.getElementById('applyYRange').onclick = function() {
-            console.log('📊 套用Y軸按鈕被點擊！');
             const min = parseFloat(document.getElementById('yMinInput').value) || 0;
             const max = parseFloat(document.getElementById('yMaxInput').value) || 10;
             if (min >= max) { showModal('⚠️ 錯誤', '最小值需小於最大值'); return; }
@@ -1297,35 +1228,30 @@
 
         // ====== 模式切換 ======
         document.getElementById('modeInhale').onclick = function() {
-            console.log('😤 吸氣模式被點擊！');
             document.querySelectorAll('#modeInhale,#modeExhale,#modeBoth').forEach(b => b.className =
             'btn btn-sm btn-outline');
             this.className = 'btn btn-sm btn-active';
             showModal('😤 模式切換', '已切換至「吸氣模式」');
         };
         document.getElementById('modeExhale').onclick = function() {
-            console.log('😮‍💨 吐氣模式被點擊！');
             document.querySelectorAll('#modeInhale,#modeExhale,#modeBoth').forEach(b => b.className =
             'btn btn-sm btn-outline');
             this.className = 'btn btn-sm btn-active';
             showModal('😮‍💨 模式切換', '已切換至「吐氣模式」');
         };
         document.getElementById('modeBoth').onclick = function() {
-            console.log('🔄 雙向模式被點擊！');
             document.querySelectorAll('#modeInhale,#modeExhale,#modeBoth').forEach(b => b.className =
             'btn btn-sm btn-outline');
             this.className = 'btn btn-sm btn-active';
             showModal('🔄 模式切換', '已切換至「雙向模式」');
         };
         document.getElementById('modeSingle').onclick = function() {
-            console.log('⏹️ 單次模式被點擊！');
             document.querySelectorAll('#modeSingle,#modeContinuous').forEach(b => b.className =
             'btn btn-sm btn-outline');
             this.className = 'btn btn-sm btn-active';
             showModal('⏹️ 模式切換', '已切換至「單次模式」');
         };
         document.getElementById('modeContinuous').onclick = function() {
-            console.log('▶️ 連續模式被點擊！');
             document.querySelectorAll('#modeSingle,#modeContinuous').forEach(b => b.className =
             'btn btn-sm btn-outline');
             this.className = 'btn btn-sm btn-active';
@@ -1396,7 +1322,6 @@
 
         // 設定時間
         document.getElementById('timerApplyBtn').onclick = function() {
-            console.log('⏱️ 設定時間被點擊！');
             const val = parseInt(document.getElementById('timerSetValue').value);
             if (isNaN(val) || val < 1) {
                 showModal('⚠️ 錯誤', '請輸入有效的秒數 (≥1)');
@@ -1412,7 +1337,6 @@
 
         // 切換倒數/累計
         document.getElementById('timerCountdown').onclick = function() {
-            console.log('⏳ 倒數計時被點擊！');
             if (timerRunning) stopTimer();
             timerMode = 'countdown';
             document.querySelectorAll('#timerCountdown,#timerStopwatch').forEach(b => b.className =
@@ -1424,7 +1348,6 @@
             document.getElementById('timerStatus').textContent = '⏸️ 待命';
         };
         document.getElementById('timerStopwatch').onclick = function() {
-            console.log('⏱️ 累計計時被點擊！');
             if (timerRunning) stopTimer();
             timerMode = 'stopwatch';
             document.querySelectorAll('#timerCountdown,#timerStopwatch').forEach(b => b.className =
@@ -1438,7 +1361,6 @@
 
         // 啟動/停止
         document.getElementById('timerToggle').onclick = function() {
-            console.log('▶️ 計時器啟動/停止被點擊！');
             if (timerRunning) {
                 stopTimer();
             } else {
@@ -1452,7 +1374,6 @@
 
         // 重置
         document.getElementById('timerResetBtn').onclick = function() {
-            console.log('⟳ 計時器重置被點擊！');
             resetTimer();
             showModal('⟳ 重置', '計時器已重置');
         };
@@ -1463,7 +1384,6 @@
             gameScore = 0;
 
         document.getElementById('gameModeBtn').onclick = function() {
-            console.log('🎮 遊戲模式被點擊！');
             gameMode = !gameMode;
             if (gameMode) {
                 gameActive = true;
@@ -1495,11 +1415,9 @@
 
         // ====== 登入 ======
         document.getElementById('loginBtn').onclick = function() {
-            console.log('🔑 登入按鈕被點擊！');
             showModal('🔑 登入', '登入功能已觸發');
         };
         document.getElementById('myfilesBtn').onclick = function() {
-            console.log('📁 歷史按鈕被點擊！');
             showModal('📁 歷史紀錄', '此功能需實作 userTable.html 頁面');
         };
 
@@ -1510,12 +1428,9 @@
         resetTimer();
 
         console.log('✅ 系統已初始化');
-        console.log('📌 所有按鈕在未連線時皆可點擊 (除了儲存按鈕需要連線+身分證)');
-        console.log('📌 請點擊「🧪 測試按鈕」驗證');
-        console.log('');
-        console.log('📌 身分證→性別連動: A123456789=男性, A223456789=女性');
-        console.log('📌 年齡+性別→標準區間自動更新');
-        console.log('📌 流量狀態燈號: 正常=綠燈, 不足=黃燈, 過高=紅燈');
+        console.log('📌 所有按鈕在未連線時皆可點擊');
+        console.log('📌 點擊「🧪 測試按鈕」驗證');
+        console.log('📌 身分證→性別: A123456789=男性, A223456789=女性');
         console.log('📌 全部重置: 清除所有數據、燈號、圖表、計時器、遊戲');
     </script>
 </body>
