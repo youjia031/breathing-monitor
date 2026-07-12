@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>呼吸流量監測系統 v2.2</title>
+  <title>呼吸流量監測系統 v2.3</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -21,6 +21,7 @@
     
     .btn { padding: 8px 20px; border: none; border-radius: 40px; font-weight: 600; font-size: 13px; background: #eef3ee; color: #1f3a2f; cursor: pointer; transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
     .btn:hover:not(:disabled) { transform: translateY(-2px) scale(1.02); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
     .btn-primary { background: #1b7e4a; color: white; box-shadow: 0 4px 12px rgba(27,126,74,0.25); }
     .btn-primary:disabled { opacity: 0.4; pointer-events: none; filter: grayscale(0.5); }
     .btn-danger { background: #c74a4a; color: white; }
@@ -36,6 +37,7 @@
     .input-group label { font-weight: 500; color: #1f3a2f; min-width: 70px; font-size: 13px; }
     .input-group input, .input-group select { padding: 7px 14px; border: 1.5px solid #dce8dc; border-radius: 30px; font-size: 13px; background: #fafffa; transition: 0.2s; flex: 1; min-width: 80px; }
     .input-group input:focus { outline: none; border-color: #1b7e4a; box-shadow: 0 0 0 3px rgba(27,126,74,0.10); }
+    .input-group input:disabled { background: #f0f5f0; cursor: not-allowed; }
     
     .status-chip { padding: 4px 16px; border-radius: 30px; background: #e7f3ec; font-weight: 500; font-size: 13px; color: #1f4a2f; display: inline-block; }
     .status-chip.warning { background: #fef9e7; color: #b7950b; }
@@ -64,7 +66,6 @@
     .img-card .caption { font-size: 11px; color: #3a5a3a; margin-top: 3px; }
     @keyframes fadeSlideIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
     
-    /* ===== 肺部容器 ===== */
     .lungs-container { display: flex; justify-content: center; margin: 6px 0; }
     #lungsSvg { width: 240px; height: 260px; background: #f0f8f0; border-radius: 40px; box-shadow: 0 2px 16px rgba(0,40,20,0.08); }
     
@@ -181,35 +182,16 @@
 
   <!-- 肺部 + 儀表板並排 -->
   <div class="flex-row" style="justify-content:center; gap:30px; margin:8px 0; align-items:center;">
-    <!-- ===== 精緻肺部 SVG ===== -->
+    <!-- 精緻肺部 SVG -->
     <div class="lungs-container">
       <svg id="lungsSvg" viewBox="0 0 300 340" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <!-- 左肺剪影 -->
           <clipPath id="leftLungClip">
-            <path d="M65,70 
-              C45,70 20,100 18,145 
-              C16,190 30,230 50,260 
-              C65,280 80,290 95,290 
-              C108,290 115,275 118,255 
-              C121,235 120,210 118,190 
-              C116,170 110,150 100,130 
-              C92,115 82,95 75,80 
-              C70,72 68,70 65,70 Z"/>
+            <path d="M65,70 C45,70 20,100 18,145 C16,190 30,230 50,260 C65,280 80,290 95,290 C108,290 115,275 118,255 C121,235 120,210 118,190 C116,170 110,150 100,130 C92,115 82,95 75,80 C70,72 68,70 65,70 Z"/>
           </clipPath>
-          <!-- 右肺剪影 -->
           <clipPath id="rightLungClip">
-            <path d="M235,70 
-              C255,70 280,100 282,145 
-              C284,190 270,230 250,260 
-              C235,280 220,290 205,290 
-              C192,290 185,275 182,255 
-              C179,235 180,210 182,190 
-              C184,170 190,150 200,130 
-              C208,115 218,95 225,80 
-              C230,72 232,70 235,70 Z"/>
+            <path d="M235,70 C255,70 280,100 282,145 C284,190 270,230 250,260 C235,280 220,290 205,290 C192,290 185,275 182,255 C179,235 180,210 182,190 C184,170 190,150 200,130 C208,115 218,95 225,80 C230,72 232,70 235,70 Z"/>
           </clipPath>
-          <!-- 漸層定義 -->
           <radialGradient id="lungGradLeft" cx="50%" cy="50%" r="60%">
             <stop offset="0%" stop-color="#f0a0a8"/>
             <stop offset="40%" stop-color="#e8838b"/>
@@ -234,7 +216,6 @@
             <stop offset="80%" stop-color="#aab5aa"/>
             <stop offset="100%" stop-color="#95a095"/>
           </radialGradient>
-          <!-- 陰影 -->
           <filter id="lungShadow">
             <feDropShadow dx="2" dy="4" stdDeviation="6" flood-opacity="0.15"/>
           </filter>
@@ -243,72 +224,54 @@
           </filter>
         </defs>
 
-        <!-- 背景 -->
         <rect x="0" y="0" width="300" height="340" fill="#f0f8f0" rx="40"/>
 
-        <!-- ===== 左肺 ===== -->
+        <!-- 左肺 -->
         <g clip-path="url(#leftLungClip)" filter="url(#lungShadow)">
           <rect x="0" y="60" width="140" height="240" fill="url(#lungGradLeftDim)" id="leftLungBase"/>
           <rect x="0" y="60" width="140" height="240" fill="url(#lungGradLeft)" id="leftLungFill" 
                 style="transform: scale(0.50,0.50); transform-origin: 68px 180px; transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);"/>
         </g>
-        <!-- 左肺輪廓 -->
         <path d="M65,70 C45,70 20,100 18,145 C16,190 30,230 50,260 C65,280 80,290 95,290 C108,290 115,275 118,255 C121,235 120,210 118,190 C116,170 110,150 100,130 C92,115 82,95 75,80 C70,72 68,70 65,70 Z" 
               fill="none" stroke="#3a5a3a" stroke-width="2.5" opacity="0.6"/>
-        <!-- 左肺葉間裂 -->
         <path d="M80,85 C75,120 72,160 78,200 C82,230 90,260 95,280" fill="none" stroke="#4a6a4a" stroke-width="1.2" opacity="0.25" stroke-dasharray="4,6"/>
         
-        <!-- ===== 右肺 ===== -->
+        <!-- 右肺 -->
         <g clip-path="url(#rightLungClip)" filter="url(#lungShadow)">
           <rect x="160" y="60" width="140" height="240" fill="url(#lungGradRightDim)" id="rightLungBase"/>
           <rect x="160" y="60" width="140" height="240" fill="url(#lungGradRight)" id="rightLungFill" 
                 style="transform: scale(0.50,0.50); transform-origin: 232px 180px; transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);"/>
         </g>
-        <!-- 右肺輪廓 -->
         <path d="M235,70 C255,70 280,100 282,145 C284,190 270,230 250,260 C235,280 220,290 205,290 C192,290 185,275 182,255 C179,235 180,210 182,190 C184,170 190,150 200,130 C208,115 218,95 225,80 C230,72 232,70 235,70 Z" 
               fill="none" stroke="#3a5a3a" stroke-width="2.5" opacity="0.6"/>
-        <!-- 右肺葉間裂 -->
         <path d="M220,85 C225,120 228,160 222,200 C218,230 210,260 205,280" fill="none" stroke="#4a6a4a" stroke-width="1.2" opacity="0.25" stroke-dasharray="4,6"/>
 
-        <!-- ===== 氣管與支氣管 ===== -->
+        <!-- 氣管與支氣管 -->
         <g filter="url(#tracheaShadow)">
-          <!-- 氣管主幹 -->
           <path d="M148,20 L148,75 C148,80 150,85 152,88 L152,88" fill="none" stroke="#8a7a5a" stroke-width="10" stroke-linecap="round"/>
-          <!-- 氣管內部 (較亮) -->
           <path d="M148,22 L148,73" fill="none" stroke="#c8b898" stroke-width="5" stroke-linecap="round"/>
-          
-          <!-- 左支氣管 -->
           <path d="M152,88 C155,95 160,100 140,110 C125,118 110,128 100,138" fill="none" stroke="#8a7a5a" stroke-width="7" stroke-linecap="round"/>
           <path d="M152,88 C155,95 160,100 140,110 C125,118 110,128 100,138" fill="none" stroke="#c8b898" stroke-width="3.5" stroke-linecap="round"/>
-          
-          <!-- 右支氣管 -->
           <path d="M148,88 C145,95 140,100 160,110 C175,118 190,128 200,138" fill="none" stroke="#8a7a5a" stroke-width="7" stroke-linecap="round"/>
           <path d="M148,88 C145,95 140,100 160,110 C175,118 190,128 200,138" fill="none" stroke="#c8b898" stroke-width="3.5" stroke-linecap="round"/>
-          
-          <!-- 支氣管分支 (左) -->
           <path d="M100,138 C92,148 85,160 78,170" fill="none" stroke="#8a7a5a" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
           <path d="M100,138 C108,148 115,160 120,172" fill="none" stroke="#8a7a5a" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
-          <!-- 支氣管分支 (右) -->
           <path d="M200,138 C208,148 215,160 222,170" fill="none" stroke="#8a7a5a" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
           <path d="M200,138 C192,148 185,160 180,172" fill="none" stroke="#8a7a5a" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
-
-          <!-- 氣管環狀軟骨標記 -->
+          <!-- 氣管環狀軟骨 -->
           <ellipse cx="148" cy="30" rx="8" ry="2.5" fill="none" stroke="#6a5a3a" stroke-width="0.8" opacity="0.3"/>
           <ellipse cx="148" cy="40" rx="8" ry="2.5" fill="none" stroke="#6a5a3a" stroke-width="0.8" opacity="0.3"/>
           <ellipse cx="148" cy="50" rx="8" ry="2.5" fill="none" stroke="#6a5a3a" stroke-width="0.8" opacity="0.3"/>
           <ellipse cx="148" cy="60" rx="8" ry="2.5" fill="none" stroke="#6a5a3a" stroke-width="0.8" opacity="0.3"/>
           <ellipse cx="148" cy="70" rx="8" ry="2.5" fill="none" stroke="#6a5a3a" stroke-width="0.8" opacity="0.3"/>
         </g>
-
-        <!-- 氣管分叉點 (隆突) -->
         <circle cx="150" cy="88" r="4" fill="#7a6a4a" opacity="0.4"/>
 
-        <!-- ===== 標籤 ===== -->
         <text x="150" y="16" text-anchor="middle" font-size="12" fill="#3a5a3a" font-weight="700" letter-spacing="1">氣 管</text>
         <text x="68" y="315" text-anchor="middle" font-size="13" fill="#3a5a3a" font-weight="600">左肺</text>
         <text x="232" y="315" text-anchor="middle" font-size="13" fill="#3a5a3a" font-weight="600">右肺</text>
         
-        <!-- 流量指示器（吸氣時顯示氣流方向） -->
+        <!-- 流量指示器 -->
         <g id="flowIndicator" opacity="0">
           <path d="M148,35 L148,15" stroke="#2ecc71" stroke-width="2" stroke-dasharray="4,4">
             <animate attributeName="stroke-dashoffset" from="0" to="-8" dur="0.5s" repeatCount="indefinite"/>
@@ -376,9 +339,9 @@
     <span class="badge-section">儲存至雲端 / 本地備份</span>
   </div>
   <div class="flex-row" style="gap:10px; flex-wrap:wrap;">
-    <button class="btn btn-primary" id="saveBtn" disabled>💾 儲存資料 (身分證正確後解鎖)</button>
+    <button class="btn btn-primary" id="saveBtn" disabled>💾 儲存資料</button>
     <button class="btn btn-outline" id="exportBtn">📤 匯出CSV</button>
-    <span class="text-small" id="saveHint" style="color:#4a6a4a;">* 請先填入正確身分證字號</span>
+    <span class="text-small" id="saveHint" style="color:#4a6a4a;">* 需連線裝置且身分證正確</span>
   </div>
   <div id="usbHint" class="text-small" style="margin:4px 0; color:#4a6a4a;">💡 點擊「連接」選擇 USB Serial 裝置</div>
 
@@ -403,7 +366,6 @@ const light1 = $('light1'), light2 = $('light2'), light3 = $('light3');
 const stepDot1 = $('stepDot1'), stepDot2 = $('stepDot2'), stepDot3 = $('stepDot3');
 const stepLineFill1 = $('stepLineFill1'), stepLineFill2 = $('stepLineFill2');
 const leftLungFill = $('leftLungFill'), rightLungFill = $('rightLungFill');
-const leftLungBase = $('leftLungBase'), rightLungBase = $('rightLungBase');
 const flowIndicator = $('flowIndicator');
 const timerDisplay = $('timerDisplay'), timerLimit = $('timerLimit'), timerStatus = $('timerStatus');
 const gaugeCanvas = $('gaugeCanvas'), ctxGauge = gaugeCanvas.getContext('2d');
@@ -424,6 +386,18 @@ let continuousActive = false, calibrating = false, calibrationOffset = 0;
 let chartInstance = null;
 let audioCtx = null;
 
+// ====== 更新儲存按鈕狀態 ======
+function updateSaveButton() {
+  const idValid = validateTaiwanId(patientIdNumber.value);
+  saveBtn.disabled = !(idValid && isConnected);
+  if (saveBtn.disabled) {
+    if (!isConnected) saveHint.innerText = '⚠️ 請先連接裝置';
+    else if (!idValid) saveHint.innerText = '⚠️ 請輸入正確身分證 (10碼，首碼大寫英文，第二碼1/2)';
+  } else {
+    saveHint.innerText = '✅ 可儲存';
+  }
+}
+
 // ====== 身分證驗證 ======
 function validateTaiwanId(id) {
   if (!id || id.length !== 10) return false;
@@ -438,8 +412,7 @@ patientIdNumber.addEventListener('input', () => {
   const val = patientIdNumber.value.toUpperCase();
   patientIdNumber.value = val;
   const valid = validateTaiwanId(val);
-  saveBtn.disabled = !valid || !isConnected;
-  saveHint.innerText = valid ? '✅ 身分證正確，可儲存' : '* 請輸入正確的10碼身分證 (首碼大寫英文，第二碼1/2)';
+  updateSaveButton();
   if (valid && val.length === 10) {
     const gender = val.charAt(1) === '1' ? '👨 男性' : '👩 女性';
     genderDisplay.innerText = gender;
@@ -495,25 +468,17 @@ function setStep(step) {
   instruction.innerText = texts[step] || '';
 }
 
-// ====== 肺部動畫 (左右肺獨立縮放，更擬真) ======
+// ====== 肺部動畫 ======
 function updateLungs(flow) {
   const absFlow = Math.abs(flow);
-  // 縮放範圍 0.45 ~ 0.95，讓肺部膨脹更明顯
   const scale = 0.45 + Math.min(absFlow / 7, 1) * 0.50;
-  
-  // 左右肺獨立縮放
   leftLungFill.setAttribute('transform', `scale(${scale},${scale})`);
   rightLungFill.setAttribute('transform', `scale(${scale},${scale})`);
-  
-  // 顏色變化：從灰藍色到粉紅色 (吸氣時肺部充血)
   const intensity = Math.min(absFlow / 5, 1);
-  // 左肺顏色
   const r = 160 + 90*intensity, g = 130 - 50*intensity, b = 130 - 50*intensity;
   const color = `rgb(${r},${g},${b})`;
   leftLungFill.setAttribute('fill', color);
   rightLungFill.setAttribute('fill', color);
-  
-  // 流量指示器 (氣流箭頭)
   if (absFlow > 0.5) {
     flowIndicator.setAttribute('opacity', '1');
   } else {
@@ -526,7 +491,6 @@ function drawGauge(value, peak) {
   const w = gaugeCanvas.width, h = gaugeCanvas.height;
   ctxGauge.clearRect(0,0,w,h);
   const cx = w/2, cy = h-6, radius = Math.min(w/2-24, 50);
-  
   const grad = ctxGauge.createLinearGradient(0,0,w,0);
   grad.addColorStop(0, '#d0e2d0'); grad.addColorStop(1, '#b0c8b0');
   ctxGauge.beginPath();
@@ -534,7 +498,6 @@ function drawGauge(value, peak) {
   ctxGauge.strokeStyle = grad;
   ctxGauge.lineWidth = 10;
   ctxGauge.stroke();
-  
   const angle = Math.PI + Math.min(value/10, 1) * Math.PI;
   const grad2 = ctxGauge.createLinearGradient(0,0,w,0);
   grad2.addColorStop(0, '#2ecc71'); grad2.addColorStop(0.5, '#f1c40f'); grad2.addColorStop(1, '#e74c3c');
@@ -543,7 +506,6 @@ function drawGauge(value, peak) {
   ctxGauge.strokeStyle = grad2;
   ctxGauge.lineWidth = 10;
   ctxGauge.stroke();
-  
   const pAngle = Math.PI + Math.min(value/10, 1) * Math.PI;
   const px = cx + (radius-2)*Math.cos(pAngle);
   const py = cy + (radius-2)*Math.sin(pAngle);
@@ -556,7 +518,6 @@ function drawGauge(value, peak) {
   ctxGauge.shadowBlur = 6;
   ctxGauge.stroke();
   ctxGauge.shadowBlur = 0;
-  
   if (peak > 0.3) {
     const peakAngle = Math.PI + Math.min(peak/10, 1) * Math.PI;
     const px2 = cx + (radius+2)*Math.cos(peakAngle);
@@ -636,6 +597,7 @@ connectBtn.onclick = async () => {
     statusChip.className = 'status-chip';
     statusChip.innerText = '🔌 已斷開';
     connectBtn.innerText = '🔗 連接';
+    updateSaveButton();
     showModal('🔌 已斷開連接', '裝置已成功中斷連線', '確認');
     return;
   }
@@ -650,7 +612,7 @@ connectBtn.onclick = async () => {
     startTime = Date.now(); flowData=[]; flowRecords=[]; budldValue=null; peakFlowValue=0;
     setStep(0);
     listenSerial();
-    saveBtn.disabled = !validateTaiwanId(patientIdNumber.value);
+    updateSaveButton();
     playSound('beep');
   } catch(e) { statusChip.innerText = '❌ '+e.message; }
 }
@@ -734,6 +696,7 @@ saveBtn.onclick = async () => {
   const id = patientId.value.trim() || '未填';
   const idNumber = patientIdNumber.value.trim();
   if (!validateTaiwanId(idNumber)) { showModal('❌ 錯誤', '身分證格式錯誤，請修正', '確認'); return; }
+  if (!isConnected) { showModal('❌ 錯誤', '請先連接裝置', '確認'); return; }
   const age = parseInt(patientAge.value) || 30;
   const gender = idNumber.charAt(1) === '1' ? '男' : '女';
   let content = `=== 呼吸流量監測報告 ===\n`;
@@ -763,7 +726,7 @@ saveBtn.onclick = async () => {
     }
   } catch(e) {}
   playSound('success');
-}
+};
 
 // ====== 重置 ======
 resetBtn.onclick = () => {
@@ -773,13 +736,13 @@ resetBtn.onclick = () => {
   flowValue.innerText='0.00'; peakHold.innerText='0.00';
   setStep(0); resetTimer(); updateLungs(0); drawGauge(0,0);
   statusChip.className = 'status-chip';
-  statusChip.innerText = '🔄 已重置';
+  statusChip.innerText = isConnected ? '🔄 已重置 (裝置仍連線)' : '🔄 已重置';
   gameActive = false; gameScore = 0; gameProgressVal = 0;
   gameStatus.innerText = '關閉'; gameScoreBadge.classList.add('hidden');
   gameNameDisplay.classList.add('hidden'); gameTargetDisplay.innerText = '';
   gameProgress.classList.add('hidden');
   showModal('🔄 重置完成', '所有數據已清除，裝置仍保持連線', '確認');
-}
+};
 
 // ====== 校準 ======
 document.getElementById('calibrateBtn').onclick = () => {
@@ -793,7 +756,7 @@ document.getElementById('calibrateBtn').onclick = () => {
     showModal('✅ 校準完成', `偏移量已調整: ${calibrationOffset.toFixed(3)} L/min`, '確認');
     playSound('success');
   }, 2000);
-}
+};
 
 // ====== 匯出 ======
 document.getElementById('exportBtn').onclick = () => {
@@ -802,7 +765,7 @@ document.getElementById('exportBtn').onclick = () => {
   flowData.forEach(([t,f]) => csv += `${t.toFixed(2)},${f.toFixed(2)}\n`);
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`flow_${new Date().getTime()}.csv`; a.click();
-}
+};
 
 // ====== Modal ======
 function showModal(title, msg, btnText = '確認') {
@@ -953,6 +916,7 @@ setStep(0);
 drawGauge(0,0);
 updateLungs(0);
 statusChip.innerText = '⚪ 就緒 - 請連接裝置';
+updateSaveButton();
 
 // ====== 鍵盤快捷鍵 ======
 document.addEventListener('keydown', (e) => {
@@ -965,7 +929,8 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-console.log('🌬️ 呼吸流量監測系統 v2.2 - 精緻肺部版本');
+console.log('🌬️ 呼吸流量監測系統 v2.3');
+console.log('✅ 所有按鈕在未連線時皆可操作，只有儲存按鈕需連線+身分證正確');
 </script>
 </body>
 </html>
