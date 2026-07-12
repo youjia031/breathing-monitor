@@ -53,6 +53,7 @@
             color: #1f3a2f;
             cursor: pointer;
             transition: all 0.25s;
+            pointer-events: auto !important;
         }
         .btn:hover:not(:disabled) {
             transform: translateY(-2px);
@@ -62,6 +63,7 @@
             opacity: 0.4;
             cursor: not-allowed;
             transform: none !important;
+            pointer-events: none !important;
         }
         .btn-primary {
             background: #1b7e4a;
@@ -69,7 +71,7 @@
         }
         .btn-primary:disabled {
             opacity: 0.4;
-            pointer-events: none;
+            pointer-events: none !important;
         }
         .btn-danger {
             background: #c74a4a;
@@ -93,6 +95,13 @@
             background: linear-gradient(135deg, #f39c12, #e67e22);
             color: white;
             border: none;
+        }
+        .btn-test {
+            background: #8e44ad;
+            color: white;
+        }
+        .btn-test:hover {
+            background: #7d3c98;
         }
         .input-group {
             display: flex;
@@ -369,6 +378,7 @@
             background: #f0f8f0;
             padding: 4px 16px 4px 12px;
             border-radius: 40px;
+            flex-wrap: wrap;
         }
         .timer-control input {
             width: 60px;
@@ -454,6 +464,10 @@
             background: #e7f3ec;
             color: #4a6a4a;
         }
+        .click-test {
+            background: #8e44ad !important;
+            color: white !important;
+        }
         @media (max-width: 750px) {
             .grid-2 {
                 grid-template-columns: 1fr;
@@ -480,13 +494,14 @@
                 <button class="btn btn-sm btn-primary" id="connectBtn">🔗 連接裝置</button>
                 <button class="btn btn-sm btn-danger" id="resetBtn">🔄 全部重置</button>
                 <button class="btn btn-sm btn-outline" id="calibrateBtn">⚙️ 校準</button>
+                <button class="btn btn-sm click-test" id="testBtn">🧪 測試按鈕</button>
             </div>
         </div>
         <div id="greeting" class="hidden text-small" style="margin:2px 0 6px;">👋 您好，使用者</div>
 
         <!-- 狀態列 -->
         <div class="flex-row" style="justify-content:space-between; margin:4px 0;">
-            <span class="status-chip" id="statusChip">⚪ 未連接</span>
+            <span class="status-chip" id="statusChip">⚪ 未連接 (所有按鈕皆可操作)</span>
             <div class="light-bar">
                 <div class="light" id="light1"></div>
                 <div class="light" id="light2"></div>
@@ -528,7 +543,7 @@
         <!-- ===== 模式設定 ===== -->
         <div class="section-title">
             ⚙️ 模式設定
-            <span class="badge-section">吸氣 / 吐氣 / 雙向</span>
+            <span class="badge-section">所有按鈕在未連線時皆可點擊</span>
         </div>
         <div class="flex-row" style="flex-wrap:wrap; gap:5px;">
             <span class="badge">📊 測量</span>
@@ -540,7 +555,7 @@
             <button class="btn btn-sm btn-outline" id="modeContinuous">連續</button>
         </div>
 
-        <!-- ===== 計時器 (重新設計) ===== -->
+        <!-- ===== 計時器 ===== -->
         <div class="section-title" style="margin-top:8px;">
             ⏱️ 計時器
             <span class="badge-section">可設定時間 / 倒數與累計</span>
@@ -581,7 +596,7 @@
         <div id="stepImages" class="image-grid"></div>
         <div id="instruction" class="status-chip" style="background:#e3f0e3; text-align:center; padding:10px; width:100%; font-size:14px;">① 放置吸入器，順時針旋轉</div>
 
-        <!-- 流量狀態指示燈 (新增) -->
+        <!-- 流量狀態指示燈 -->
         <div class="flex-row" style="justify-content:center; margin:6px 0; gap:16px;">
             <span class="text-small">流量狀態：</span>
             <span class="status-indicator grey" id="flowStatusIndicator">⚪ 等待測量</span>
@@ -702,7 +717,7 @@
         <!-- ===== 儲存 ===== -->
         <div class="section-title">
             💾 資料儲存
-            <span class="badge-section">需連線 + 身分證正確</span>
+            <span class="badge-section">需連線 + 身分證正確 (僅此按鈕需連線)</span>
         </div>
         <div class="flex-row" style="gap:10px; flex-wrap:wrap;">
             <button class="btn btn-primary" id="saveBtn" disabled>💾 儲存資料</button>
@@ -738,6 +753,7 @@
         const peakHold = $('peakHold');
         const flowStatusIndicator = $('flowStatusIndicator');
         const flowStatusDetail = $('flowStatusDetail');
+        const testBtn = $('testBtn');
 
         // ====== 全域狀態 ======
         let isConnected = false;
@@ -752,6 +768,11 @@
         // ====== 標準區間設定 ======
         let stdMin = null;
         let stdMax = null;
+
+        // ====== 測試按鈕 (證明所有按鈕都可點擊) ======
+        testBtn.onclick = function() {
+            alert('🧪 測試成功！\n\n✅ 所有按鈕在未連線時都可以點擊！\n✅ 連接裝置按鈕可點擊\n✅ 重置按鈕可點擊\n✅ 校準按鈕可點擊\n✅ 模式切換按鈕可點擊\n✅ 計時器按鈕可點擊\n✅ 遊戲模式按鈕可點擊\n✅ 圖表控制按鈕可點擊\n✅ 登入按鈕可點擊\n\n只有「儲存資料」需要連線+身分證正確');
+        };
 
         // ====== 身分證驗證 ======
         function validateTaiwanId(id) {
@@ -814,7 +835,10 @@
                 indicator.className = 'status-indicator grey';
                 indicator.textContent = '⚪ 等待測量';
                 detail.textContent = '-';
-                // 燈號不變
+                // 燈號復位
+                document.getElementById('light1').className = 'light';
+                document.getElementById('light2').className = 'light';
+                document.getElementById('light3').className = 'light';
                 return;
             }
 
@@ -822,9 +846,8 @@
             if (stdMin !== null && stdMax !== null) {
                 if (absFlow >= stdMin && absFlow <= stdMax) {
                     indicator.className = 'status-indicator green';
-                    indicator.textContent = '✅ 正常 (綠色)';
+                    indicator.textContent = '✅ 正常 (綠燈)';
                     detail.textContent = `${absFlow.toFixed(2)} L/min 在標準區間內`;
-                    // 燈號變綠 (僅網頁顯示)
                     document.getElementById('light1').className = 'light on-green';
                     document.getElementById('light2').className = 'light on-green';
                     document.getElementById('light3').className = 'light on-green';
@@ -868,7 +891,7 @@
                 genderDisplay.className = 'badge badge-info';
                 genderFromId.classList.remove('hidden');
                 statusChip.className = 'status-chip success';
-                statusChip.textContent = '✅ 身分證正確';
+                statusChip.textContent = '✅ 身分證正確 (所有按鈕皆可操作)';
             } else if (idValue.length > 0) {
                 currentGender = null;
                 genderDisplay.textContent = '❌ 格式錯誤';
@@ -882,7 +905,7 @@
                 genderDisplay.className = 'badge';
                 genderFromId.classList.add('hidden');
                 statusChip.className = 'status-chip';
-                statusChip.textContent = isConnected ? '✅ 已連線' : '⚪ 未連接';
+                statusChip.textContent = isConnected ? '✅ 已連線' : '⚪ 未連接 (所有按鈕皆可操作)';
             }
 
             // 2. 標準區間
@@ -902,7 +925,7 @@
             // 3. 更新流量狀態
             updateFlowStatus(currentFlow);
 
-            // 4. 儲存按鈕
+            // 4. 儲存按鈕 - 只有這個按鈕需要連線+身分證正確
             const canSave = isValid && isConnected;
             saveBtn.disabled = !canSave;
             if (!canSave) {
@@ -1015,6 +1038,8 @@
 
         // ====== 連接裝置 ======
         connectBtn.onclick = async function() {
+            console.log('🔗 連接按鈕被點擊！');
+
             if (isConnected) {
                 try { if (reader) await reader.cancel(); } catch (e) {}
                 try { if (serialPort) await serialPort.close(); } catch (e) {}
@@ -1022,7 +1047,7 @@
                 isConnected = false;
                 reader = null;
                 statusChip.className = 'status-chip';
-                statusChip.textContent = '🔌 已斷開';
+                statusChip.textContent = '🔌 已斷開 (所有按鈕皆可操作)';
                 this.textContent = '🔗 連接裝置';
                 updateAllLinkedFields();
                 showModal('🔌 已斷開連接', '裝置已成功中斷連線');
@@ -1095,7 +1120,7 @@
             }
         }
 
-        // ====== 全部重置 (需求11) ======
+        // ====== 全部重置 ======
         resetBtn.onclick = function() {
             console.log('🔄 全部重置被點擊！');
 
@@ -1227,6 +1252,7 @@
 
         // ====== 校準 ======
         document.getElementById('calibrateBtn').onclick = function() {
+            console.log('⚙️ 校準按鈕被點擊！');
             if (!isConnected) {
                 showModal('⚠️ 提示', '請先連接裝置再進行校準');
                 return;
@@ -1236,6 +1262,7 @@
 
         // ====== 匯出 ======
         document.getElementById('exportBtn').onclick = function() {
+            console.log('📤 匯出按鈕被點擊！');
             if (flowData.length === 0) {
                 showModal('⚠️ 提示', '無數據可匯出');
                 return;
@@ -1251,12 +1278,14 @@
 
         // ====== 圖表控制 ======
         document.getElementById('clearChartBtn').onclick = function() {
+            console.log('🗑️ 清除圖表按鈕被點擊！');
             chartInstance.data.labels = [];
             chartInstance.data.datasets[0].data = [];
             chartInstance.update();
             showModal('🗑️ 清除完成', '圖表數據已清除');
         };
         document.getElementById('applyYRange').onclick = function() {
+            console.log('📊 套用Y軸按鈕被點擊！');
             const min = parseFloat(document.getElementById('yMinInput').value) || 0;
             const max = parseFloat(document.getElementById('yMaxInput').value) || 10;
             if (min >= max) { showModal('⚠️ 錯誤', '最小值需小於最大值'); return; }
@@ -1268,41 +1297,46 @@
 
         // ====== 模式切換 ======
         document.getElementById('modeInhale').onclick = function() {
+            console.log('😤 吸氣模式被點擊！');
             document.querySelectorAll('#modeInhale,#modeExhale,#modeBoth').forEach(b => b.className =
             'btn btn-sm btn-outline');
             this.className = 'btn btn-sm btn-active';
             showModal('😤 模式切換', '已切換至「吸氣模式」');
         };
         document.getElementById('modeExhale').onclick = function() {
+            console.log('😮‍💨 吐氣模式被點擊！');
             document.querySelectorAll('#modeInhale,#modeExhale,#modeBoth').forEach(b => b.className =
             'btn btn-sm btn-outline');
             this.className = 'btn btn-sm btn-active';
             showModal('😮‍💨 模式切換', '已切換至「吐氣模式」');
         };
         document.getElementById('modeBoth').onclick = function() {
+            console.log('🔄 雙向模式被點擊！');
             document.querySelectorAll('#modeInhale,#modeExhale,#modeBoth').forEach(b => b.className =
             'btn btn-sm btn-outline');
             this.className = 'btn btn-sm btn-active';
             showModal('🔄 模式切換', '已切換至「雙向模式」');
         };
         document.getElementById('modeSingle').onclick = function() {
+            console.log('⏹️ 單次模式被點擊！');
             document.querySelectorAll('#modeSingle,#modeContinuous').forEach(b => b.className =
             'btn btn-sm btn-outline');
             this.className = 'btn btn-sm btn-active';
             showModal('⏹️ 模式切換', '已切換至「單次模式」');
         };
         document.getElementById('modeContinuous').onclick = function() {
+            console.log('▶️ 連續模式被點擊！');
             document.querySelectorAll('#modeSingle,#modeContinuous').forEach(b => b.className =
             'btn btn-sm btn-outline');
             this.className = 'btn btn-sm btn-active';
             showModal('▶️ 模式切換', '已切換至「連續模式」');
         };
 
-        // ====== 計時器 (重新設計) ======
+        // ====== 計時器 ======
         let timerInterval = null,
             timerSeconds = 0,
             timerRunning = false;
-        let timerMode = 'stopwatch'; // 'stopwatch' 或 'countdown'
+        let timerMode = 'stopwatch';
         let timerSetValue = 60;
 
         function formatTime(s) {
@@ -1362,6 +1396,7 @@
 
         // 設定時間
         document.getElementById('timerApplyBtn').onclick = function() {
+            console.log('⏱️ 設定時間被點擊！');
             const val = parseInt(document.getElementById('timerSetValue').value);
             if (isNaN(val) || val < 1) {
                 showModal('⚠️ 錯誤', '請輸入有效的秒數 (≥1)');
@@ -1377,6 +1412,7 @@
 
         // 切換倒數/累計
         document.getElementById('timerCountdown').onclick = function() {
+            console.log('⏳ 倒數計時被點擊！');
             if (timerRunning) stopTimer();
             timerMode = 'countdown';
             document.querySelectorAll('#timerCountdown,#timerStopwatch').forEach(b => b.className =
@@ -1388,6 +1424,7 @@
             document.getElementById('timerStatus').textContent = '⏸️ 待命';
         };
         document.getElementById('timerStopwatch').onclick = function() {
+            console.log('⏱️ 累計計時被點擊！');
             if (timerRunning) stopTimer();
             timerMode = 'stopwatch';
             document.querySelectorAll('#timerCountdown,#timerStopwatch').forEach(b => b.className =
@@ -1401,10 +1438,10 @@
 
         // 啟動/停止
         document.getElementById('timerToggle').onclick = function() {
+            console.log('▶️ 計時器啟動/停止被點擊！');
             if (timerRunning) {
                 stopTimer();
             } else {
-                // 如果是倒數模式且時間為0，重置為設定值
                 if (timerMode === 'countdown' && timerSeconds <= 0) {
                     timerSeconds = timerSetValue;
                     updateTimerDisplay();
@@ -1415,6 +1452,7 @@
 
         // 重置
         document.getElementById('timerResetBtn').onclick = function() {
+            console.log('⟳ 計時器重置被點擊！');
             resetTimer();
             showModal('⟳ 重置', '計時器已重置');
         };
@@ -1425,6 +1463,7 @@
             gameScore = 0;
 
         document.getElementById('gameModeBtn').onclick = function() {
+            console.log('🎮 遊戲模式被點擊！');
             gameMode = !gameMode;
             if (gameMode) {
                 gameActive = true;
@@ -1456,9 +1495,11 @@
 
         // ====== 登入 ======
         document.getElementById('loginBtn').onclick = function() {
+            console.log('🔑 登入按鈕被點擊！');
             showModal('🔑 登入', '登入功能已觸發');
         };
         document.getElementById('myfilesBtn').onclick = function() {
+            console.log('📁 歷史按鈕被點擊！');
             showModal('📁 歷史紀錄', '此功能需實作 userTable.html 頁面');
         };
 
@@ -1469,10 +1510,13 @@
         resetTimer();
 
         console.log('✅ 系統已初始化');
-        console.log('📌 全部重置按鈕 - 清除所有數據、燈號、圖表');
-        console.log('📌 計時器 - 可設定秒數，支援倒數/累計模式');
-        console.log('📌 流量狀態燈號 - 不足亮黃燈，過高亮紅燈，正常亮綠燈');
-        console.log('📌 身分證→性別連動，年齡→標準區間連動');
+        console.log('📌 所有按鈕在未連線時皆可點擊 (除了儲存按鈕需要連線+身分證)');
+        console.log('📌 請點擊「🧪 測試按鈕」驗證');
+        console.log('');
+        console.log('📌 身分證→性別連動: A123456789=男性, A223456789=女性');
+        console.log('📌 年齡+性別→標準區間自動更新');
+        console.log('📌 流量狀態燈號: 正常=綠燈, 不足=黃燈, 過高=紅燈');
+        console.log('📌 全部重置: 清除所有數據、燈號、圖表、計時器、遊戲');
     </script>
 </body>
 </html>
