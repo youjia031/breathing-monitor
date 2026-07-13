@@ -369,6 +369,34 @@
             margin: 4px 0;
             color: #e8f0e8;
         }
+        .game-overlay .game-score-big {
+            font-size: 36px;
+            font-weight: 800;
+            color: #f1c40f;
+            text-shadow: 0 0 30px #f1c40f40;
+        }
+        .game-overlay .game-target {
+            color: #e67e22;
+            font-weight: 700;
+        }
+        .game-overlay .game-progress-bar {
+            height: 6px;
+            background: #3a5a3a;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+        .game-overlay .game-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #f1c40f, #e67e22);
+            transition: width 0.3s;
+            border-radius: 4px;
+        }
+        .game-overlay .game-status-text {
+            font-size: 14px;
+            color: #a0c0a0;
+        }
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -604,12 +632,12 @@
                     <rect x="0" y="0" width="300" height="340" fill="#f0f8f0" rx="40"/>
                     <g clip-path="url(#leftLungClip)">
                         <rect x="0" y="60" width="140" height="240" fill="url(#lungGradLeftDim)" id="leftLungBase"/>
-                        <rect x="0" y="60" width="140" height="240" fill="url(#lungGradLeft)" id="leftLungFill" style="transform: scale(0.50); transform-origin: 68px 180px; transition: transform 0.25s;"/>
+                        <rect x="0" y="60" width="140" height="240" fill="url(#lungGradLeft)" id="leftLungFill" style="transform: scale(0.50); transform-origin: 68px 180px; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);"/>
                     </g>
                     <path d="M65,70 C45,70 20,100 18,145 C16,190 30,230 50,260 C65,280 80,290 95,290 C108,290 115,275 118,255 C121,235 120,210 118,190 C116,170 110,150 100,130 C92,115 82,95 75,80 C70,72 68,70 65,70 Z" fill="none" stroke="#3a5a3a" stroke-width="2.5" opacity="0.6"/>
                     <g clip-path="url(#rightLungClip)">
                         <rect x="160" y="60" width="140" height="240" fill="url(#lungGradRightDim)" id="rightLungBase"/>
-                        <rect x="160" y="60" width="140" height="240" fill="url(#lungGradRight)" id="rightLungFill" style="transform: scale(0.50); transform-origin: 232px 180px; transition: transform 0.25s;"/>
+                        <rect x="160" y="60" width="140" height="240" fill="url(#lungGradRight)" id="rightLungFill" style="transform: scale(0.50); transform-origin: 232px 180px; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);"/>
                     </g>
                     <path d="M235,70 C255,70 280,100 282,145 C284,190 270,230 250,260 C235,280 220,290 205,290 C192,290 185,275 182,255 C179,235 180,210 182,190 C184,170 190,150 200,130 C208,115 218,95 225,80 C230,72 232,70 235,70 Z" fill="none" stroke="#3a5a3a" stroke-width="2.5" opacity="0.6"/>
                     <path d="M148,20 L148,75" fill="none" stroke="#8a7a5a" stroke-width="10" stroke-linecap="round"/>
@@ -658,21 +686,29 @@
             </div>
         </div>
 
-        <!-- 遊戲模式 -->
-        <div class="game-overlay" style="margin-top:8px;">
+        <!-- ===== 遊戲模式 (重新設計) ===== -->
+        <div class="section-title">
+            🎮 遊戲模式
+            <span class="badge-section">六款呼吸遊戲 / 即時計分</span>
+        </div>
+        <div class="game-overlay" id="gameOverlay">
             <div class="flex-row" style="justify-content:space-between; width:100%;">
                 <div class="flex-row gap-4">
-                    <button class="btn btn-sm btn-gold" id="gameModeBtn">🎮 遊戲模式</button>
-                    <span id="gameStatus" class="text-small" style="color:#a0c0a0;">關閉</span>
+                    <button class="btn btn-sm btn-gold" id="gameModeBtn">🎮 開啟遊戲</button>
+                    <span class="game-status-text" id="gameStatusText">● 關閉</span>
                     <span class="badge badge-gold hidden" id="gameScoreBadge">⭐ 分數: <span id="gameScoreValue">0</span></span>
                 </div>
                 <div class="flex-row gap-4">
-                    <span id="gameTargetDisplay" class="text-small" style="color:#e8d0a0;"></span>
                     <span id="gameNameDisplay" class="badge badge-gold hidden">🎯 目標挑戰</span>
+                    <span id="gameTargetDisplay" class="text-small" style="color:#e8d0a0;"></span>
                 </div>
             </div>
-            <div id="gameProgress" class="hidden" style="margin-top:4px; height:4px; background:#3a5a3a; border-radius:4px; overflow:hidden;">
-                <div id="gameProgressBar" style="height:100%; width:0%; background:linear-gradient(90deg,#f1c40f,#e67e22); transition:width 0.3s;"></div>
+            <div class="game-progress-bar hidden" id="gameProgress">
+                <div class="game-progress-fill" id="gameProgressFill" style="width:0%;"></div>
+            </div>
+            <div class="flex-row" style="margin-top:6px; gap:12px;">
+                <span class="text-small" style="color:#a0c0a0;" id="gameRuleDisplay">點擊「開啟遊戲」開始</span>
+                <span class="text-small" style="color:#f1c40f;" id="gameFeedback"></span>
             </div>
         </div>
 
@@ -760,6 +796,43 @@
             const data = ranges[gender]?.[group];
             if (!data) return { min: null, max: null, label: '無資料' };
             return data;
+        }
+
+        // ====== 肺部動畫 ======
+        function updateLungs(flow) {
+            const absFlow = Math.abs(flow);
+            // 縮放範圍 0.45 ~ 0.95
+            const scale = 0.45 + Math.min(absFlow / 7, 1) * 0.50;
+
+            const leftFill = document.getElementById('leftLungFill');
+            const rightFill = document.getElementById('rightLungFill');
+            const flowIndicator = document.getElementById('flowIndicator');
+
+            if (leftFill) {
+                leftFill.setAttribute('transform', `scale(${scale},${scale})`);
+            }
+            if (rightFill) {
+                rightFill.setAttribute('transform', `scale(${scale},${scale})`);
+            }
+
+            // 顏色變化：從灰藍到粉紅
+            const intensity = Math.min(absFlow / 5, 1);
+            const r = 160 + 90 * intensity;
+            const g = 130 - 50 * intensity;
+            const b = 130 - 50 * intensity;
+            const color = `rgb(${r},${g},${b})`;
+
+            if (leftFill) leftFill.setAttribute('fill', color);
+            if (rightFill) rightFill.setAttribute('fill', color);
+
+            // 流量指示器
+            if (flowIndicator) {
+                if (absFlow > 0.5) {
+                    flowIndicator.setAttribute('opacity', '1');
+                } else {
+                    flowIndicator.setAttribute('opacity', '0');
+                }
+            }
         }
 
         // ====== 更新流量狀態 ======
@@ -1080,12 +1153,23 @@
                 const now = ((Date.now() - Date.now()) / 1000).toFixed(2);
                 flowData.push([parseFloat(now), flow]);
                 document.getElementById('flowValue').textContent = flow.toFixed(2);
+
+                // 更新峰值
                 if (Math.abs(flow) > peakFlowValue) {
                     peakFlowValue = Math.abs(flow);
                     document.getElementById('peakHold').textContent = peakFlowValue.toFixed(2);
                 }
+
+                // 更新儀表板
                 drawGauge(Math.abs(flow), peakFlowValue);
+
+                // ★★★ 更新肺部動畫 ★★★
+                updateLungs(flow);
+
+                // 更新流量狀態燈號
                 updateFlowStatus(flow);
+
+                // 更新圖表
                 chartInstance.data.labels.push(now);
                 chartInstance.data.datasets[0].data.push(flow);
                 if (chartInstance.data.labels.length > 100) {
@@ -1093,6 +1177,11 @@
                     chartInstance.data.datasets[0].data.shift();
                 }
                 chartInstance.update();
+
+                // ★★★ 更新遊戲 ★★★
+                if (gameActive) {
+                    processGame(flow);
+                }
             }
         }
 
@@ -1115,9 +1204,8 @@
             document.getElementById('peakHold').textContent = '0.00';
             drawGauge(0, 0);
 
-            // 重置肺部
-            document.getElementById('leftLungFill').setAttribute('transform', 'scale(0.50)');
-            document.getElementById('rightLungFill').setAttribute('transform', 'scale(0.50)');
+            // ★★★ 重置肺部 ★★★
+            updateLungs(0);
 
             // 重置燈號
             document.getElementById('light1').className = 'light';
@@ -1136,17 +1224,18 @@
             // 重置計時器
             resetTimer();
 
-            // 重置遊戲
-            if (gameMode) {
-                gameMode = false;
+            // ★★★ 重置遊戲 ★★★
+            if (gameActive) {
                 gameActive = false;
                 gameScore = 0;
-                document.getElementById('gameStatus').textContent = '關閉';
+                document.getElementById('gameStatusText').textContent = '● 已關閉';
                 document.getElementById('gameScoreBadge').classList.add('hidden');
-                document.getElementById('gameModeBtn').textContent = '🎮 遊戲模式';
+                document.getElementById('gameModeBtn').textContent = '🎮 開啟遊戲';
                 document.getElementById('gameNameDisplay').classList.add('hidden');
                 document.getElementById('gameTargetDisplay').textContent = '';
                 document.getElementById('gameProgress').classList.add('hidden');
+                document.getElementById('gameRuleDisplay').textContent = '點擊「開啟遊戲」開始';
+                document.getElementById('gameFeedback').textContent = '';
             }
 
             showModal('🔄 全部重置完成', '所有數據已清除，燈號已復位');
@@ -1378,31 +1467,157 @@
             showModal('⟳ 重置', '計時器已重置');
         };
 
-        // ====== 遊戲模式 ======
-        let gameMode = false,
-            gameActive = false,
-            gameScore = 0;
+        // ====== ★★★ 遊戲模式 (完整實作) ★★★ ======
+        const games = [
+            { id: 0, name: '🎯 目標挑戰', desc: '達到目標流量', emoji: '🎯' },
+            { id: 1, name: '📈 穩定維持', desc: '維持在目標區間', emoji: '📈' },
+            { id: 2, name: '⚡ 爆發力', desc: '衝刺最高流量', emoji: '⚡' },
+            { id: 3, name: '🔄 節奏呼吸', desc: '規律吸吐交替', emoji: '🔄' },
+            { id: 4, name: '🏆 累積積分', desc: '每次吸氣得分', emoji: '🏆' },
+            { id: 5, name: '🎲 幸運呼吸', desc: '隨機驚喜加成', emoji: '🎲' }
+        ];
+
+        let gameActive = false;
+        let gameScore = 0;
+        let currentGame = 0;
+        let gameTarget = 0;
+        let gameProgressVal = 0;
+        let gameCompleted = false;
+        let gameLastFlow = 0;
 
         document.getElementById('gameModeBtn').onclick = function() {
-            gameMode = !gameMode;
-            if (gameMode) {
-                gameActive = true;
+            gameActive = !gameActive;
+
+            if (gameActive) {
+                // 隨機選擇遊戲
+                currentGame = Math.floor(Math.random() * 6);
+                gameTarget = (1.5 + Math.random() * 5.5);
+                gameTarget = Math.round(gameTarget * 10) / 10;
                 gameScore = 0;
-                document.getElementById('gameStatus').textContent = '🎮 進行中';
+                gameProgressVal = 0;
+                gameCompleted = false;
+
+                document.getElementById('gameStatusText').textContent = '▶ 進行中';
                 document.getElementById('gameScoreBadge').classList.remove('hidden');
                 document.getElementById('gameScoreValue').textContent = '0';
-                this.textContent = '🎮 結束遊戲';
-                showModal('🎮 遊戲開始', '呼吸遊戲已啟動！\n盡力吸氣獲得高分！');
+                document.getElementById('gameNameDisplay').textContent = games[currentGame].emoji + ' ' + games[currentGame]
+                    .name;
+                document.getElementById('gameNameDisplay').classList.remove('hidden');
+                document.getElementById('gameTargetDisplay').textContent = `🎯 目標: ${gameTarget} L/min`;
+                document.getElementById('gameProgress').classList.remove('hidden');
+                document.getElementById('gameProgressFill').style.width = '0%';
+                document.getElementById('gameRuleDisplay').textContent = games[currentGame].desc;
+                document.getElementById('gameFeedback').textContent = '💪 開始呼吸！';
+                this.textContent = '⏹️ 結束遊戲';
+
+                showModal('🎮 遊戲開始', `${games[currentGame].emoji} ${games[currentGame].name}\n${games[currentGame].desc}\n目標流量: ${gameTarget} L/min\n\n開始測量吧！`);
             } else {
-                gameActive = false;
-                document.getElementById('gameStatus').textContent = '關閉';
+                document.getElementById('gameStatusText').textContent = '● 已關閉';
                 document.getElementById('gameScoreBadge').classList.add('hidden');
-                this.textContent = '🎮 遊戲模式';
+                document.getElementById('gameNameDisplay').classList.add('hidden');
+                document.getElementById('gameTargetDisplay').textContent = '';
+                document.getElementById('gameProgress').classList.add('hidden');
+                document.getElementById('gameRuleDisplay').textContent = '點擊「開啟遊戲」開始';
+                document.getElementById('gameFeedback').textContent = '';
+                this.textContent = '🎮 開啟遊戲';
+
                 if (gameScore > 0) {
-                    showModal('🏁 遊戲結束', `最終分數: ${gameScore} 分`);
+                    showModal('🏁 遊戲結束', `最終分數: ${gameScore} 分\n${gameScore > 50 ? '🌟 優異表現！' : gameScore > 20 ? '👍 不錯喔！' : '💪 繼續加油！'}`);
                 }
             }
         };
+
+        function processGame(flow) {
+            const absFlow = Math.abs(flow);
+            if (absFlow < 0.1) return;
+
+            let points = 0;
+            let progress = 0;
+            const target = gameTarget;
+
+            switch (currentGame) {
+                case 0: // 目標挑戰
+                    if (absFlow >= target) {
+                        points = 15;
+                        progress = Math.min(100, (absFlow / target) * 100);
+                    } else {
+                        progress = Math.min(90, (absFlow / target) * 90);
+                    }
+                    break;
+                case 1: // 穩定維持
+                    if (absFlow >= target - 0.8 && absFlow <= target + 0.8) {
+                        points = 8;
+                        progress = Math.min(100, (absFlow / target) * 100);
+                    } else {
+                        progress = Math.min(70, (absFlow / target) * 70);
+                    }
+                    break;
+                case 2: // 爆發力
+                    if (absFlow > peakFlowValue * 0.85 && peakFlowValue > 1) {
+                        points = 12;
+                        progress = Math.min(100, (absFlow / 8) * 100);
+                    } else {
+                        progress = Math.min(80, (absFlow / 8) * 80);
+                    }
+                    break;
+                case 3: // 節奏呼吸
+                    if (flowData.length % 8 === 0 && absFlow > 1) {
+                        points = 6;
+                        progress = Math.min(100, (flowData.length % 80) / 80 * 100);
+                    } else {
+                        progress = Math.min(60, (flowData.length % 80) / 80 * 60);
+                    }
+                    break;
+                case 4: // 累積積分
+                    points = Math.floor(absFlow * 1.5);
+                    progress = Math.min(100, (gameScore / 100) * 100);
+                    break;
+                case 5: // 幸運呼吸
+                    if (Math.random() > 0.65) {
+                        points = 20;
+                        document.getElementById('gameFeedback').textContent = '🎉 幸運加成！+20分！';
+                        setTimeout(() => {
+                            document.getElementById('gameFeedback').textContent = '💪 繼續呼吸！';
+                        }, 1500);
+                    }
+                    progress = Math.min(100, (flowData.length / 30) * 100);
+                    break;
+            }
+
+            if (points > 0) {
+                gameScore += points;
+                document.getElementById('gameScoreValue').textContent = gameScore;
+                if (points >= 10) {
+                    document.getElementById('gameFeedback').textContent = `⭐ +${points}分！`;
+                    setTimeout(() => {
+                        document.getElementById('gameFeedback').textContent = '💪 繼續呼吸！';
+                    }, 1000);
+                }
+            }
+
+            gameProgressVal = Math.min(100, progress);
+            document.getElementById('gameProgressFill').style.width = gameProgressVal + '%';
+
+            // 目標達成
+            if (gameProgressVal >= 95 && !gameCompleted) {
+                gameCompleted = true;
+                showModal('🎉 目標達成！', `太棒了！獲得 ${gameScore} 分！\n繼續呼吸可以累積更多分數！`);
+                document.getElementById('gameFeedback').textContent = '🎉 目標達成！繼續累積分數！';
+            }
+
+            // 更新遊戲目標顯示 - 顯示當前流量與目標的差距
+            if (gameActive) {
+                const diff = (target - absFlow).toFixed(1);
+                if (absFlow > 0.5) {
+                    if (absFlow >= target) {
+                        document.getElementById('gameTargetDisplay').textContent = `🎯 已達標！ (${absFlow.toFixed(1)}/${target})`;
+                    } else {
+                        document.getElementById('gameTargetDisplay').textContent =
+                        `🎯 還差 ${diff} L/min (${absFlow.toFixed(1)}/${target})`;
+                    }
+                }
+            }
+        }
 
         // ====== Modal ======
         function showModal(title, msg) {
@@ -1424,14 +1639,14 @@
         // ====== 初始化 ======
         setStep(0);
         drawGauge(0, 0);
+        updateLungs(0);
         updateAllLinkedFields();
         resetTimer();
 
         console.log('✅ 系統已初始化');
-        console.log('📌 所有按鈕在未連線時皆可點擊');
-        console.log('📌 點擊「🧪 測試按鈕」驗證');
-        console.log('📌 身分證→性別: A123456789=男性, A223456789=女性');
-        console.log('📌 全部重置: 清除所有數據、燈號、圖表、計時器、遊戲');
+        console.log('📌 肺部動畫會在收到流量數據時自動變化');
+        console.log('📌 遊戲模式有6款隨機遊戲，會即時計分');
+        console.log('📌 點擊「🧪 測試按鈕」驗證所有按鈕都可點擊');
     </script>
 </body>
 </html>
