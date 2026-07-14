@@ -7,7 +7,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* ... (所有樣式保持不變) ... */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -37,11 +36,6 @@
         .grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-        .grid-3 {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
             gap: 12px;
         }
         .btn {
@@ -98,16 +92,6 @@
         }
         .btn-test:hover {
             background: #7d3c98;
-        }
-        .btn-future {
-            background: #95a5a6;
-            color: white;
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-        .btn-future:hover {
-            transform: none !important;
-            box-shadow: none !important;
         }
         .input-group {
             display: flex;
@@ -181,21 +165,6 @@
             background: #95a5a620;
             color: #5a6a6a;
             border-color: #95a5a640;
-        }
-        .badge-green {
-            background: #2ecc7120;
-            color: #1a7a42;
-            border-color: #2ecc7130;
-        }
-        .badge-red {
-            background: #e74c3c20;
-            color: #c0392b;
-            border-color: #e74c3c30;
-        }
-        .badge-yellow {
-            background: #f1c40f20;
-            color: #b7950b;
-            border-color: #f1c40f30;
         }
         .gender-male {
             background: #3498db20 !important;
@@ -784,22 +753,8 @@
             background: #e7f3ec;
             color: #4a6a4a;
         }
-        .std-detail {
-            font-size: 12px;
-            color: #4a6a4a;
-            padding: 4px 0;
-        }
-        .mode-hint {
-            font-size: 11px;
-            color: #6a8a6a;
-            background: #e8f4e8;
-            padding: 2px 10px;
-            border-radius: 12px;
-            margin-left: 4px;
-        }
         @media (max-width: 750px) {
-            .grid-2,
-            .grid-3 {
+            .grid-2 {
                 grid-template-columns: 1fr;
             }
             .container {
@@ -883,7 +838,7 @@
             </div>
         </div>
 
-        <!-- ===== 個人化標準區間（吸藥粉專用：30~90 L/min） ===== -->
+        <!-- ===== 標準區間（吸藥粉專用：30~90 L/min） ===== -->
         <div class="std-range" id="stdRangeDisplay">
             <div class="label">💊 吸藥粉建議吸氣流速標準區間</div>
             <div class="value" id="stdRangeValue">請輸入完整資訊（身分證、年齡、身高）</div>
@@ -1190,7 +1145,7 @@
         // ====== 測試按鈕 ======
         document.getElementById('testBtn').onclick = function() {
             playSound('click');
-            alert('🧪 測試成功！\n\n✅ 所有按鈕在未連線時都可以點擊！\n✅ 音效系統已初始化\n✅ 遊戲畫面豐富可動\n✅ 肺部動畫即時反應\n✅ 性別圖示：男性♂藍色 / 女性♀紅色\n✅ 計時器自動連動：偵測到流量時自動啟動\n✅ 吸藥粉標準區間：30~90 L/min');
+            alert('🧪 測試成功！\n\n✅ 所有按鈕在未連線時都可以點擊！\n✅ 音效系統已初始化\n✅ 遊戲畫面豐富可動\n✅ 肺部動畫即時反應\n✅ 性別圖示：男性♂藍色 / 女性♀紅色\n✅ 計時器自動連動：偵測到流量時自動啟動\n✅ 吸藥粉標準區間：30~90 L/min\n✅ 圖表X軸會正確顯示時間（從連線開始計算）');
         };
 
         // ====== 身分證驗證 ======
@@ -1212,6 +1167,7 @@
         let chartInstance = null;
         let serialPort = null;
         let reader = null;
+        let startTime = null;
 
         // 吸藥粉標準區間：30 ~ 90 L/min
         const STD_MIN = 30;
@@ -1251,7 +1207,7 @@
             }
         }
 
-        // ====== 更新標準區間（吸藥粉專用：30~90 L/min） ======
+        // ====== 更新標準區間 ======
         function updatePersonalizedStandard() {
             const idValue = document.getElementById('patientIdNumber').value.toUpperCase();
             const isValid = validateTaiwanId(idValue);
@@ -1295,7 +1251,6 @@
         // ====== 肺部動畫 ======
         function updateLungs(flow) {
             const absFlow = Math.abs(flow);
-            // 將流量映射到縮放比例 (30~90 L/min 對應 0.45~0.95)
             const normalizedFlow = Math.min(Math.max(absFlow, 0), 90);
             const scale = 0.45 + (normalizedFlow / 90) * 0.50;
 
@@ -1325,7 +1280,6 @@
 
             updateBreathBall(absFlow);
 
-            // 計時器自動連動
             if (timerAutoMode && absFlow > 5 && !timerRunning) {
                 startTimer();
                 timerTriggeredByFlow = true;
@@ -1361,7 +1315,7 @@
             }
         }
 
-        // ====== 更新流量狀態（吸藥粉專用標準） ======
+        // ====== 更新流量狀態 ======
         function updateFlowStatus(flow) {
             const absFlow = Math.abs(flow);
             const indicator = document.getElementById('flowStatusIndicator');
@@ -1377,7 +1331,6 @@
                 return;
             }
 
-            // 吸藥粉標準區間：30 ~ 90 L/min
             if (absFlow >= STD_MIN && absFlow <= STD_MAX) {
                 indicator.className = 'status-indicator green';
                 indicator.textContent = '✅ 正常 (綠燈)';
@@ -1472,8 +1425,21 @@
                 maintainAspectRatio: false,
                 animation: false,
                 scales: {
-                    x: { title: { display: true, text: '時間 (秒)' }, grid: { color: '#e8f0e8' } },
-                    y: { min: 0, max: 100, title: { display: true, text: '流量 (L/min)' }, grid: { color: '#e8f0e8' } }
+                    x: {
+                        title: { display: true, text: '時間 (秒)' },
+                        grid: { color: '#e8f0e8' },
+                        min: 0,
+                        ticks: {
+                            stepSize: 1,
+                            maxTicksLimit: 20
+                        }
+                    },
+                    y: {
+                        min: 0,
+                        max: 100,
+                        title: { display: true, text: '流量 (L/min)' },
+                        grid: { color: '#e8f0e8' }
+                    }
                 },
                 plugins: { legend: { display: false } }
             }
@@ -1491,14 +1457,12 @@
                 cy = h - 6,
                 radius = Math.min(w / 2 - 24, 50);
 
-            // 背景弧 (0~100 L/min)
             ctxGauge.beginPath();
             ctxGauge.arc(cx, cy, radius, Math.PI, 0);
             ctxGauge.strokeStyle = '#d0e2d0';
             ctxGauge.lineWidth = 10;
             ctxGauge.stroke();
 
-            // 值弧 (0~100 L/min)
             const maxDisplay = 100;
             const angle = Math.PI + Math.min(value / maxDisplay, 1) * Math.PI;
             ctxGauge.beginPath();
@@ -1507,7 +1471,6 @@
             ctxGauge.lineWidth = 10;
             ctxGauge.stroke();
 
-            // 指針
             const pAngle = Math.PI + Math.min(value / maxDisplay, 1) * Math.PI;
             const px = cx + (radius - 2) * Math.cos(pAngle);
             const py = cy + (radius - 2) * Math.sin(pAngle);
@@ -1518,7 +1481,6 @@
             ctxGauge.lineWidth = 3;
             ctxGauge.stroke();
 
-            // 峰值指針
             if (peak > 0.3) {
                 const peakAngle = Math.PI + Math.min(peak / maxDisplay, 1) * Math.PI;
                 const px2 = cx + (radius + 2) * Math.cos(peakAngle);
@@ -1537,7 +1499,6 @@
                 ctxGauge.fill();
             }
 
-            // 刻度標記
             ctxGauge.fillStyle = '#4a6a4a';
             ctxGauge.font = '10px sans-serif';
             ctxGauge.textAlign = 'center';
@@ -1551,7 +1512,6 @@
             ctxGauge.font = 'bold 14px sans-serif';
             ctxGauge.fillText(value.toFixed(1), cx, 16);
 
-            // 標示標準區間 (30~90 L/min)
             ctxGauge.fillStyle = 'rgba(46, 204, 113, 0.15)';
             ctxGauge.fillRect(cx - 60, h - 14, 120, 6);
             ctxGauge.fillStyle = '#2ecc71';
@@ -1611,6 +1571,7 @@
                 serialPort = null;
                 isConnected = false;
                 reader = null;
+                startTime = null;
                 document.getElementById('statusChip').className = 'status-chip';
                 document.getElementById('statusChip').textContent = '🔌 已斷開';
                 this.textContent = '🔗 連接裝置';
@@ -1629,12 +1590,16 @@
                 serialPort = await navigator.serial.requestPort();
                 await serialPort.open({ baudRate: 9600 });
                 isConnected = true;
+                startTime = Date.now();
                 this.textContent = '🔌 斷開裝置';
                 document.getElementById('statusChip').className = 'status-chip success';
                 document.getElementById('statusChip').textContent = '✅ 已連線';
                 flowData = [];
                 peakFlowValue = 0;
                 currentFlow = 0;
+                chartInstance.data.labels = [];
+                chartInstance.data.datasets[0].data = [];
+                chartInstance.update();
                 updateAllLinkedFields();
                 listenSerial();
                 playSound('gameStart');
@@ -1662,12 +1627,16 @@
             }
         }
 
+        // ★★★ 核心修正：計算正確的時間 ★★★
         function handleSerialData(line) {
             const match = line.match(/Flow[:：]\s*([0-9.]+)/i);
             if (match) {
                 const flow = parseFloat(match[1]);
                 currentFlow = flow;
-                const now = ((Date.now() - Date.now()) / 1000).toFixed(2);
+
+                // 使用 startTime 計算從連線開始到現在的秒數
+                const now = ((Date.now() - startTime) / 1000).toFixed(2);
+
                 flowData.push([parseFloat(now), flow]);
                 document.getElementById('flowValue').textContent = flow.toFixed(2);
 
@@ -1682,7 +1651,8 @@
 
                 chartInstance.data.labels.push(now);
                 chartInstance.data.datasets[0].data.push(flow);
-                if (chartInstance.data.labels.length > 100) {
+
+                if (chartInstance.data.labels.length > 200) {
                     chartInstance.data.labels.shift();
                     chartInstance.data.datasets[0].data.shift();
                 }
@@ -2268,9 +2238,8 @@
 
         console.log('✅ 系統已初始化');
         console.log('💊 吸藥粉標準區間：30 ~ 90 L/min');
+        console.log('⏱️ 圖表X軸會正確顯示時間 (從連線開始計算)');
         console.log('👨 男性圖示: ♂ 藍色 | 👩 女性圖示: ♀ 紅色');
-        console.log('⏱️ 計時器自動連動: 偵測到流量時自動啟動');
-        console.log('🔮 吐氣/雙向模式標示為「保留」供未來擴充');
         console.log('📋 本系統為輔助參考，異常請諮詢醫師');
     </script>
 </body>
