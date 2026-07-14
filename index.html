@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>呼吸流量監測系統</title>
+    <title>呼吸流量監測系統 - 吸藥輔助</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* ... 前面的樣式 ... */
+        /* ... 前面的樣式保持不變 ... */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -99,6 +99,16 @@
         .btn-test:hover {
             background: #7d3c98;
         }
+        .btn-future {
+            background: #95a5a6;
+            color: white;
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        .btn-future:hover {
+            transform: none !important;
+            box-shadow: none !important;
+        }
         .input-group {
             display: flex;
             flex-wrap: wrap;
@@ -166,6 +176,11 @@
             background: #f39c1220;
             color: #b9770e;
             border-color: #f39c1240;
+        }
+        .badge-future {
+            background: #95a5a620;
+            color: #5a6a6a;
+            border-color: #95a5a640;
         }
         .badge-green {
             background: #2ecc7120;
@@ -259,6 +274,15 @@
             font-size: 12px;
             color: #4a6a4a;
             margin-top: 2px;
+        }
+        .std-range .device-info {
+            font-size: 11px;
+            color: #6a8a6a;
+            margin-top: 4px;
+            background: #e8f4e8;
+            padding: 4px 10px;
+            border-radius: 12px;
+            display: inline-block;
         }
         .light-bar {
             display: flex;
@@ -756,6 +780,14 @@
             color: #4a6a4a;
             padding: 4px 0;
         }
+        .mode-hint {
+            font-size: 11px;
+            color: #6a8a6a;
+            background: #e8f4e8;
+            padding: 2px 10px;
+            border-radius: 12px;
+            margin-left: 4px;
+        }
         @media (max-width: 750px) {
             .grid-2,
             .grid-3 {
@@ -811,7 +843,7 @@
             </div>
         </div>
 
-        <!-- ===== 病患資訊 (含身高) ===== -->
+        <!-- ===== 病患資訊 ===== -->
         <div class="section-title">
             📋 病患資訊
             <span class="badge-section">身分證第二碼自動偵測性別</span>
@@ -842,23 +874,25 @@
             </div>
         </div>
 
-        <!-- ===== 個人化標準區間 (真正使用年齡+性別+身高) ===== -->
+        <!-- ===== 個人化標準區間（吸藥粉專用） ===== -->
         <div class="std-range" id="stdRangeDisplay">
-            <div class="label">📊 個人化肺功能標準區間（台灣本土公式）</div>
+            <div class="label">📊 個人化吸氣流量標準區間（適用於吸藥輔助）</div>
             <div class="value" id="stdRangeValue">請輸入完整資訊（身分證、年齡、身高）</div>
             <div class="detail" id="stdRangeDetail"></div>
+            <div class="device-info">💊 目前裝置：吸藥粉專用 | 吸氣/吐氣共用相同標準</div>
         </div>
 
         <!-- ===== 模式設定 ===== -->
         <div class="section-title">
             ⚙️ 模式設定
-            <span class="badge-section">所有按鈕在未連線時皆可點擊</span>
+            <span class="badge-section">吸氣為主要使用 / 吐氣保留未來擴充</span>
         </div>
         <div class="flex-row" style="flex-wrap:wrap; gap:5px;">
             <span class="badge">📊 測量</span>
-            <button class="btn btn-sm btn-active" id="modeInhale">😤 吸氣</button>
-            <button class="btn btn-sm btn-outline" id="modeExhale">😮‍💨 吐氣</button>
-            <button class="btn btn-sm btn-outline" id="modeBoth">🔄 雙向</button>
+            <button class="btn btn-sm btn-active" id="modeInhale">😤 吸氣 (吸藥)</button>
+            <button class="btn btn-sm btn-outline" id="modeExhale" style="opacity:0.6;">😮‍💨 吐氣 (保留)</button>
+            <button class="btn btn-sm btn-outline" id="modeBoth" style="opacity:0.6;">🔄 雙向 (保留)</button>
+            <span class="badge badge-future" style="margin-left:4px;">🔮 未來擴充</span>
             <span class="badge" style="margin-left:6px;">⚡ 觸發</span>
             <button class="btn btn-sm btn-active" id="modeSingle">單次</button>
             <button class="btn btn-sm btn-outline" id="modeContinuous">連續</button>
@@ -1146,7 +1180,7 @@
         // ====== 測試按鈕 ======
         document.getElementById('testBtn').onclick = function() {
             playSound('click');
-            alert('🧪 測試成功！\n\n✅ 所有按鈕在未連線時都可以點擊！\n✅ 音效系統已初始化\n✅ 遊戲畫面豐富可動\n✅ 肺部動畫即時反應\n✅ 性別圖示：男性♂藍色 / 女性♀紅色\n✅ 計時器自動連動：裝置偵測到流量時自動啟動\n✅ 個人化標準區間：使用年齡+性別+身高計算');
+            alert('🧪 測試成功！\n\n✅ 所有按鈕在未連線時都可以點擊！\n✅ 音效系統已初始化\n✅ 遊戲畫面豐富可動\n✅ 肺部動畫即時反應\n✅ 性別圖示：男性♂藍色 / 女性♀紅色\n✅ 計時器自動連動：偵測到流量時自動啟動\n✅ 個人化標準區間：使用年齡+性別+身高計算\n✅ 吐氣/雙向模式標示為「保留」');
         };
 
         // ====== 身分證驗證 ======
@@ -1186,15 +1220,6 @@
 
         // ====== ★★★ 台灣本土肺功能預測公式 (PEF 尖峰呼氣流速) ★★★ ======
 
-        /**
-         * 計算個人化 PEF 預測值 (L/min)
-         * 引用自台北榮總胸腔部公式，適用於台灣成年人
-         * 
-         * 男性: PEF = 3.89 × 身高(cm) - 2.95 × 年齡(歲) + 43.59
-         * 女性: PEF = 4.10 × 身高(cm) - 1.61 × 年齡(歲) - 173.55
-         * 
-         * 參考: 台灣胸腔暨重症加護醫學會肺功能指引
-         */
         function calculatePEFPredicted(gender, age, height) {
             if (!gender || !age || !height) return null;
             if (age < 6 || height < 100) return null;
@@ -1208,27 +1233,17 @@
                 return null;
             }
 
-            // 確保數值合理（最小不低於 100 L/min）
             return Math.max(100, Math.round(predicted * 10) / 10);
         }
 
-        /**
-         * 計算正常範圍 (預測值的 80%~120%)
-         * 低於 80% 表示通氣限制，高於 120% 可能為過度通氣
-         */
         function getNormalRange(predicted) {
-            if (!predicted) return { min: null, max: null, lower: null, upper: null };
+            if (!predicted) return { min: null, max: null };
             return {
                 min: Math.round(predicted * 0.8 * 10) / 10,
-                max: Math.round(predicted * 1.2 * 10) / 10,
-                lower: Math.round(predicted * 0.8 * 10) / 10,
-                upper: Math.round(predicted * 1.2 * 10) / 10
+                max: Math.round(predicted * 1.2 * 10) / 10
             };
         }
 
-        /**
-         * 根據年齡與性別取得參考標籤
-         */
         function getAgeGroupLabel(age) {
             if (age < 13) return '兒童 (6-12歲)';
             else if (age < 18) return '青少年 (13-17歲)';
@@ -1261,14 +1276,13 @@
             }
         }
 
-        // ====== ★★★ 更新個人化標準區間 (真正使用年齡+性別+身高) ★★★ ======
+        // ====== ★★★ 更新個人化標準區間 ★★★ ======
         function updatePersonalizedStandard() {
             const idValue = document.getElementById('patientIdNumber').value.toUpperCase();
             const isValid = validateTaiwanId(idValue);
             const age = parseInt(document.getElementById('patientAge').value);
             const height = parseFloat(document.getElementById('patientHeight').value);
 
-            // 取得性別
             let gender = null;
             if (isValid) {
                 gender = getGenderFromId(idValue);
@@ -1282,7 +1296,6 @@
             const rangeDisplay = document.getElementById('stdRangeValue');
             const detailDisplay = document.getElementById('stdRangeDetail');
 
-            // 檢查是否所有必要資訊都已提供
             if (!gender || !age || isNaN(age) || age < 6 || !height || isNaN(height) || height < 100) {
                 stdMin = null;
                 stdMax = null;
@@ -1293,7 +1306,6 @@
                 return;
             }
 
-            // 計算個人化 PEF 預測值
             const predicted = calculatePEFPredicted(gender, age, height);
 
             if (!predicted) {
@@ -1320,7 +1332,6 @@
             detailDisplay.textContent =
                 `📐 計算公式：${gender === 'M' ? 'PEF = 3.89×身高 - 2.95×年齡 + 43.59' : 'PEF = 4.10×身高 - 1.61×年齡 - 173.55'}  (台灣本土公式) ｜ 正常範圍 = 預測值 × 80%~120%`;
 
-            // 更新流量狀態（如果已有流量數據）
             if (currentFlow > 0) {
                 updateFlowStatus(currentFlow);
             }
@@ -1408,7 +1419,6 @@
                 return;
             }
 
-            // 使用個人化標準區間
             if (stdMin !== null && stdMax !== null && stdPredicted !== null) {
                 const percentOfPredicted = (absFlow / stdPredicted * 100);
 
@@ -1453,7 +1463,6 @@
             document.getElementById('patientIdNumber').value = idValue;
             const isValid = validateTaiwanId(idValue);
 
-            // 更新性別狀態
             if (isValid) {
                 const gender = getGenderFromId(idValue);
                 currentGender = gender;
@@ -1475,13 +1484,9 @@
                 document.getElementById('statusChip').textContent = isConnected ? '✅ 已連線' : '⚪ 未連接';
             }
 
-            // ★★★ 更新個人化標準區間 ★★★
             updatePersonalizedStandard();
-
-            // 更新流量狀態
             updateFlowStatus(currentFlow);
 
-            // 儲存按鈕
             const canSave = isValid && isConnected;
             document.getElementById('saveBtn').disabled = !canSave;
             const saveHint = document.getElementById('saveHint');
@@ -1871,22 +1876,22 @@
             document.querySelectorAll('#modeInhale,#modeExhale,#modeBoth').forEach(b => b.className =
             'btn btn-sm btn-outline');
             this.className = 'btn btn-sm btn-active';
-            showModal('😤 模式切換', '已切換至「吸氣模式」');
+            // 恢復吐氣和雙向的透明度
+            document.getElementById('modeExhale').style.opacity = '0.6';
+            document.getElementById('modeBoth').style.opacity = '0.6';
+            showModal('😤 吸氣模式', '已切換至「吸氣 (吸藥)」模式\n\n💡 吐氣與雙向模式為未來擴充功能，目前保留');
         };
+
         document.getElementById('modeExhale').onclick = function() {
             playSound('click');
-            document.querySelectorAll('#modeInhale,#modeExhale,#modeBoth').forEach(b => b.className =
-            'btn btn-sm btn-outline');
-            this.className = 'btn btn-sm btn-active';
-            showModal('😮‍💨 模式切換', '已切換至「吐氣模式」');
+            showModal('🔮 功能保留', '「吐氣模式」為未來擴充功能\n\n目前裝置為吸藥粉專用，吸氣與吐氣共用相同標準\n此模式保留供未來真正測吐氣的裝置使用');
         };
+
         document.getElementById('modeBoth').onclick = function() {
             playSound('click');
-            document.querySelectorAll('#modeInhale,#modeExhale,#modeBoth').forEach(b => b.className =
-            'btn btn-sm btn-outline');
-            this.className = 'btn btn-sm btn-active';
-            showModal('🔄 模式切換', '已切換至「雙向模式」');
+            showModal('🔮 功能保留', '「雙向模式」為未來擴充功能\n\n目前裝置為吸藥粉專用，吸氣與吐氣共用相同標準\n此模式保留供未來真正測吸吐氣的裝置使用');
         };
+
         document.getElementById('modeSingle').onclick = function() {
             playSound('click');
             document.querySelectorAll('#modeSingle,#modeContinuous').forEach(b => b.className =
@@ -2311,6 +2316,7 @@
         console.log('   男性: PEF = 3.89×身高 - 2.95×年齡 + 43.59');
         console.log('   女性: PEF = 4.10×身高 - 1.61×年齡 - 173.55');
         console.log('⏱️ 計時器自動連動: 偵測到流量時自動啟動');
+        console.log('🔮 吐氣/雙向模式標示為「保留」供未來擴充');
     </script>
 </body>
 </html>
