@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* ... (前面的樣式保持不變) ... */
+        /* ... 前面的樣式 ... */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -37,6 +37,11 @@
         .grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 12px;
         }
         .btn {
@@ -162,6 +167,21 @@
             color: #b9770e;
             border-color: #f39c1240;
         }
+        .badge-green {
+            background: #2ecc7120;
+            color: #1a7a42;
+            border-color: #2ecc7130;
+        }
+        .badge-red {
+            background: #e74c3c20;
+            color: #c0392b;
+            border-color: #e74c3c30;
+        }
+        .badge-yellow {
+            background: #f1c40f20;
+            color: #b7950b;
+            border-color: #f1c40f30;
+        }
         .gender-male {
             background: #3498db20 !important;
             color: #2471a3 !important;
@@ -222,8 +242,8 @@
         .std-range {
             background: #f0f8f0;
             border-radius: 16px;
-            padding: 6px 14px;
-            border-left: 3px solid #1b7e4a;
+            padding: 8px 16px;
+            border-left: 4px solid #1b7e4a;
             margin-top: 6px;
         }
         .std-range .label {
@@ -234,6 +254,11 @@
             font-weight: 600;
             color: #1b7e4a;
             font-size: 14px;
+        }
+        .std-range .detail {
+            font-size: 12px;
+            color: #4a6a4a;
+            margin-top: 2px;
         }
         .light-bar {
             display: flex;
@@ -403,6 +428,23 @@
         .timer-control input:focus {
             outline: none;
             border-color: #1b7e4a;
+        }
+        .timer-status-badge {
+            display: inline-block;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .timer-status-badge.auto {
+            background: #2ecc7120;
+            color: #1a7a42;
+            border: 1px solid #2ecc7140;
+        }
+        .timer-status-badge.manual {
+            background: #f39c1220;
+            color: #b9770e;
+            border: 1px solid #f39c1240;
         }
         .game-overlay {
             background: linear-gradient(145deg, #0f1f0f, #1a3a1a);
@@ -709,25 +751,14 @@
             background: #e7f3ec;
             color: #4a6a4a;
         }
-        .timer-status-badge {
-            display: inline-block;
-            padding: 2px 12px;
-            border-radius: 20px;
+        .std-detail {
             font-size: 12px;
-            font-weight: 600;
-        }
-        .timer-status-badge.auto {
-            background: #2ecc7120;
-            color: #1a7a42;
-            border: 1px solid #2ecc7140;
-        }
-        .timer-status-badge.manual {
-            background: #f39c1220;
-            color: #b9770e;
-            border: 1px solid #f39c1240;
+            color: #4a6a4a;
+            padding: 4px 0;
         }
         @media (max-width: 750px) {
-            .grid-2 {
+            .grid-2,
+            .grid-3 {
                 grid-template-columns: 1fr;
             }
             .container {
@@ -780,7 +811,7 @@
             </div>
         </div>
 
-        <!-- ===== 病患資訊 ===== -->
+        <!-- ===== 病患資訊 (含身高) ===== -->
         <div class="section-title">
             📋 病患資訊
             <span class="badge-section">身分證第二碼自動偵測性別</span>
@@ -796,7 +827,11 @@
             </div>
             <div class="input-group">
                 <label>年齡</label>
-                <input id="patientAge" type="number" value="30" min="0" max="120" />
+                <input id="patientAge" type="number" value="30" min="6" max="120" />
+            </div>
+            <div class="input-group">
+                <label>身高 (cm)</label>
+                <input id="patientHeight" type="number" value="165" min="100" max="220" step="0.5" />
             </div>
             <div class="input-group">
                 <label>性別</label>
@@ -807,10 +842,11 @@
             </div>
         </div>
 
-        <!-- 標準區間 -->
+        <!-- ===== 個人化標準區間 (真正使用年齡+性別+身高) ===== -->
         <div class="std-range" id="stdRangeDisplay">
-            <span class="label">📊 依年齡與性別之流量標準區間：</span>
-            <span class="value" id="stdRangeValue">請輸入身分證與年齡</span>
+            <div class="label">📊 個人化肺功能標準區間（台灣本土公式）</div>
+            <div class="value" id="stdRangeValue">請輸入完整資訊（身分證、年齡、身高）</div>
+            <div class="detail" id="stdRangeDetail"></div>
         </div>
 
         <!-- ===== 模式設定 ===== -->
@@ -828,7 +864,7 @@
             <button class="btn btn-sm btn-outline" id="modeContinuous">連續</button>
         </div>
 
-        <!-- ===== 計時器（含自動開關連動） ===== -->
+        <!-- ===== 計時器 ===== -->
         <div class="section-title" style="margin-top:8px;">
             ⏱️ 計時器
             <span class="badge-section">可設定時間 / 倒數與累計 / 自動連動</span>
@@ -1110,7 +1146,7 @@
         // ====== 測試按鈕 ======
         document.getElementById('testBtn').onclick = function() {
             playSound('click');
-            alert('🧪 測試成功！\n\n✅ 所有按鈕在未連線時都可以點擊！\n✅ 音效系統已初始化\n✅ 遊戲畫面豐富可動\n✅ 肺部動畫即時反應\n✅ 性別圖示：男性♂藍色 / 女性♀紅色\n✅ 計時器自動連動：裝置偵測到流量時自動啟動');
+            alert('🧪 測試成功！\n\n✅ 所有按鈕在未連線時都可以點擊！\n✅ 音效系統已初始化\n✅ 遊戲畫面豐富可動\n✅ 肺部動畫即時反應\n✅ 性別圖示：男性♂藍色 / 女性♀紅色\n✅ 計時器自動連動：裝置偵測到流量時自動啟動\n✅ 個人化標準區間：使用年齡+性別+身高計算');
         };
 
         // ====== 身分證驗證 ======
@@ -1132,8 +1168,12 @@
         let chartInstance = null;
         let serialPort = null;
         let reader = null;
+
+        // 個人化標準區間
         let stdMin = null;
         let stdMax = null;
+        let stdPredicted = null;
+        let stdLabel = '';
 
         // ====== 計時器狀態 ======
         let timerInterval = null;
@@ -1141,8 +1181,60 @@
         let timerRunning = false;
         let timerMode = 'stopwatch';
         let timerSetValue = 60;
-        let timerAutoMode = true; // true=自動, false=手動
-        let timerTriggeredByFlow = false; // 是否由流量觸發
+        let timerAutoMode = true;
+        let timerTriggeredByFlow = false;
+
+        // ====== ★★★ 台灣本土肺功能預測公式 (PEF 尖峰呼氣流速) ★★★ ======
+
+        /**
+         * 計算個人化 PEF 預測值 (L/min)
+         * 引用自台北榮總胸腔部公式，適用於台灣成年人
+         * 
+         * 男性: PEF = 3.89 × 身高(cm) - 2.95 × 年齡(歲) + 43.59
+         * 女性: PEF = 4.10 × 身高(cm) - 1.61 × 年齡(歲) - 173.55
+         * 
+         * 參考: 台灣胸腔暨重症加護醫學會肺功能指引
+         */
+        function calculatePEFPredicted(gender, age, height) {
+            if (!gender || !age || !height) return null;
+            if (age < 6 || height < 100) return null;
+
+            let predicted;
+            if (gender === 'M') {
+                predicted = 3.89 * height - 2.95 * age + 43.59;
+            } else if (gender === 'F') {
+                predicted = 4.10 * height - 1.61 * age - 173.55;
+            } else {
+                return null;
+            }
+
+            // 確保數值合理（最小不低於 100 L/min）
+            return Math.max(100, Math.round(predicted * 10) / 10);
+        }
+
+        /**
+         * 計算正常範圍 (預測值的 80%~120%)
+         * 低於 80% 表示通氣限制，高於 120% 可能為過度通氣
+         */
+        function getNormalRange(predicted) {
+            if (!predicted) return { min: null, max: null, lower: null, upper: null };
+            return {
+                min: Math.round(predicted * 0.8 * 10) / 10,
+                max: Math.round(predicted * 1.2 * 10) / 10,
+                lower: Math.round(predicted * 0.8 * 10) / 10,
+                upper: Math.round(predicted * 1.2 * 10) / 10
+            };
+        }
+
+        /**
+         * 根據年齡與性別取得參考標籤
+         */
+        function getAgeGroupLabel(age) {
+            if (age < 13) return '兒童 (6-12歲)';
+            else if (age < 18) return '青少年 (13-17歲)';
+            else if (age < 61) return '成人 (18-60歲)';
+            else return '銀髮 (61歲以上)';
+        }
 
         // ====== 性別與標準區間 ======
         function getGenderFromId(id) {
@@ -1152,37 +1244,6 @@
 
         function getGenderText(gender) {
             return gender === 'M' ? '男性' : '女性';
-        }
-
-        function getStandardRange(age, gender) {
-            if (!gender || age === undefined || age === null || isNaN(age)) {
-                return { min: null, max: null, label: '請輸入完整資訊' };
-            }
-
-            const ranges = {
-                'M': {
-                    child: { min: 2.0, max: 4.0, label: '兒童 (6-12歲)' },
-                    teen: { min: 3.5, max: 6.0, label: '青少年 (13-17歲)' },
-                    adult: { min: 4.5, max: 8.0, label: '成人 (18-60歲)' },
-                    senior: { min: 3.5, max: 6.5, label: '銀髮 (61歲以上)' }
-                },
-                'F': {
-                    child: { min: 1.8, max: 3.5, label: '兒童 (6-12歲)' },
-                    teen: { min: 3.0, max: 5.0, label: '青少年 (13-17歲)' },
-                    adult: { min: 3.5, max: 6.5, label: '成人 (18-60歲)' },
-                    senior: { min: 3.0, max: 5.5, label: '銀髮 (61歲以上)' }
-                }
-            };
-
-            let group;
-            if (age < 13) group = 'child';
-            else if (age < 18) group = 'teen';
-            else if (age < 61) group = 'adult';
-            else group = 'senior';
-
-            const data = ranges[gender]?.[group];
-            if (!data) return { min: null, max: null, label: '無資料' };
-            return data;
         }
 
         // ====== 更新性別顯示 ======
@@ -1197,6 +1258,71 @@
             } else {
                 display.innerHTML = '<span class="gender-icon unknown">?</span> 未偵測';
                 display.className = 'badge gender-unknown';
+            }
+        }
+
+        // ====== ★★★ 更新個人化標準區間 (真正使用年齡+性別+身高) ★★★ ======
+        function updatePersonalizedStandard() {
+            const idValue = document.getElementById('patientIdNumber').value.toUpperCase();
+            const isValid = validateTaiwanId(idValue);
+            const age = parseInt(document.getElementById('patientAge').value);
+            const height = parseFloat(document.getElementById('patientHeight').value);
+
+            // 取得性別
+            let gender = null;
+            if (isValid) {
+                gender = getGenderFromId(idValue);
+                currentGender = gender;
+                updateGenderDisplay(gender);
+            } else {
+                currentGender = null;
+                updateGenderDisplay(null);
+            }
+
+            const rangeDisplay = document.getElementById('stdRangeValue');
+            const detailDisplay = document.getElementById('stdRangeDetail');
+
+            // 檢查是否所有必要資訊都已提供
+            if (!gender || !age || isNaN(age) || age < 6 || !height || isNaN(height) || height < 100) {
+                stdMin = null;
+                stdMax = null;
+                stdPredicted = null;
+                rangeDisplay.textContent = '請輸入完整資訊（身分證、年齡、身高）';
+                rangeDisplay.style.color = '#b7950b';
+                detailDisplay.textContent = '需要：身分證(自動偵測性別) + 年齡(≥6歲) + 身高(≥100cm)';
+                return;
+            }
+
+            // 計算個人化 PEF 預測值
+            const predicted = calculatePEFPredicted(gender, age, height);
+
+            if (!predicted) {
+                stdMin = null;
+                stdMax = null;
+                stdPredicted = null;
+                rangeDisplay.textContent = '無法計算，請確認輸入數值';
+                rangeDisplay.style.color = '#c0392b';
+                detailDisplay.textContent = '';
+                return;
+            }
+
+            stdPredicted = predicted;
+            const range = getNormalRange(predicted);
+            stdMin = range.min;
+            stdMax = range.max;
+
+            const genderText = getGenderText(gender);
+            const ageGroup = getAgeGroupLabel(age);
+
+            rangeDisplay.textContent = `${genderText} ${ageGroup}：預測值 ${predicted} L/min，正常範圍 ${range.min} ~ ${range.max} L/min`;
+            rangeDisplay.style.color = '#1b7e4a';
+
+            detailDisplay.textContent =
+                `📐 計算公式：${gender === 'M' ? 'PEF = 3.89×身高 - 2.95×年齡 + 43.59' : 'PEF = 4.10×身高 - 1.61×年齡 - 173.55'}  (台灣本土公式) ｜ 正常範圍 = 預測值 × 80%~120%`;
+
+            // 更新流量狀態（如果已有流量數據）
+            if (currentFlow > 0) {
+                updateFlowStatus(currentFlow);
             }
         }
 
@@ -1231,7 +1357,7 @@
 
             updateBreathBall(absFlow);
 
-            // ★★★ 計時器自動連動：當流量 > 0.5 且自動模式開啟時，自動啟動計時器 ★★★
+            // 計時器自動連動
             if (timerAutoMode && absFlow > 0.5 && !timerRunning) {
                 startTimer();
                 timerTriggeredByFlow = true;
@@ -1242,9 +1368,6 @@
                     }
                 }, 2000);
             }
-
-            // 流量停止時，如果是自動模式且計時器正在運行，持續計時（不停止）
-            // 但如果是手動模式，就不自動停止
         }
 
         // ====== 更新呼吸球 ======
@@ -1285,25 +1408,31 @@
                 return;
             }
 
-            if (stdMin !== null && stdMax !== null) {
+            // 使用個人化標準區間
+            if (stdMin !== null && stdMax !== null && stdPredicted !== null) {
+                const percentOfPredicted = (absFlow / stdPredicted * 100);
+
                 if (absFlow >= stdMin && absFlow <= stdMax) {
                     indicator.className = 'status-indicator green';
                     indicator.textContent = '✅ 正常 (綠燈)';
-                    detail.textContent = `${absFlow.toFixed(2)} L/min 在標準區間內`;
+                    detail.textContent =
+                        `${absFlow.toFixed(2)} L/min (預測值 ${stdPredicted} 的 ${Math.round(percentOfPredicted)}%) 在正常範圍內`;
                     document.getElementById('light1').className = 'light on-green';
                     document.getElementById('light2').className = 'light on-green';
                     document.getElementById('light3').className = 'light on-green';
                 } else if (absFlow < stdMin) {
                     indicator.className = 'status-indicator yellow';
-                    indicator.textContent = '⚠️ 不足 (黃燈)';
-                    detail.textContent = `${absFlow.toFixed(2)} L/min 低於標準 ${stdMin} L/min`;
+                    indicator.textContent = '⚠️ 低於標準 (黃燈)';
+                    detail.textContent =
+                        `${absFlow.toFixed(2)} L/min (預測值 ${stdPredicted} 的 ${Math.round(percentOfPredicted)}%) 低於正常下限 ${stdMin} L/min`;
                     document.getElementById('light1').className = 'light on-yellow';
                     document.getElementById('light2').className = 'light on-yellow';
                     document.getElementById('light3').className = 'light on-yellow';
                 } else {
                     indicator.className = 'status-indicator red';
-                    indicator.textContent = '🔴 過高 (紅燈)';
-                    detail.textContent = `${absFlow.toFixed(2)} L/min 高於標準 ${stdMax} L/min`;
+                    indicator.textContent = '🔴 高於標準 (紅燈)';
+                    detail.textContent =
+                        `${absFlow.toFixed(2)} L/min (預測值 ${stdPredicted} 的 ${Math.round(percentOfPredicted)}%) 高於正常上限 ${stdMax} L/min`;
                     document.getElementById('light1').className = 'light on-red';
                     document.getElementById('light2').className = 'light on-red';
                     document.getElementById('light3').className = 'light on-red';
@@ -1311,7 +1440,7 @@
             } else {
                 indicator.className = 'status-indicator grey';
                 indicator.textContent = '⚪ 無標準區間';
-                detail.textContent = '請輸入身分證與年齡';
+                detail.textContent = '請輸入完整個人資訊（身分證、年齡、身高）';
                 document.getElementById('light1').className = 'light';
                 document.getElementById('light2').className = 'light';
                 document.getElementById('light3').className = 'light';
@@ -1323,8 +1452,8 @@
             const idValue = document.getElementById('patientIdNumber').value.toUpperCase();
             document.getElementById('patientIdNumber').value = idValue;
             const isValid = validateTaiwanId(idValue);
-            const age = parseInt(document.getElementById('patientAge').value);
 
+            // 更新性別狀態
             if (isValid) {
                 const gender = getGenderFromId(idValue);
                 currentGender = gender;
@@ -1346,21 +1475,13 @@
                 document.getElementById('statusChip').textContent = isConnected ? '✅ 已連線' : '⚪ 未連接';
             }
 
-            const range = getStandardRange(age, currentGender);
-            if (range.min !== null && range.max !== null) {
-                stdMin = range.min;
-                stdMax = range.max;
-                document.getElementById('stdRangeValue').textContent = `${range.label}: ${range.min} ~ ${range.max} L/min`;
-                document.getElementById('stdRangeValue').style.color = '#1b7e4a';
-            } else {
-                stdMin = null;
-                stdMax = null;
-                document.getElementById('stdRangeValue').textContent = range.label;
-                document.getElementById('stdRangeValue').style.color = '#b7950b';
-            }
+            // ★★★ 更新個人化標準區間 ★★★
+            updatePersonalizedStandard();
 
+            // 更新流量狀態
             updateFlowStatus(currentFlow);
 
+            // 儲存按鈕
             const canSave = isValid && isConnected;
             document.getElementById('saveBtn').disabled = !canSave;
             const saveHint = document.getElementById('saveHint');
@@ -1385,6 +1506,8 @@
         });
         document.getElementById('patientAge').addEventListener('input', updateAllLinkedFields);
         document.getElementById('patientAge').addEventListener('change', updateAllLinkedFields);
+        document.getElementById('patientHeight').addEventListener('input', updateAllLinkedFields);
+        document.getElementById('patientHeight').addEventListener('change', updateAllLinkedFields);
 
         // ====== 圖表初始化 ======
         const ctxChart = document.getElementById('flowChart').getContext('2d');
@@ -1588,7 +1711,7 @@
                 }
 
                 drawGauge(Math.abs(flow), peakFlowValue);
-                updateLungs(flow); // ★ 這裡會觸發計時器自動連動
+                updateLungs(flow);
                 updateFlowStatus(flow);
 
                 chartInstance.data.labels.push(now);
@@ -1671,9 +1794,14 @@
                 return;
             }
             const age = parseInt(document.getElementById('patientAge').value) || 30;
+            const height = parseFloat(document.getElementById('patientHeight').value) || 165;
             const gender = idNumber.charAt(1) === '1' ? '男' : '女';
             let content = `=== 呼吸流量監測報告 ===\n`;
-            content += `病患編號: ${id}\n身分證: ${idNumber}\n年齡: ${age}\n性別: ${gender}\n`;
+            content += `病患編號: ${id}\n身分證: ${idNumber}\n年齡: ${age} 歲\n身高: ${height} cm\n性別: ${gender}\n`;
+            if (stdPredicted) {
+                content += `個人化PEF預測值: ${stdPredicted} L/min\n`;
+                content += `正常範圍: ${stdMin} ~ ${stdMax} L/min\n`;
+            }
             content += `測量時間: ${new Date().toLocaleString()}\n\n`;
             content += `--- 流量數據 (時間, 流量) ---\n`;
             flowData.forEach(([t, f]) => content += `${t.toFixed(2)},${f.toFixed(2)}\n`);
@@ -1774,7 +1902,7 @@
             showModal('▶️ 模式切換', '已切換至「連續模式」');
         };
 
-        // ====== ★★★ 計時器 (完整版 + 自動連動) ★★★ ======
+        // ====== 計時器 ======
 
         function formatTime(s) {
             const m = String(Math.floor(Math.abs(s) / 60)).padStart(2, '0');
@@ -1794,7 +1922,6 @@
             document.getElementById('timerModeLabel').textContent =
                 timerMode === 'countdown' ? '(倒數模式)' : '(累計模式)';
 
-            // 如果倒數模式且時間為0，重置為設定值
             if (timerMode === 'countdown' && timerSeconds <= 0) {
                 timerSeconds = timerSetValue;
                 updateTimerDisplay();
@@ -1843,7 +1970,6 @@
             timerTriggeredByFlow = false;
         }
 
-        // 設定時間
         document.getElementById('timerApplyBtn').onclick = function() {
             playSound('click');
             const val = parseInt(document.getElementById('timerSetValue').value);
@@ -1859,7 +1985,6 @@
             showModal('✅ 設定完成', `計時器已設為 ${timerSetValue} 秒`);
         };
 
-        // 切換倒數/累計
         document.getElementById('timerCountdown').onclick = function() {
             playSound('click');
             if (timerRunning) stopTimer();
@@ -1885,7 +2010,6 @@
             document.getElementById('timerStatus').textContent = '⏸️ 待命';
         };
 
-        // 啟動/停止 (手動)
         document.getElementById('timerToggle').onclick = function() {
             playSound('click');
             if (timerRunning) {
@@ -1899,14 +2023,12 @@
             }
         };
 
-        // 重置
         document.getElementById('timerResetBtn').onclick = function() {
             playSound('click');
             resetTimer();
             showModal('⟳ 重置', '計時器已重置');
         };
 
-        // ★★★ 自動開關控制 ★★★
         document.getElementById('timerAutoBtn').onclick = function() {
             playSound('click');
             timerAutoMode = !timerAutoMode;
@@ -1919,7 +2041,6 @@
                 btn.style.borderColor = '#2ecc7140';
                 status.className = 'timer-status-badge auto';
                 status.textContent = '自動開';
-                // 如果目前沒有流量，重置計時器
                 if (currentFlow < 0.5) {
                     resetTimer();
                 }
@@ -1930,7 +2051,6 @@
                 btn.style.borderColor = '#f39c1240';
                 status.className = 'timer-status-badge manual';
                 status.textContent = '手動';
-                // 如果計時器正在運行且是由流量觸發的，停止它
                 if (timerRunning && timerTriggeredByFlow) {
                     stopTimer();
                     timerTriggeredByFlow = false;
@@ -2187,10 +2307,10 @@
         console.log('✅ 系統已初始化');
         console.log('👨 男性圖示: ♂ 藍色');
         console.log('👩 女性圖示: ♀ 紅色');
-        console.log('🎮 遊戲模式已升級 - 豐富視覺 + 音效');
-        console.log('🔊 音效系統已就緒');
+        console.log('📊 個人化標準區間：使用台灣本土公式 (年齡+性別+身高)');
+        console.log('   男性: PEF = 3.89×身高 - 2.95×年齡 + 43.59');
+        console.log('   女性: PEF = 4.10×身高 - 1.61×年齡 - 173.55');
         console.log('⏱️ 計時器自動連動: 偵測到流量時自動啟動');
-        console.log('   按「🤖 自動」可切換自動/手動模式');
     </script>
 </body>
 </html>
