@@ -838,7 +838,7 @@
             </div>
         </div>
 
-        <!-- ===== 標準區間（吸藥粉專用：30~90 L/min） ===== -->
+        <!-- ===== 標準區間 ===== -->
         <div class="std-range" id="stdRangeDisplay">
             <div class="label">💊 吸藥粉建議吸氣流速標準區間</div>
             <div class="value" id="stdRangeValue">請輸入完整資訊（身分證、年齡、身高）</div>
@@ -1145,7 +1145,7 @@
         // ====== 測試按鈕 ======
         document.getElementById('testBtn').onclick = function() {
             playSound('click');
-            alert('🧪 測試成功！\n\n✅ 所有按鈕在未連線時都可以點擊！\n✅ 音效系統已初始化\n✅ 遊戲畫面豐富可動\n✅ 肺部動畫即時反應\n✅ 性別圖示：男性♂藍色 / 女性♀紅色\n✅ 計時器自動連動：偵測到流量時自動啟動\n✅ 吸藥粉標準區間：30~90 L/min\n✅ 圖表X軸會正確顯示時間（從連線開始計算）');
+            alert('🧪 測試成功！\n\n✅ 所有按鈕在未連線時都可以點擊！\n✅ 音效系統已初始化\n✅ 遊戲畫面豐富可動\n✅ 肺部動畫即時反應\n✅ 性別圖示：男性♂藍色 / 女性♀紅色\n✅ 計時器自動連動：偵測到流量時自動啟動\n✅ 吸藥粉標準區間：30~90 L/min\n✅ 圖表X軸會正確顯示時間（從連線開始計算）\n✅ 全部重置：恢復所有狀態到初始值');
         };
 
         // ====== 身分證驗證 ======
@@ -1181,6 +1181,15 @@
         let timerSetValue = 60;
         let timerAutoMode = true;
         let timerTriggeredByFlow = false;
+
+        // ====== 遊戲狀態 ======
+        let gameActive = false;
+        let gameScore = 0;
+        let currentGame = 0;
+        let gameTarget = 0;
+        let gameProgressVal = 0;
+        let gameCompleted = false;
+        let gameConsecutiveBreaths = 0;
 
         // ====== 性別與標準區間 ======
         function getGenderFromId(id) {
@@ -1627,14 +1636,12 @@
             }
         }
 
-        // ★★★ 核心修正：計算正確的時間 ★★★
         function handleSerialData(line) {
             const match = line.match(/Flow[:：]\s*([0-9.]+)/i);
             if (match) {
                 const flow = parseFloat(match[1]);
                 currentFlow = flow;
 
-                // 使用 startTime 計算從連線開始到現在的秒數
                 const now = ((Date.now() - startTime) / 1000).toFixed(2);
 
                 flowData.push([parseFloat(now), flow]);
@@ -1664,56 +1671,98 @@
             }
         }
 
-        // ====== 全部重置 ======
+        // ====== ★★★ 全部重置（真正的重置，恢復所有狀態到初始值）★★★ ======
         document.getElementById('resetBtn').onclick = function() {
             playSound('click');
-            if (!confirm('確定要清除所有數據嗎？')) return;
 
+            // 1. 清除流量數據
             flowData = [];
             peakFlowValue = 0;
             currentFlow = 0;
 
+            // 2. 清除圖表
             chartInstance.data.labels = [];
             chartInstance.data.datasets[0].data = [];
             chartInstance.update();
 
+            // 3. 重置顯示數值
             document.getElementById('flowValue').textContent = '0.00';
             document.getElementById('peakHold').textContent = '0.00';
-            drawGauge(0, 0);
-            updateLungs(0);
 
+            // 4. 重置儀表板
+            drawGauge(0, 0);
+
+            // 5. 重置肺部動畫（縮回原始大小）
+            document.getElementById('leftLungFill').setAttribute('transform', 'scale(0.50)');
+            document.getElementById('rightLungFill').setAttribute('transform', 'scale(0.50)');
+            document.getElementById('flowIndicator').setAttribute('opacity', '0');
+
+            // 6. 重置呼吸球
+            const breathBall = document.getElementById('breathBall');
+            if (breathBall) {
+                breathBall.style.transform = 'scale(1)';
+                breathBall.style.background = 'radial-gradient(circle at 35% 35%, #4a8a4a, #1a5a1a)';
+            }
+            document.getElementById('ballFlowValue').textContent = '0.0';
+
+            // 7. 重置燈號（全部變灰色）
             document.getElementById('light1').className = 'light';
             document.getElementById('light2').className = 'light';
             document.getElementById('light3').className = 'light';
 
+            // 8. 重置流量狀態指示器
             const indicator = document.getElementById('flowStatusIndicator');
             indicator.className = 'status-indicator grey';
             indicator.textContent = '⚪ 等待測量';
             document.getElementById('flowStatusDetail').textContent = '-';
 
+            // 9. 重置步驟到第一步
             setStep(0);
+
+            // 10. 重置計時器
             resetTimer();
 
-            if (gameActive) {
-                gameActive = false;
-                gameScore = 0;
-                document.getElementById('gameStatusBadge').textContent = '● 關閉';
-                document.getElementById('gameStatusBadge').className = 'game-status-badge';
-                document.getElementById('gameScoreValue').textContent = '0';
-                document.getElementById('gameModeBtn').textContent = '🎮 開啟遊戲';
-                document.getElementById('gameNameDisplay').textContent = '目標挑戰';
-                document.getElementById('gameRuleDisplay').textContent = '點擊「開啟遊戲」開始';
-                document.getElementById('gameTargetDisplay').textContent = '🎯 目標: --';
-                document.getElementById('gameProgressFill').style.width = '0%';
-                document.getElementById('gameProgressText').textContent = '0%';
-                document.getElementById('gameFeedback').textContent = '💪 點擊「開啟遊戲」開始挑戰！';
-                document.getElementById('gameFeedback').className = 'game-feedback-text';
-                document.getElementById('gameNextBtn').style.display = 'none';
-                document.getElementById('gameIcon').textContent = '🎯';
-                updateBreathBall(0);
-            }
+            // 11. 重置遊戲
+            gameActive = false;
+            gameScore = 0;
+            gameProgressVal = 0;
+            gameCompleted = false;
+            gameConsecutiveBreaths = 0;
+            document.getElementById('gameStatusBadge').textContent = '● 關閉';
+            document.getElementById('gameStatusBadge').className = 'game-status-badge';
+            document.getElementById('gameScoreValue').textContent = '0';
+            document.getElementById('gameModeBtn').textContent = '🎮 開啟遊戲';
+            document.getElementById('gameNameDisplay').textContent = '目標挑戰';
+            document.getElementById('gameNameDisplay').classList.add('hidden');
+            document.getElementById('gameRuleDisplay').textContent = '點擊「開啟遊戲」開始';
+            document.getElementById('gameTargetDisplay').textContent = '🎯 目標: --';
+            document.getElementById('gameProgressFill').style.width = '0%';
+            document.getElementById('gameProgressText').textContent = '0%';
+            document.getElementById('gameFeedback').textContent = '💪 點擊「開啟遊戲」開始挑戰！';
+            document.getElementById('gameFeedback').className = 'game-feedback-text';
+            document.getElementById('gameNextBtn').style.display = 'none';
+            document.getElementById('gameIcon').textContent = '🎯';
+            document.getElementById('gameProgress').classList.add('hidden');
 
-            showModal('🔄 重置完成', '所有數據已清除');
+            // 12. 重置模式按鈕（回到預設吸氣模式）
+            document.querySelectorAll('#modeInhale,#modeExhale,#modeBoth').forEach(b => b.className =
+            'btn btn-sm btn-outline');
+            document.getElementById('modeInhale').className = 'btn btn-sm btn-active';
+            document.getElementById('modeExhale').style.opacity = '0.6';
+            document.getElementById('modeBoth').style.opacity = '0.6';
+
+            // 13. 重置觸發模式（回到單次）
+            document.querySelectorAll('#modeSingle,#modeContinuous').forEach(b => b.className =
+            'btn btn-sm btn-outline');
+            document.getElementById('modeSingle').className = 'btn btn-sm btn-active';
+
+            // 14. 重置病患資訊欄位（保留身分證、年齡、身高，但清除病患編號）
+            document.getElementById('patientId').value = '';
+
+            // 15. 更新所有連動（重新計算標準區間等）
+            updateAllLinkedFields();
+
+            showModal('🔄 全部重置完成', '所有數據已清除，所有狀態已恢復初始值\n\n✅ 圖表已清空\n✅ 燈號已復位\n✅ 肺部已縮回\n✅ 計時器已重置\n✅ 遊戲已關閉\n✅ 模式已回到預設\n\n💡 裝置仍保持連線');
         };
 
         // ====== 儲存 ======
@@ -2001,14 +2050,6 @@
             { id: 5, name: '幸運呼吸', icon: '🎲', desc: '隨機驚喜加成', rule: '有機會觸發幸運加成' }
         ];
 
-        let gameActive = false;
-        let gameScore = 0;
-        let currentGame = 0;
-        let gameTarget = 0;
-        let gameProgressVal = 0;
-        let gameCompleted = false;
-        let gameConsecutiveBreaths = 0;
-
         function initParticles() {
             const container = document.getElementById('gameParticles');
             container.innerHTML = '';
@@ -2042,12 +2083,14 @@
                 const game = games[currentGame];
                 document.getElementById('gameIcon').textContent = game.icon;
                 document.getElementById('gameNameDisplay').textContent = game.name;
+                document.getElementById('gameNameDisplay').classList.remove('hidden');
                 document.getElementById('gameStatusBadge').textContent = '▶ 進行中';
                 document.getElementById('gameStatusBadge').className = 'game-status-badge active';
                 document.getElementById('gameScoreValue').textContent = '0';
                 document.getElementById('gameTargetDisplay').textContent = `🎯 目標: ${gameTarget} L/min`;
                 document.getElementById('gameProgressFill').style.width = '0%';
                 document.getElementById('gameProgressText').textContent = '0%';
+                document.getElementById('gameProgress').classList.remove('hidden');
                 document.getElementById('gameRuleDisplay').textContent = game.rule;
                 document.getElementById('gameFeedback').textContent = '💪 開始呼吸！加油！';
                 document.getElementById('gameFeedback').className = 'game-feedback-text highlight';
@@ -2239,7 +2282,7 @@
         console.log('✅ 系統已初始化');
         console.log('💊 吸藥粉標準區間：30 ~ 90 L/min');
         console.log('⏱️ 圖表X軸會正確顯示時間 (從連線開始計算)');
-        console.log('👨 男性圖示: ♂ 藍色 | 👩 女性圖示: ♀ 紅色');
+        console.log('🔄 全部重置：恢復所有狀態到初始值');
         console.log('📋 本系統為輔助參考，異常請諮詢醫師');
     </script>
 </body>
