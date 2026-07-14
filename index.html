@@ -7,6 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* ... (前面的樣式保持不變) ... */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -708,6 +709,23 @@
             background: #e7f3ec;
             color: #4a6a4a;
         }
+        .timer-status-badge {
+            display: inline-block;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .timer-status-badge.auto {
+            background: #2ecc7120;
+            color: #1a7a42;
+            border: 1px solid #2ecc7140;
+        }
+        .timer-status-badge.manual {
+            background: #f39c1220;
+            color: #b9770e;
+            border: 1px solid #f39c1240;
+        }
         @media (max-width: 750px) {
             .grid-2 {
                 grid-template-columns: 1fr;
@@ -810,10 +828,10 @@
             <button class="btn btn-sm btn-outline" id="modeContinuous">連續</button>
         </div>
 
-        <!-- ===== 計時器 ===== -->
+        <!-- ===== 計時器（含自動開關連動） ===== -->
         <div class="section-title" style="margin-top:8px;">
             ⏱️ 計時器
-            <span class="badge-section">可設定時間 / 倒數與累計</span>
+            <span class="badge-section">可設定時間 / 倒數與累計 / 自動連動</span>
         </div>
         <div class="flex-row" style="flex-wrap:wrap; gap:8px;">
             <div class="timer-control">
@@ -826,12 +844,16 @@
                 <button class="btn btn-sm btn-active" id="timerStopwatch">⏱️ 累計</button>
                 <button class="btn btn-sm btn-outline" id="timerToggle">▶️ 啟動</button>
                 <button class="btn btn-sm btn-outline" id="timerResetBtn">⟳ 重置</button>
+                <span style="color:#4a6a4a; margin:0 4px;">|</span>
+                <button class="btn btn-sm btn-outline" id="timerAutoBtn" style="background:#2ecc7120; color:#1a7a42; border-color:#2ecc7140;">🤖 自動</button>
+                <span class="timer-status-badge auto" id="timerAutoStatus">自動開</span>
             </div>
         </div>
         <div class="flex-row" style="margin-top:4px;">
             <span class="timer-display" id="timerDisplay">00:00</span>
             <span class="text-small" id="timerStatus" style="margin-left:12px;">⏸️ 待命</span>
             <span class="text-small" id="timerModeLabel" style="margin-left:8px; color:#4a6a4a;">(累計模式)</span>
+            <span class="text-small" id="timerTriggerStatus" style="margin-left:8px; color:#4a6a4a; font-weight:600;"></span>
         </div>
 
         <!-- ===== 即時監測 ===== -->
@@ -1072,6 +1094,14 @@
                 case 'click':
                     playBeep(600, 0.05, 'sine', 0.05);
                     break;
+                case 'timerStart':
+                    playBeep(880, 0.06);
+                    setTimeout(() => playBeep(1100, 0.08), 80);
+                    break;
+                case 'timerStop':
+                    playBeep(440, 0.08);
+                    setTimeout(() => playBeep(330, 0.1), 100);
+                    break;
                 default:
                     playBeep(440, 0.08);
             }
@@ -1080,7 +1110,7 @@
         // ====== 測試按鈕 ======
         document.getElementById('testBtn').onclick = function() {
             playSound('click');
-            alert('🧪 測試成功！\n\n✅ 所有按鈕在未連線時都可以點擊！\n✅ 音效系統已初始化\n✅ 遊戲畫面豐富可動\n✅ 肺部動畫即時反應\n✅ 性別圖示：男性♂藍色 / 女性♀紅色');
+            alert('🧪 測試成功！\n\n✅ 所有按鈕在未連線時都可以點擊！\n✅ 音效系統已初始化\n✅ 遊戲畫面豐富可動\n✅ 肺部動畫即時反應\n✅ 性別圖示：男性♂藍色 / 女性♀紅色\n✅ 計時器自動連動：裝置偵測到流量時自動啟動');
         };
 
         // ====== 身分證驗證 ======
@@ -1104,6 +1134,15 @@
         let reader = null;
         let stdMin = null;
         let stdMax = null;
+
+        // ====== 計時器狀態 ======
+        let timerInterval = null;
+        let timerSeconds = 0;
+        let timerRunning = false;
+        let timerMode = 'stopwatch';
+        let timerSetValue = 60;
+        let timerAutoMode = true; // true=自動, false=手動
+        let timerTriggeredByFlow = false; // 是否由流量觸發
 
         // ====== 性別與標準區間 ======
         function getGenderFromId(id) {
@@ -1191,6 +1230,21 @@
             }
 
             updateBreathBall(absFlow);
+
+            // ★★★ 計時器自動連動：當流量 > 0.5 且自動模式開啟時，自動啟動計時器 ★★★
+            if (timerAutoMode && absFlow > 0.5 && !timerRunning) {
+                startTimer();
+                timerTriggeredByFlow = true;
+                document.getElementById('timerTriggerStatus').textContent = '⏱️ 流量觸發啟動';
+                setTimeout(() => {
+                    if (timerRunning) {
+                        document.getElementById('timerTriggerStatus').textContent = '';
+                    }
+                }, 2000);
+            }
+
+            // 流量停止時，如果是自動模式且計時器正在運行，持續計時（不停止）
+            // 但如果是手動模式，就不自動停止
         }
 
         // ====== 更新呼吸球 ======
@@ -1534,7 +1588,7 @@
                 }
 
                 drawGauge(Math.abs(flow), peakFlowValue);
-                updateLungs(flow);
+                updateLungs(flow); // ★ 這裡會觸發計時器自動連動
                 updateFlowStatus(flow);
 
                 chartInstance.data.labels.push(now);
@@ -1720,12 +1774,7 @@
             showModal('▶️ 模式切換', '已切換至「連續模式」');
         };
 
-        // ====== 計時器 ======
-        let timerInterval = null,
-            timerSeconds = 0,
-            timerRunning = false;
-        let timerMode = 'stopwatch';
-        let timerSetValue = 60;
+        // ====== ★★★ 計時器 (完整版 + 自動連動) ★★★ ======
 
         function formatTime(s) {
             const m = String(Math.floor(Math.abs(s) / 60)).padStart(2, '0');
@@ -1744,6 +1793,14 @@
             document.getElementById('timerStatus').textContent = '▶️ 計時中';
             document.getElementById('timerModeLabel').textContent =
                 timerMode === 'countdown' ? '(倒數模式)' : '(累計模式)';
+
+            // 如果倒數模式且時間為0，重置為設定值
+            if (timerMode === 'countdown' && timerSeconds <= 0) {
+                timerSeconds = timerSetValue;
+                updateTimerDisplay();
+            }
+
+            playSound('timerStart');
 
             timerInterval = setInterval(() => {
                 if (timerMode === 'stopwatch') {
@@ -1772,6 +1829,7 @@
             timerRunning = false;
             document.getElementById('timerToggle').textContent = '▶️ 啟動';
             document.getElementById('timerStatus').textContent = '⏸️ 暫停';
+            playSound('timerStop');
         }
 
         function resetTimer() {
@@ -1781,8 +1839,11 @@
             document.getElementById('timerStatus').textContent = '⏸️ 待命';
             document.getElementById('timerModeLabel').textContent =
                 timerMode === 'countdown' ? '(倒數模式)' : '(累計模式)';
+            document.getElementById('timerTriggerStatus').textContent = '';
+            timerTriggeredByFlow = false;
         }
 
+        // 設定時間
         document.getElementById('timerApplyBtn').onclick = function() {
             playSound('click');
             const val = parseInt(document.getElementById('timerSetValue').value);
@@ -1798,6 +1859,7 @@
             showModal('✅ 設定完成', `計時器已設為 ${timerSetValue} 秒`);
         };
 
+        // 切換倒數/累計
         document.getElementById('timerCountdown').onclick = function() {
             playSound('click');
             if (timerRunning) stopTimer();
@@ -1823,6 +1885,7 @@
             document.getElementById('timerStatus').textContent = '⏸️ 待命';
         };
 
+        // 啟動/停止 (手動)
         document.getElementById('timerToggle').onclick = function() {
             playSound('click');
             if (timerRunning) {
@@ -1836,10 +1899,44 @@
             }
         };
 
+        // 重置
         document.getElementById('timerResetBtn').onclick = function() {
             playSound('click');
             resetTimer();
             showModal('⟳ 重置', '計時器已重置');
+        };
+
+        // ★★★ 自動開關控制 ★★★
+        document.getElementById('timerAutoBtn').onclick = function() {
+            playSound('click');
+            timerAutoMode = !timerAutoMode;
+            const btn = document.getElementById('timerAutoBtn');
+            const status = document.getElementById('timerAutoStatus');
+
+            if (timerAutoMode) {
+                btn.style.background = '#2ecc7120';
+                btn.style.color = '#1a7a42';
+                btn.style.borderColor = '#2ecc7140';
+                status.className = 'timer-status-badge auto';
+                status.textContent = '自動開';
+                // 如果目前沒有流量，重置計時器
+                if (currentFlow < 0.5) {
+                    resetTimer();
+                }
+                showModal('🤖 自動模式', '計時器將在偵測到流量時自動啟動');
+            } else {
+                btn.style.background = '#f39c1220';
+                btn.style.color = '#b9770e';
+                btn.style.borderColor = '#f39c1240';
+                status.className = 'timer-status-badge manual';
+                status.textContent = '手動';
+                // 如果計時器正在運行且是由流量觸發的，停止它
+                if (timerRunning && timerTriggeredByFlow) {
+                    stopTimer();
+                    timerTriggeredByFlow = false;
+                }
+                showModal('🖐️ 手動模式', '計時器需手動點擊「啟動」按鈕');
+            }
         };
 
         // ====== 遊戲模式 ======
@@ -2092,6 +2189,8 @@
         console.log('👩 女性圖示: ♀ 紅色');
         console.log('🎮 遊戲模式已升級 - 豐富視覺 + 音效');
         console.log('🔊 音效系統已就緒');
+        console.log('⏱️ 計時器自動連動: 偵測到流量時自動啟動');
+        console.log('   按「🤖 自動」可切換自動/手動模式');
     </script>
 </body>
 </html>
