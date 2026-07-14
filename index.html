@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* ... 前面的樣式保持不變 ... */
+        /* ... (所有樣式保持不變) ... */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -280,6 +280,15 @@
             color: #6a8a6a;
             margin-top: 4px;
             background: #e8f4e8;
+            padding: 4px 10px;
+            border-radius: 12px;
+            display: inline-block;
+        }
+        .std-range .disclaimer {
+            font-size: 11px;
+            color: #b7950b;
+            margin-top: 4px;
+            background: #fef9e7;
             padding: 4px 10px;
             border-radius: 12px;
             display: inline-block;
@@ -874,12 +883,13 @@
             </div>
         </div>
 
-        <!-- ===== 個人化標準區間（吸藥粉專用） ===== -->
+        <!-- ===== 個人化標準區間（吸藥粉專用：30~90 L/min） ===== -->
         <div class="std-range" id="stdRangeDisplay">
-            <div class="label">📊 個人化吸氣流量標準區間（適用於吸藥輔助）</div>
+            <div class="label">💊 吸藥粉建議吸氣流速標準區間</div>
             <div class="value" id="stdRangeValue">請輸入完整資訊（身分證、年齡、身高）</div>
             <div class="detail" id="stdRangeDetail"></div>
-            <div class="device-info">💊 目前裝置：吸藥粉專用 | 吸氣/吐氣共用相同標準</div>
+            <div class="device-info">📐 參考範圍：30 ~ 90 L/min（不同吸入器可能有不同需求）</div>
+            <div class="disclaimer">⚠️ 本系統為輔助參考，若流速異常請諮詢專業醫師</div>
         </div>
 
         <!-- ===== 模式設定 ===== -->
@@ -1038,7 +1048,7 @@
         <div class="flex-row" style="justify-content:space-between; flex-wrap:wrap; gap:6px;">
             <button class="btn btn-sm btn-outline" id="clearChartBtn">🗑️ 清除圖表</button>
             <div class="flex-row gap-4">
-                <label class="text-small">Y軸 <input type="number" id="yMinInput" value="0" step="0.5" style="width:46px; padding:3px 6px; border-radius:16px; border:1px solid #dce8dc;"> ~ <input type="number" id="yMaxInput" value="10" step="0.5" style="width:46px; padding:3px 6px; border-radius:16px; border:1px solid #dce8dc;"></label>
+                <label class="text-small">Y軸 <input type="number" id="yMinInput" value="0" step="0.5" style="width:46px; padding:3px 6px; border-radius:16px; border:1px solid #dce8dc;"> ~ <input type="number" id="yMaxInput" value="100" step="5" style="width:46px; padding:3px 6px; border-radius:16px; border:1px solid #dce8dc;"></label>
                 <button class="btn btn-sm btn-outline" id="applyYRange">套用</button>
             </div>
         </div>
@@ -1180,7 +1190,7 @@
         // ====== 測試按鈕 ======
         document.getElementById('testBtn').onclick = function() {
             playSound('click');
-            alert('🧪 測試成功！\n\n✅ 所有按鈕在未連線時都可以點擊！\n✅ 音效系統已初始化\n✅ 遊戲畫面豐富可動\n✅ 肺部動畫即時反應\n✅ 性別圖示：男性♂藍色 / 女性♀紅色\n✅ 計時器自動連動：偵測到流量時自動啟動\n✅ 個人化標準區間：使用年齡+性別+身高計算\n✅ 吐氣/雙向模式標示為「保留」');
+            alert('🧪 測試成功！\n\n✅ 所有按鈕在未連線時都可以點擊！\n✅ 音效系統已初始化\n✅ 遊戲畫面豐富可動\n✅ 肺部動畫即時反應\n✅ 性別圖示：男性♂藍色 / 女性♀紅色\n✅ 計時器自動連動：偵測到流量時自動啟動\n✅ 吸藥粉標準區間：30~90 L/min');
         };
 
         // ====== 身分證驗證 ======
@@ -1203,11 +1213,9 @@
         let serialPort = null;
         let reader = null;
 
-        // 個人化標準區間
-        let stdMin = null;
-        let stdMax = null;
-        let stdPredicted = null;
-        let stdLabel = '';
+        // 吸藥粉標準區間：30 ~ 90 L/min
+        const STD_MIN = 30;
+        const STD_MAX = 90;
 
         // ====== 計時器狀態 ======
         let timerInterval = null;
@@ -1217,39 +1225,6 @@
         let timerSetValue = 60;
         let timerAutoMode = true;
         let timerTriggeredByFlow = false;
-
-        // ====== ★★★ 台灣本土肺功能預測公式 (PEF 尖峰呼氣流速) ★★★ ======
-
-        function calculatePEFPredicted(gender, age, height) {
-            if (!gender || !age || !height) return null;
-            if (age < 6 || height < 100) return null;
-
-            let predicted;
-            if (gender === 'M') {
-                predicted = 3.89 * height - 2.95 * age + 43.59;
-            } else if (gender === 'F') {
-                predicted = 4.10 * height - 1.61 * age - 173.55;
-            } else {
-                return null;
-            }
-
-            return Math.max(100, Math.round(predicted * 10) / 10);
-        }
-
-        function getNormalRange(predicted) {
-            if (!predicted) return { min: null, max: null };
-            return {
-                min: Math.round(predicted * 0.8 * 10) / 10,
-                max: Math.round(predicted * 1.2 * 10) / 10
-            };
-        }
-
-        function getAgeGroupLabel(age) {
-            if (age < 13) return '兒童 (6-12歲)';
-            else if (age < 18) return '青少年 (13-17歲)';
-            else if (age < 61) return '成人 (18-60歲)';
-            else return '銀髮 (61歲以上)';
-        }
 
         // ====== 性別與標準區間 ======
         function getGenderFromId(id) {
@@ -1276,7 +1251,7 @@
             }
         }
 
-        // ====== ★★★ 更新個人化標準區間 ★★★ ======
+        // ====== 更新標準區間（吸藥粉專用：30~90 L/min） ======
         function updatePersonalizedStandard() {
             const idValue = document.getElementById('patientIdNumber').value.toUpperCase();
             const isValid = validateTaiwanId(idValue);
@@ -1297,40 +1272,20 @@
             const detailDisplay = document.getElementById('stdRangeDetail');
 
             if (!gender || !age || isNaN(age) || age < 6 || !height || isNaN(height) || height < 100) {
-                stdMin = null;
-                stdMax = null;
-                stdPredicted = null;
                 rangeDisplay.textContent = '請輸入完整資訊（身分證、年齡、身高）';
                 rangeDisplay.style.color = '#b7950b';
                 detailDisplay.textContent = '需要：身分證(自動偵測性別) + 年齡(≥6歲) + 身高(≥100cm)';
                 return;
             }
 
-            const predicted = calculatePEFPredicted(gender, age, height);
-
-            if (!predicted) {
-                stdMin = null;
-                stdMax = null;
-                stdPredicted = null;
-                rangeDisplay.textContent = '無法計算，請確認輸入數值';
-                rangeDisplay.style.color = '#c0392b';
-                detailDisplay.textContent = '';
-                return;
-            }
-
-            stdPredicted = predicted;
-            const range = getNormalRange(predicted);
-            stdMin = range.min;
-            stdMax = range.max;
-
             const genderText = getGenderText(gender);
-            const ageGroup = getAgeGroupLabel(age);
+            const ageGroup = age < 13 ? '兒童' : (age < 18 ? '青少年' : (age < 61 ? '成人' : '銀髮'));
 
-            rangeDisplay.textContent = `${genderText} ${ageGroup}：預測值 ${predicted} L/min，正常範圍 ${range.min} ~ ${range.max} L/min`;
+            rangeDisplay.textContent = `${genderText} ${ageGroup}：建議吸氣流速 30 ~ 90 L/min`;
             rangeDisplay.style.color = '#1b7e4a';
 
             detailDisplay.textContent =
-                `📐 計算公式：${gender === 'M' ? 'PEF = 3.89×身高 - 2.95×年齡 + 43.59' : 'PEF = 4.10×身高 - 1.61×年齡 - 173.55'}  (台灣本土公式) ｜ 正常範圍 = 預測值 × 80%~120%`;
+                `📐 參考範圍：30 ~ 90 L/min（不同吸入器可能有不同需求，請遵從醫師指示）\n📏 年齡：${age}歲 | 身高：${height}cm | 性別：${genderText}`;
 
             if (currentFlow > 0) {
                 updateFlowStatus(currentFlow);
@@ -1340,7 +1295,9 @@
         // ====== 肺部動畫 ======
         function updateLungs(flow) {
             const absFlow = Math.abs(flow);
-            const scale = 0.45 + Math.min(absFlow / 7, 1) * 0.50;
+            // 將流量映射到縮放比例 (30~90 L/min 對應 0.45~0.95)
+            const normalizedFlow = Math.min(Math.max(absFlow, 0), 90);
+            const scale = 0.45 + (normalizedFlow / 90) * 0.50;
 
             const leftFill = document.getElementById('leftLungFill');
             const rightFill = document.getElementById('rightLungFill');
@@ -1353,7 +1310,7 @@
                 rightFill.setAttribute('transform', `scale(${scale},${scale})`);
             }
 
-            const intensity = Math.min(absFlow / 5, 1);
+            const intensity = Math.min(absFlow / 50, 1);
             const r = 160 + 90 * intensity;
             const g = 130 - 50 * intensity;
             const b = 130 - 50 * intensity;
@@ -1363,13 +1320,13 @@
             if (rightFill) rightFill.setAttribute('fill', color);
 
             if (flowIndicator) {
-                flowIndicator.setAttribute('opacity', absFlow > 0.5 ? '1' : '0');
+                flowIndicator.setAttribute('opacity', absFlow > 5 ? '1' : '0');
             }
 
             updateBreathBall(absFlow);
 
             // 計時器自動連動
-            if (timerAutoMode && absFlow > 0.5 && !timerRunning) {
+            if (timerAutoMode && absFlow > 5 && !timerRunning) {
                 startTimer();
                 timerTriggeredByFlow = true;
                 document.getElementById('timerTriggerStatus').textContent = '⏱️ 流量觸發啟動';
@@ -1387,10 +1344,11 @@
             const flowDisplay = document.getElementById('ballFlowValue');
             if (!ball) return;
 
-            const scale = 0.6 + Math.min(flow / 6, 1) * 0.5;
+            const normalizedFlow = Math.min(Math.abs(flow), 90);
+            const scale = 0.6 + (normalizedFlow / 90) * 0.5;
             ball.style.transform = `scale(${scale})`;
 
-            const intensity = Math.min(flow / 5, 1);
+            const intensity = Math.min(normalizedFlow / 50, 1);
             const r = 30 + 60 * intensity;
             const g = 90 + 80 * intensity;
             const b = 30 + 40 * intensity;
@@ -1403,13 +1361,13 @@
             }
         }
 
-        // ====== 更新流量狀態 ======
+        // ====== 更新流量狀態（吸藥粉專用標準） ======
         function updateFlowStatus(flow) {
             const absFlow = Math.abs(flow);
             const indicator = document.getElementById('flowStatusIndicator');
             const detail = document.getElementById('flowStatusDetail');
 
-            if (absFlow < 0.1) {
+            if (absFlow < 0.5) {
                 indicator.className = 'status-indicator grey';
                 indicator.textContent = '⚪ 等待測量';
                 detail.textContent = '-';
@@ -1419,41 +1377,30 @@
                 return;
             }
 
-            if (stdMin !== null && stdMax !== null && stdPredicted !== null) {
-                const percentOfPredicted = (absFlow / stdPredicted * 100);
-
-                if (absFlow >= stdMin && absFlow <= stdMax) {
-                    indicator.className = 'status-indicator green';
-                    indicator.textContent = '✅ 正常 (綠燈)';
-                    detail.textContent =
-                        `${absFlow.toFixed(2)} L/min (預測值 ${stdPredicted} 的 ${Math.round(percentOfPredicted)}%) 在正常範圍內`;
-                    document.getElementById('light1').className = 'light on-green';
-                    document.getElementById('light2').className = 'light on-green';
-                    document.getElementById('light3').className = 'light on-green';
-                } else if (absFlow < stdMin) {
-                    indicator.className = 'status-indicator yellow';
-                    indicator.textContent = '⚠️ 低於標準 (黃燈)';
-                    detail.textContent =
-                        `${absFlow.toFixed(2)} L/min (預測值 ${stdPredicted} 的 ${Math.round(percentOfPredicted)}%) 低於正常下限 ${stdMin} L/min`;
-                    document.getElementById('light1').className = 'light on-yellow';
-                    document.getElementById('light2').className = 'light on-yellow';
-                    document.getElementById('light3').className = 'light on-yellow';
-                } else {
-                    indicator.className = 'status-indicator red';
-                    indicator.textContent = '🔴 高於標準 (紅燈)';
-                    detail.textContent =
-                        `${absFlow.toFixed(2)} L/min (預測值 ${stdPredicted} 的 ${Math.round(percentOfPredicted)}%) 高於正常上限 ${stdMax} L/min`;
-                    document.getElementById('light1').className = 'light on-red';
-                    document.getElementById('light2').className = 'light on-red';
-                    document.getElementById('light3').className = 'light on-red';
-                }
+            // 吸藥粉標準區間：30 ~ 90 L/min
+            if (absFlow >= STD_MIN && absFlow <= STD_MAX) {
+                indicator.className = 'status-indicator green';
+                indicator.textContent = '✅ 正常 (綠燈)';
+                detail.textContent = `${absFlow.toFixed(2)} L/min 在建議範圍內 (30~90 L/min)`;
+                document.getElementById('light1').className = 'light on-green';
+                document.getElementById('light2').className = 'light on-green';
+                document.getElementById('light3').className = 'light on-green';
+            } else if (absFlow < STD_MIN) {
+                indicator.className = 'status-indicator yellow';
+                indicator.textContent = '⚠️ 流速不足 (黃燈)';
+                detail.textContent =
+                    `${absFlow.toFixed(2)} L/min 低於建議值 ${STD_MIN} L/min，可能影響藥效，請諮詢醫師`;
+                document.getElementById('light1').className = 'light on-yellow';
+                document.getElementById('light2').className = 'light on-yellow';
+                document.getElementById('light3').className = 'light on-yellow';
             } else {
-                indicator.className = 'status-indicator grey';
-                indicator.textContent = '⚪ 無標準區間';
-                detail.textContent = '請輸入完整個人資訊（身分證、年齡、身高）';
-                document.getElementById('light1').className = 'light';
-                document.getElementById('light2').className = 'light';
-                document.getElementById('light3').className = 'light';
+                indicator.className = 'status-indicator red';
+                indicator.textContent = '🔴 流速過快 (紅燈)';
+                detail.textContent =
+                    `${absFlow.toFixed(2)} L/min 高於建議值 ${STD_MAX} L/min，可能影響藥物沉積，請諮詢醫師`;
+                document.getElementById('light1').className = 'light on-red';
+                document.getElementById('light2').className = 'light on-red';
+                document.getElementById('light3').className = 'light on-red';
             }
         }
 
@@ -1526,7 +1473,7 @@
                 animation: false,
                 scales: {
                     x: { title: { display: true, text: '時間 (秒)' }, grid: { color: '#e8f0e8' } },
-                    y: { min: 0, max: 10, title: { display: true, text: '流量 (L/min)' }, grid: { color: '#e8f0e8' } }
+                    y: { min: 0, max: 100, title: { display: true, text: '流量 (L/min)' }, grid: { color: '#e8f0e8' } }
                 },
                 plugins: { legend: { display: false } }
             }
@@ -1544,20 +1491,24 @@
                 cy = h - 6,
                 radius = Math.min(w / 2 - 24, 50);
 
+            // 背景弧 (0~100 L/min)
             ctxGauge.beginPath();
             ctxGauge.arc(cx, cy, radius, Math.PI, 0);
             ctxGauge.strokeStyle = '#d0e2d0';
             ctxGauge.lineWidth = 10;
             ctxGauge.stroke();
 
-            const angle = Math.PI + Math.min(value / 10, 1) * Math.PI;
+            // 值弧 (0~100 L/min)
+            const maxDisplay = 100;
+            const angle = Math.PI + Math.min(value / maxDisplay, 1) * Math.PI;
             ctxGauge.beginPath();
             ctxGauge.arc(cx, cy, radius, Math.PI, angle);
             ctxGauge.strokeStyle = '#1b7e4a';
             ctxGauge.lineWidth = 10;
             ctxGauge.stroke();
 
-            const pAngle = Math.PI + Math.min(value / 10, 1) * Math.PI;
+            // 指針
+            const pAngle = Math.PI + Math.min(value / maxDisplay, 1) * Math.PI;
             const px = cx + (radius - 2) * Math.cos(pAngle);
             const py = cy + (radius - 2) * Math.sin(pAngle);
             ctxGauge.beginPath();
@@ -1567,8 +1518,9 @@
             ctxGauge.lineWidth = 3;
             ctxGauge.stroke();
 
+            // 峰值指針
             if (peak > 0.3) {
-                const peakAngle = Math.PI + Math.min(peak / 10, 1) * Math.PI;
+                const peakAngle = Math.PI + Math.min(peak / maxDisplay, 1) * Math.PI;
                 const px2 = cx + (radius + 2) * Math.cos(peakAngle);
                 const py2 = cy + (radius + 2) * Math.sin(peakAngle);
                 ctxGauge.beginPath();
@@ -1585,11 +1537,12 @@
                 ctxGauge.fill();
             }
 
+            // 刻度標記
             ctxGauge.fillStyle = '#4a6a4a';
             ctxGauge.font = '10px sans-serif';
             ctxGauge.textAlign = 'center';
-            for (let i = 0; i <= 10; i += 2) {
-                const a = Math.PI + (i / 10) * Math.PI;
+            for (let i = 0; i <= 100; i += 20) {
+                const a = Math.PI + (i / 100) * Math.PI;
                 const x = cx + (radius - 14) * Math.cos(a);
                 const y = cy + (radius - 14) * Math.sin(a);
                 ctxGauge.fillText(i, x, y + 3);
@@ -1597,6 +1550,14 @@
             ctxGauge.fillStyle = '#1f3a2f';
             ctxGauge.font = 'bold 14px sans-serif';
             ctxGauge.fillText(value.toFixed(1), cx, 16);
+
+            // 標示標準區間 (30~90 L/min)
+            ctxGauge.fillStyle = 'rgba(46, 204, 113, 0.15)';
+            ctxGauge.fillRect(cx - 60, h - 14, 120, 6);
+            ctxGauge.fillStyle = '#2ecc71';
+            ctxGauge.font = '8px sans-serif';
+            ctxGauge.fillText('30', cx - 60, h - 4);
+            ctxGauge.fillText('90', cx + 50, h - 4);
         }
 
         // ====== 步驟管理 ======
@@ -1801,12 +1762,9 @@
             const age = parseInt(document.getElementById('patientAge').value) || 30;
             const height = parseFloat(document.getElementById('patientHeight').value) || 165;
             const gender = idNumber.charAt(1) === '1' ? '男' : '女';
-            let content = `=== 呼吸流量監測報告 ===\n`;
+            let content = `=== 呼吸流量監測報告（吸藥輔助） ===\n`;
             content += `病患編號: ${id}\n身分證: ${idNumber}\n年齡: ${age} 歲\n身高: ${height} cm\n性別: ${gender}\n`;
-            if (stdPredicted) {
-                content += `個人化PEF預測值: ${stdPredicted} L/min\n`;
-                content += `正常範圍: ${stdMin} ~ ${stdMax} L/min\n`;
-            }
+            content += `建議吸氣流速範圍: ${STD_MIN} ~ ${STD_MAX} L/min\n`;
             content += `測量時間: ${new Date().toLocaleString()}\n\n`;
             content += `--- 流量數據 (時間, 流量) ---\n`;
             flowData.forEach(([t, f]) => content += `${t.toFixed(2)},${f.toFixed(2)}\n`);
@@ -1862,7 +1820,7 @@
         document.getElementById('applyYRange').onclick = function() {
             playSound('click');
             const min = parseFloat(document.getElementById('yMinInput').value) || 0;
-            const max = parseFloat(document.getElementById('yMaxInput').value) || 10;
+            const max = parseFloat(document.getElementById('yMaxInput').value) || 100;
             if (min >= max) { showModal('⚠️ 錯誤', '最小值需小於最大值'); return; }
             chartInstance.options.scales.y.min = min;
             chartInstance.options.scales.y.max = max;
@@ -1876,7 +1834,6 @@
             document.querySelectorAll('#modeInhale,#modeExhale,#modeBoth').forEach(b => b.className =
             'btn btn-sm btn-outline');
             this.className = 'btn btn-sm btn-active';
-            // 恢復吐氣和雙向的透明度
             document.getElementById('modeExhale').style.opacity = '0.6';
             document.getElementById('modeBoth').style.opacity = '0.6';
             showModal('😤 吸氣模式', '已切換至「吸氣 (吸藥)」模式\n\n💡 吐氣與雙向模式為未來擴充功能，目前保留');
@@ -1884,12 +1841,12 @@
 
         document.getElementById('modeExhale').onclick = function() {
             playSound('click');
-            showModal('🔮 功能保留', '「吐氣模式」為未來擴充功能\n\n目前裝置為吸藥粉專用，吸氣與吐氣共用相同標準\n此模式保留供未來真正測吐氣的裝置使用');
+            showModal('🔮 功能保留', '「吐氣模式」為未來擴充功能\n\n目前裝置為吸藥粉專用，此模式保留供未來真正測吐氣的裝置使用');
         };
 
         document.getElementById('modeBoth').onclick = function() {
             playSound('click');
-            showModal('🔮 功能保留', '「雙向模式」為未來擴充功能\n\n目前裝置為吸藥粉專用，吸氣與吐氣共用相同標準\n此模式保留供未來真正測吸吐氣的裝置使用');
+            showModal('🔮 功能保留', '「雙向模式」為未來擴充功能\n\n目前裝置為吸藥粉專用，此模式保留供未來真正測吸吐氣的裝置使用');
         };
 
         document.getElementById('modeSingle').onclick = function() {
@@ -2046,7 +2003,7 @@
                 btn.style.borderColor = '#2ecc7140';
                 status.className = 'timer-status-badge auto';
                 status.textContent = '自動開';
-                if (currentFlow < 0.5) {
+                if (currentFlow < 5) {
                     resetTimer();
                 }
                 showModal('🤖 自動模式', '計時器將在偵測到流量時自動啟動');
@@ -2067,7 +2024,7 @@
         // ====== 遊戲模式 ======
         const games = [
             { id: 0, name: '目標挑戰', icon: '🎯', desc: '達到目標流量', rule: '吸氣達到目標值即可得分' },
-            { id: 1, name: '穩定維持', icon: '📈', desc: '維持在目標區間', rule: '保持流量在目標±0.8範圍內' },
+            { id: 1, name: '穩定維持', icon: '📈', desc: '維持在目標區間', rule: '保持流量在目標±8範圍內' },
             { id: 2, name: '爆發力', icon: '⚡', desc: '衝刺最高流量', rule: '衝刺達到峰值得高分' },
             { id: 3, name: '節奏呼吸', icon: '🔄', desc: '規律吸吐交替', rule: '每8次呼吸得一分' },
             { id: 4, name: '累積積分', icon: '🏆', desc: '每次吸氣得分', rule: '每次吸氣都獲得分數' },
@@ -2105,7 +2062,7 @@
 
             if (gameActive) {
                 currentGame = Math.floor(Math.random() * 6);
-                gameTarget = (1.5 + Math.random() * 5.5);
+                gameTarget = (20 + Math.random() * 60);
                 gameTarget = Math.round(gameTarget * 10) / 10;
                 gameScore = 0;
                 gameProgressVal = 0;
@@ -2149,7 +2106,7 @@
             if (!gameActive) return;
 
             currentGame = (currentGame + 1) % 6;
-            gameTarget = (1.5 + Math.random() * 5.5);
+            gameTarget = (20 + Math.random() * 60);
             gameTarget = Math.round(gameTarget * 10) / 10;
             gameScore = 0;
             gameProgressVal = 0;
@@ -2173,7 +2130,7 @@
 
         function processGame(flow) {
             const absFlow = Math.abs(flow);
-            if (absFlow < 0.1) return;
+            if (absFlow < 0.5) return;
 
             let points = 0;
             let progress = 0;
@@ -2192,7 +2149,7 @@
                     }
                     break;
                 case 1:
-                    if (absFlow >= target - 0.8 && absFlow <= target + 0.8) {
+                    if (absFlow >= target - 8 && absFlow <= target + 8) {
                         points = 8;
                         progress = Math.min(100, (absFlow / target) * 100);
                         feedbackMsg = '📈 穩定！+8分！';
@@ -2202,18 +2159,18 @@
                     }
                     break;
                 case 2:
-                    if (absFlow > peakFlowValue * 0.85 && peakFlowValue > 1) {
+                    if (absFlow > peakFlowValue * 0.85 && peakFlowValue > 5) {
                         points = 12;
-                        progress = Math.min(100, (absFlow / 8) * 100);
+                        progress = Math.min(100, (absFlow / 100) * 100);
                         feedbackMsg = '⚡ 爆發！+12分！';
                     } else {
-                        progress = Math.min(80, (absFlow / 8) * 80);
+                        progress = Math.min(80, (absFlow / 100) * 80);
                         feedbackMsg = `⚡ 峰值 ${peakFlowValue.toFixed(1)} L/min`;
                     }
                     break;
                 case 3:
                     gameConsecutiveBreaths++;
-                    if (gameConsecutiveBreaths % 8 === 0 && absFlow > 1) {
+                    if (gameConsecutiveBreaths % 8 === 0 && absFlow > 5) {
                         points = 6;
                         progress = Math.min(100, (gameConsecutiveBreaths / 80) * 100);
                         feedbackMsg = '🔄 節奏讚！+6分！';
@@ -2223,7 +2180,7 @@
                     }
                     break;
                 case 4:
-                    points = Math.floor(absFlow * 1.5);
+                    points = Math.floor(absFlow * 0.3);
                     progress = Math.min(100, (gameScore / 100) * 100);
                     feedbackMsg = `🏆 +${points}分！`;
                     break;
@@ -2310,13 +2267,11 @@
         initAudio();
 
         console.log('✅ 系統已初始化');
-        console.log('👨 男性圖示: ♂ 藍色');
-        console.log('👩 女性圖示: ♀ 紅色');
-        console.log('📊 個人化標準區間：使用台灣本土公式 (年齡+性別+身高)');
-        console.log('   男性: PEF = 3.89×身高 - 2.95×年齡 + 43.59');
-        console.log('   女性: PEF = 4.10×身高 - 1.61×年齡 - 173.55');
+        console.log('💊 吸藥粉標準區間：30 ~ 90 L/min');
+        console.log('👨 男性圖示: ♂ 藍色 | 👩 女性圖示: ♀ 紅色');
         console.log('⏱️ 計時器自動連動: 偵測到流量時自動啟動');
         console.log('🔮 吐氣/雙向模式標示為「保留」供未來擴充');
+        console.log('📋 本系統為輔助參考，異常請諮詢醫師');
     </script>
 </body>
 </html>
